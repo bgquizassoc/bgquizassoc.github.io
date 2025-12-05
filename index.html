@@ -107,8 +107,7 @@
 <img src="emblema.png" alt="Лого" class="logo" />
 </header>
 
-
-<nav>
+<div class="container">
 <a href="/index.html">Начало</a>
 <a href="#">Събития</a>
 <a href="#">Куиз играчи</a>
@@ -119,12 +118,30 @@
 <a href="#">Отиди на куиз</a>
 <a href="/igri/index.html">Игри на Знания</a>
 <a href="#">Асоциация</a>
-</nav>
+</div>
+    <!-- Popup контейнер - СКРИТ -->
+<div id="logo-popup">
+    <img src="emblema.png" alt="Голямо лого">
+</div>
+
+<script>
+    const logo = document.querySelector('.logo');
+    const popup = document.getElementById('logo-popup');
+
+    logo.addEventListener('click', () => {
+        popup.style.display = 'flex';
+    });
+
+    popup.addEventListener('click', () => {
+        popup.style.display = 'none';
+    });
+</script>
 
 
 </body>
 
 </html>
+
 
 
 
