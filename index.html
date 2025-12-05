@@ -4,15 +4,16 @@
 
 <meta charset="UTF-8" />
 <title>Българска Национална Куиз Асоциация</title>
-    <!-- Google tag (gtag.js) -->
+
+<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-PK66NTHPN8');
 </script>
+
 <style>
     body {
         margin: 0;
@@ -57,35 +58,38 @@
         text-stroke: 3px #ffffff;
     }
 
-    .container {
-        margin-top: 40px;
+    /* ----------- ХОРИЗОНТАЛНА НАВИГАЦИЯ ----------- */
+    nav.main-nav {
+        background-color: #003366;
+        padding: 15px 0;
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 25px;
+        justify-content: center;
+        flex-wrap: wrap;     /* позволява пренасяне на малки екрани */
+        gap: 18px;
+        border-bottom: 2px solid #00509e;
     }
 
-    .menu-btn {
-        width: 260px;
-        padding: 18px 10px;
-        background-color: #003366;
+    nav.main-nav a {
         color: white;
         text-decoration: none;
-        font-size: 20px;
+        font-size: 18px;
         font-weight: bold;
-        border-radius: 8px;
+        padding: 10px 16px;
+        border-radius: 6px;
+        background-color: #003d7a;
         border: 2px solid #00509e;
         transition: 0.2s;
     }
 
-    .menu-btn:hover {
-        background-color: #004080;
-        transform: scale(1.03);
+    nav.main-nav a:hover {
+        background-color: #004a9f;
+        transform: scale(1.05);
     }
+    /* ---------------------------------------------- */
 
     /* Popup стил — правилно скрит */
     #logo-popup {
-        display: none; /* ТОВА ОСТАВА! */
+        display: none;
         position: fixed;
         top: 0; left: 0;
         width: 100%; height: 100%;
@@ -100,26 +104,30 @@
         max-height: 90%;
     }
 </style>
+
 </head>
 <body>
+
 <header>
-<div class="title">БЪЛГАРСКА НАЦИОНАЛНА КУИЗ АСОЦИАЦИЯ</div>
-<img src="emblema.png" alt="Лого" class="logo" />
+    <div class="title">БЪЛГАРСКА НАЦИОНАЛНА КУИЗ АСОЦИАЦИЯ</div>
+    <img src="emblema.png" alt="Лого" class="logo" />
 </header>
 
-<div class="container">
-<a href="/index.html">Начало</a>
-<a href="#">Събития</a>
-<a href="#">Куиз играчи</a>
-<a href="#">Отбори</a>
-<a href="#">Нац. отбор</a>
-<a href="/results/2025-11-30.html">Класирания</a>
-<a href="/video/index.html">Мултимедия</a>
-<a href="#">Отиди на куиз</a>
-<a href="/igri/index.html">Игри на Знания</a>
-<a href="#">Асоциация</a>
-</div>
-    <!-- Popup контейнер - СКРИТ -->
+<!-- ХОРИЗОНТАЛНО МЕНЮ -->
+<nav class="main-nav">
+    <a href="/index.html">Начало</a>
+    <a href="#">Събития</a>
+    <a href="#">Куиз играчи</a>
+    <a href="#">Отбори</a>
+    <a href="#">Нац. отбор</a>
+    <a href="/results/2025-11-30.html">Класирания</a>
+    <a href="/video/index.html">Мултимедия</a>
+    <a href="#">Отиди на куиз</a>
+    <a href="/igri/index.html">Игри на Знания</a>
+    <a href="#">Асоциация</a>
+</nav>
+
+<!-- Popup контейнер -->
 <div id="logo-popup">
     <img src="emblema.png" alt="Голямо лого">
 </div>
@@ -137,12 +145,5 @@
     });
 </script>
 
-
 </body>
-
 </html>
-
-
-
-
-
