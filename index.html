@@ -103,12 +103,97 @@
         max-width: 90%;
         max-height: 90%;
     }
+/* Навигация под заглавието */
+nav {
+    background-color: #003366;
+    padding: 10px 0;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+/* Hamburger бутон – скрит на широк екран */
+.hamburger {
+    display: none;
+    font-size: 35px;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Мобилно меню – скрито */
+.mobile-menu {
+    display: none;
+    flex-direction: column;
+    background: #003366;
+    padding: 15px;
+}
+
+.mobile-menu a {
+    margin: 10px 0;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    nav {
+        display: none; /* скриваме нормалното меню */
+    }
+
+    .hamburger {
+        display: block; /* показваме ☰ */
+        margin-top: 15px;
+    }
+
+    .mobile-menu {
+        display: none; /* по начало скрито */
+    }
+
+    .mobile-menu.active {
+        display: flex; /* показва се при клик */
+    }
+}
 </style>
 
 </head>
 <body>
 
 <header>
+<div class="hamburger">☰ Меню</div>
+
+<nav>
+    <a href="/index.html">Начало</a>
+    <a href="#">Събития</a>
+    <a href="#">Куиз играчи</a>
+    <a href="#">Отбори</a>
+    <a href="#">Нац. отбор</a>
+    <a href="/results/2025-11-30.html">Класирания</a>
+    <a href="/video/index.html">Мултимедия</a>
+    <a href="#">Отиди на куиз</a>
+    <a href="/igri/index.html">Игри на Знания</a>
+    <a href="#">Асоциация</a>
+</nav>
+
+<!-- За мобилни -->
+<div class="mobile-menu">
+    <a href="/index.html">Начало</a>
+    <a href="#">Събития</a>
+    <a href="#">Куиз играчи</a>
+    <a href="#">Отбори</a>
+    <a href="#">Нац. отбор</a>
+    <a href="/results/2025-11-30.html">Класирания</a>
+    <a href="/video/index.html">Мултимедия</a>
+    <a href="#">Отиди на куиз</a>
+    <a href="/igri/index.html">Игри на Знания</a>
+    <a href="#">Асоциация</a>
+</div>
     <div class="title">БЪЛГАРСКА НАЦИОНАЛНА КУИЗ АСОЦИАЦИЯ</div>
     <img src="emblema.png" alt="Лого" class="logo" />
 </header>
@@ -144,6 +229,14 @@
         popup.style.display = 'none';
     });
 </script>
+<script>
+const hamburger = document.querySelector('.hamburger');
+const mobileMenu = document.querySelector('.mobile-menu');
 
+hamburger.addEventListener('click', () => {
+    mobileMenu.classList.toggle('active');
+});
+</script>
 </body>
 </html>
+
