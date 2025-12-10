@@ -30,6 +30,7 @@
         align-items: center;
         gap: 20px;
         background-color: #00264d;
+        flex-wrap: wrap; /* Позволява заглавие + лого да паднат подредено на малък екран */
     }
 
     .logo {
@@ -58,14 +59,14 @@
         text-stroke: 3px #ffffff;
     }
 
-    /* ----------- ХОРИЗОНТАЛНА НАВИГАЦИЯ ----------- */
+    /* ----------- ХОРИЗОНТАЛНА / RESPONSIVE НАВИГАЦИЯ ----------- */
     nav.main-nav {
         background-color: #003366;
-        padding: 15px 0;
+        padding: 15px 10px;
         display: flex;
         justify-content: center;
-        flex-wrap: wrap;     /* позволява пренасяне на малки екрани */
-        gap: 18px;
+        flex-wrap: wrap;     /* Пренасяне на няколко реда */
+        gap: 12px;
         border-bottom: 2px solid #00509e;
     }
 
@@ -74,18 +75,42 @@
         text-decoration: none;
         font-size: 18px;
         font-weight: bold;
-        padding: 10px 16px;
+        padding: 12px 18px;
         border-radius: 6px;
         background-color: #003d7a;
         border: 2px solid #00509e;
         transition: 0.2s;
+        white-space: nowrap; /* Да не се чупят думите */
     }
 
     nav.main-nav a:hover {
         background-color: #004a9f;
         transform: scale(1.05);
     }
-    /* ---------------------------------------------- */
+
+    /* --- MOBILE VIEW --- */
+    @media (max-width: 600px) {
+        nav.main-nav {
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        nav.main-nav a {
+            width: 90%;
+            font-size: 20px;
+            padding: 14px;
+        }
+
+        .title {
+            font-size: 40px;
+            -webkit-text-stroke: 2px #ffffff;
+        }
+
+        .logo {
+            height: 80px;
+        }
+    }
 
     /* Popup стил — правилно скрит */
     #logo-popup {
@@ -103,102 +128,18 @@
         max-width: 90%;
         max-height: 90%;
     }
-/* Навигация под заглавието */
-nav {
-    background-color: #003366;
-    padding: 10px 0;
-}
 
-nav a {
-    color: white;
-    text-decoration: none;
-    margin: 0 15px;
-    font-size: 20px;
-    font-weight: bold;
-}
-
-nav a:hover {
-    text-decoration: underline;
-}
-
-/* Hamburger бутон – скрит на широк екран */
-.hamburger {
-    display: none;
-    font-size: 35px;
-    cursor: pointer;
-    user-select: none;
-}
-
-/* Мобилно меню – скрито */
-.mobile-menu {
-    display: none;
-    flex-direction: column;
-    background: #003366;
-    padding: 15px;
-}
-
-.mobile-menu a {
-    margin: 10px 0;
-}
-
-/* --- RESPONSIVE --- */
-@media (max-width: 768px) {
-    nav {
-        display: none; /* скриваме нормалното меню */
-    }
-
-    .hamburger {
-        display: block; /* показваме ☰ */
-        margin-top: 15px;
-    }
-
-    .mobile-menu {
-        display: none; /* по начало скрито */
-    }
-
-    .mobile-menu.active {
-        display: flex; /* показва се при клик */
-    }
-}
 </style>
 
 </head>
 <body>
 
 <header>
-<div class="hamburger">☰ Меню</div>
-
-<nav>
-    <a href="/index.html">Начало</a>
-    <a href="#">Събития</a>
-    <a href="#">Куиз играчи</a>
-    <a href="#">Отбори</a>
-    <a href="#">Нац. отбор</a>
-    <a href="/results/2025-11-30.html">Класирания</a>
-    <a href="/video/index.html">Мултимедия</a>
-    <a href="#">Отиди на куиз</a>
-    <a href="/igri/index.html">Игри на Знания</a>
-    <a href="#">Асоциация</a>
-</nav>
-
-<!-- За мобилни -->
-<div class="mobile-menu">
-    <a href="/index.html">Начало</a>
-    <a href="#">Събития</a>
-    <a href="#">Куиз играчи</a>
-    <a href="#">Отбори</a>
-    <a href="#">Нац. отбор</a>
-    <a href="/results/2025-11-30.html">Класирания</a>
-    <a href="/video/index.html">Мултимедия</a>
-    <a href="#">Отиди на куиз</a>
-    <a href="/igri/index.html">Игри на Знания</a>
-    <a href="#">Асоциация</a>
-</div>
     <div class="title">БЪЛГАРСКА НАЦИОНАЛНА КУИЗ АСОЦИАЦИЯ</div>
     <img src="emblema.png" alt="Лого" class="logo" />
 </header>
 
-<!-- ХОРИЗОНТАЛНО МЕНЮ -->
+<!-- ХОРИЗОНТАЛНО + RESPONSIVE МЕНЮ -->
 <nav class="main-nav">
     <a href="/index.html">Начало</a>
     <a href="#">Събития</a>
@@ -229,14 +170,6 @@ nav a:hover {
         popup.style.display = 'none';
     });
 </script>
-<script>
-const hamburger = document.querySelector('.hamburger');
-const mobileMenu = document.querySelector('.mobile-menu');
 
-hamburger.addEventListener('click', () => {
-    mobileMenu.classList.toggle('active');
-});
-</script>
 </body>
 </html>
-
