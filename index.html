@@ -132,7 +132,216 @@
         max-width: 90%;
         max-height: 90%;
     }
+/* Основен контейнер */
+.content-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 25px;
+    max-width: 1300px;
+    margin: auto;
+}
 
+/* Ляв блок (новини) */
+.news-section {
+    width: 65%;
+    background: #002b57;
+    padding: 20px;
+    border-radius: 8px;
+    min-height: 520px;
+}
+
+.news-section h2 {
+    text-align: left;
+    margin-bottom: 15px;
+}
+
+/* Една новина */
+.news-item {
+    background: #ffffff;
+    color: #000;
+    padding: 15px;
+    border-radius: 6px;
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.news-date {
+    color: #004a9f;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+/* Скъсеният текст */
+.news-text.short {
+    height: 5.2em;          /* около 5 реда */
+    overflow: hidden;
+    position: relative;
+}
+
+/* Връзка "прочети повече" и "скрий" */
+.read-more {
+    margin-top: 8px;
+    color: #003d7a;
+    cursor: pointer;
+    font-weight: bold;
+    user-select: none;
+}
+
+/* Странициране */
+.pagination {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.pagination span {
+    margin: 0 8px;
+    padding: 6px 12px;
+    background: #003d7a;
+    border: 1px solid #00509e;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pagination .active-page {
+    background: #00509e;
+}
+
+/* Десен блок */
+.events-section {
+    width: 30%;
+    background: #2b6cb3;
+    padding: 20px;
+    border-radius: 8px;
+    min-height: 520px;
+}
+
+.events-section h2 {
+    margin-bottom: 20px;
+}
+
+.event-item {
+    background: rgba(255,255,255,0.2);
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+/* ======= ПАРТНЬОРИ ======= */
+/* Запазен оригинален цвят на заглавието (няма промяна) */
+.partners-wrapper {
+    width: 100%;
+    border-top: 2px solid #00509e;
+    margin-top: 40px;
+    padding: 18px 20px 35px 20px;
+    box-sizing: border-box;
+}
+
+/* Оригиналният цвят #ffcc00 е запазен - както поиска */
+.partners-title {
+    font-size: 28px;
+    font-weight: bold;
+    color: #ffcc00;
+    text-align: left;
+    margin-bottom: 14px;
+    padding-left: 6px;
+}
+
+/* grid, който подрежда логата в една равна линия.
+   По-широките екрани ще покажат всички в редове; на по-тесни екрани ще се пренареди */
+.partners-grid {
+    display: grid;
+    /* Опитайме да запазим същата "видима плътност" като на снимката:
+       тук 11 колони за широк екран; при нужда grid ще обтека на по-малки екрани */
+    grid-template-columns: repeat(11, 1fr);
+    gap: 18px;
+    align-items: start;
+    justify-items: center;
+}
+
+/* Всеки партньор: място за логото (горе) и име (долу) */
+.partner-cell {
+    width: 100%;
+    max-width: 120px; /* ширина на "колона" / бокс */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.partner-box {
+    width: 100%;
+    height: 72px; /* място за логото — използвай stani_bogat.png като ориентир */
+    background: #ffffff;
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px;
+    box-sizing: border-box;
+}
+
+.partner-box img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Името под логото — това е активният линк (кликаем) */
+.partner-name {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.15;
+    color: #ffffff; /* бяло на тъмен фон */
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* максимум 2 реда */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+}
+
+/* Линк стил за имената */
+.partner-name a {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.partner-name a:hover {
+    text-decoration: underline;
+    color: #ffd966;
+}
+
+/* На по-малки екрани — позволяваме пречупване/обтекаване на колоните */
+@media (max-width: 1300px) {
+    .partners-grid {
+        grid-template-columns: repeat(8, 1fr);
+    }
+    .partner-cell { max-width: 110px; }
+}
+
+@media (max-width: 1000px) {
+    .partners-grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
+    .partner-cell { max-width: 100px; }
+}
+
+@media (max-width: 700px) {
+    .partners-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .partners-title { text-align: center; }
+}
+
+@media (max-width: 420px) {
+    .partners-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .partner-box { height: 60px; }
+    .partner-name { font-size: 12px; }
+}
 </style>
 
 </head>
@@ -158,6 +367,67 @@
     <a href="#">Отиди на куиз</a>
     <a href="/igri/index.html">Игри на Знания</a>
     <a href="#">Асоциация</a>
+<!-- ======= ОСНОВЕН КОНТЕЙНЕР ЗА НОВИНИ И КУИЗОВЕ ======= -->
+<div class="content-wrapper">
+
+    <!-- ======= ЛЯВ БЛОК — НОВИНИ ======= -->
+    <div class="news-section">
+        <h2>Новини</h2>
+
+        <!-- Блок 1 -->
+        <div class="news-item">
+            <div class="news-date">12 ноември 2025 г</div>
+
+            <div class="news-text short">
+                Чудесно представяне на националния отбор на Международния куиз шампионат в Казерта, Италия.
+                Най-престижният куиз форум за годината се състоя от 7-ми до 9-ти ноември в туристическото градче Казерта...
+            </div>
+
+            <div class="read-more">… прочети повече</div>
+        </div>
+
+        <!-- Блок 2 -->
+        <div class="news-item">
+            <div class="news-date">06 ноември 2025 г</div>
+
+            <div class="news-text short">
+                Чудесно представяне на националния отбор на Международния куиз шампионат. За първи път в историята
+                българският отбор беше подкрепен от Българския спортен тотализатор…
+            </div>
+
+            <div class="read-more">… прочети повече</div>
+        </div>
+
+        <!-- Блок 3 -->
+        <div class="news-item">
+            <div class="news-date">03 ноември 2025 г</div>
+
+            <div class="news-text short">
+                Още едно силно представяне. Българските състезатели показаха отлична подготовка, въпреки голямата конкуренция…
+            </div>
+
+            <div class="read-more">… прочети повече</div>
+        </div>
+
+        <!-- Странициране -->
+        <div class="pagination">
+            <span class="active-page">1</span>
+            <span>2</span>
+            <span>3</span>
+        </div>
+    </div>
+
+    <!-- ======= ДЕСЕН БЛОК — ПРЕДСТОЯЩИ КУИЗОВЕ ======= -->
+    <div class="events-section">
+        <h2>Предстоящи куизове</h2>
+
+        <div class="event-item">12 декември – София – Светкавичен куиз</div>
+        <div class="event-item">15 декември – Пловдив – Влайков куиз</div>
+        <div class="event-item">16 декември – Троян – Стара планина</div>
+    </div>
+
+</div>
+
 </nav>
 
 <!-- Popup контейнер -->
@@ -177,6 +447,87 @@
         popup.style.display = 'none';
     });
 </script>
+<script>
+document.querySelectorAll('.read-more').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const text = btn.previousElementSibling;
+
+        if (text.classList.contains('short')) {
+            text.classList.remove('short');
+            btn.textContent = 'Скрий';
+        } else {
+            text.classList.add('short');
+            btn.textContent = '… прочети повече';
+        }
+    });
+});
+</script>
+
+<!-- ======= ПАРТНЬОРИ (ЗАПАЗЕНИ ТВОИТЕ ЕНТРИ) ======= -->
+<div class="partners-wrapper">
+    <div class="partners-title">Нашите партньори</div>
+
+    <div class="partners-grid">
+        <!-- Запазени всички партньори от оригиналния файл.
+             Забележка: логото НЕ е кликаемо — кликаем е текстът под логото. -->
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="toto.png" alt="Български спортен тотализатор"></div>
+            <div class="partner-name"><a href="https://toto.bg" target="_blank" rel="noopener">Български спортен тотализатор</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="posledniat_pecheli.png" alt="Последният печели (ТВ игра)"></div>
+            <div class="partner-name"><a href="https://bnt.bg/news/posledniyat-pecheli-281378news.html" target="_blank" rel="noopener">Последният печели</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="stani_bogat.png" alt="Стани богат (ТВ игра)"></div>
+            <div class="partner-name"><a href="https://btvplus.bg/produkt/predavaniya/67912/stani-bogat/sezon-4" target="_blank" rel="noopener">Стани богат</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="minuta.png" alt="Минута е много (ТВ игра)"></div>
+            <div class="partner-name"><a href="http://www.minutaemnogo.tv/" target="_blank" rel="noopener">Минута е много</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="igri_na_znania.png" alt="Игри на Знания (група)"></div>
+            <div class="partner-name"><a href="https://www.facebook.com/groups/791002883500846/" target="_blank" rel="noopener">Игри на Знания</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="bg_kuiz_liga.png" alt="Българска куиз лига"></div>
+            <div class="partner-name"><a href="https://www.facebook.com/groups/170785244940606" target="_blank" rel="noopener">Българска куиз лига</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="zagadkite.png" alt="Загадките на Атанас Атанасов"></div>
+            <div class="partner-name"><a href="https://www.facebook.com/ZagadkiAA/?locale=bg_BG" target="_blank" rel="noopener">Загадките на Атанас Атанасов</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="posledniat1.png" alt="Последният печели (група 1)"></div>
+            <div class="partner-name"><a href="https://www.facebook.com/groups/959830148105568?locale=bg_BG" target="_blank" rel="noopener">Последният печели – група 1</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="posledniat2.png" alt="Последният печели (група 2)"></div>
+            <div class="partner-name"><a href="https://www.facebook.com/groups/325290716277553?locale=bg_BG" target="_blank" rel="noopener">Последният печели – група 2</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="geograf.png" alt="Географ БГ"></div>
+            <div class="partner-name"><a href="https://geograf.bg/bg" target="_blank" rel="noopener">Географ БГ</a></div>
+        </div>
+
+        <div class="partner-cell">
+            <div class="partner-box"><img src="level_up.png" alt="Level Up"></div>
+            <div class="partner-name"><a href="https://www.facebook.com/LevelUpOpera/?locale=bg_BG" target="_blank" rel="noopener">Бар Level Up</a></div>
+        </div>
+
+    </div>
+</div>
 
 </body>
 </html>
