@@ -2,80 +2,73 @@
 <html lang="bg">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>1234 | Цифромания</title>
 
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-
-body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #00264d;
-  color: #fff;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  text-align: center;
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI',Arial,sans-serif;
+  background:#00264d;
+  color:#fff;
+  max-width:900px;
+  margin:0 auto;
+  padding:20px;
+  text-align:center;
 }
-
-h1 {
-  color: #ffd100;
-  margin-bottom: 20px;
+h1{
+  color:#ffd100;
+  text-shadow:0 0 10px #ffcc00;
+  margin-bottom:20px;
 }
-
-.card {
-  background: rgba(255,255,255,0.06);
-  padding: 20px;
-  border-radius: 16px;
-  max-width: 600px;
-  margin: 0 auto;
+#start-screen,#quiz{
+  background:rgba(255,255,255,0.06);
+  padding:25px;
+  border-radius:16px;
+  max-width:600px;
+  margin:0 auto;
 }
-
-input {
-  padding: 12px;
-  font-size: 1.2em;
-  border-radius: 8px;
-  border: none;
-  width: 80%;
-  text-align: center;
+input{
+  padding:12px;
+  font-size:1.2em;
+  border-radius:8px;
+  border:none;
+  width:80%;
+  text-align:center;
 }
-
-button {
-  margin-top: 15px;
-  padding: 12px 24px;
-  font-size: 1.1em;
-  border-radius: 8px;
-  border: none;
-  background: #ffd100;
-  font-weight: bold;
-  cursor: pointer;
+button{
+  margin-top:15px;
+  padding:12px 22px;
+  font-size:1.1em;
+  border-radius:8px;
+  border:none;
+  background:#ffd100;
+  font-weight:bold;
+  cursor:pointer;
 }
-
-#timer {
-  font-size: 2.4em;
-  margin: 15px 0;
-  color: #ffeb3b;
-  font-weight: bold;
+button:hover{background:#ffcc33}
+#timer{
+  font-size:2.4em;
+  margin:15px 0;
+  color:#ffeb3b;
+  text-shadow:0 0 12px #ffcc00;
 }
-
-#timer.danger {
-  color: #ff5252;
+#timer.warning{
+  color:#ff4c4c;
+  text-shadow:0 0 12px #ff4c4c;
 }
-
-#question {
-  font-size: 1.4em;
-  margin: 20px 0;
+#question{
+  font-size:1.5em;
+  margin:20px 0;
 }
-
-#feedback {
-  margin-top: 15px;
-  font-size: 1.1em;
+#status{
+  margin-top:15px;
+  font-weight:bold;
 }
-
-#score {
-  margin-top: 10px;
-  font-size: 1.2em;
-  color: #ffd100;
+#score{
+  margin-top:10px;
+  color:#ffd100;
+  font-size:1.2em;
 }
 </style>
 </head>
@@ -84,142 +77,143 @@ button {
 
 <h1>1234<br>Цифромания</h1>
 
-<div id="start-screen" class="card">
-  <p>Въведи име:</p>
-  <input id="playerName" placeholder="Име">
-  <br>
-  <button id="startBtn">Започни</button>
+<div id="start-screen">
+  <p>Въведи име:</p><br>
+  <input id="player-name" placeholder="Име"><br>
+  <button id="start-btn">Започни</button>
 </div>
 
-<div id="game" class="card" style="display:none;">
+<div id="quiz" style="display:none;">
   <div id="timer">20</div>
   <div id="question"></div>
 
-  <input type="number" id="answerInput" placeholder="Въведи число">
-  <br>
-  <button id="submitBtn">Отговори</button>
+  <input id="answer-input" type="number" placeholder="Въведи число"><br>
+  <button id="submit-btn">Отговори</button>
 
-  <div id="feedback"></div>
-  <div id="score">Точки: 0</div>
+  <div id="status"></div>
+  <div id="score"></div>
 </div>
 
 <script>
 (async function(){
 
-/* ---------- DOM ---------- */
-const startScreen = document.getElementById("start-screen");
-const game = document.getElementById("game");
-const startBtn = document.getElementById("startBtn");
-const playerNameInput = document.getElementById("playerName");
-const timerDiv = document.getElementById("timer");
-const questionDiv = document.getElementById("question");
-const answerInput = document.getElementById("answerInput");
-const submitBtn = document.getElementById("submitBtn");
-const feedbackDiv = document.getElementById("feedback");
-const scoreDiv = document.getElementById("score");
+/* DOM */
+const startScreen=document.getElementById("start-screen");
+const quiz=document.getElementById("quiz");
+const startBtn=document.getElementById("start-btn");
+const nameInput=document.getElementById("player-name");
+const timerDiv=document.getElementById("timer");
+const qText=document.getElementById("question");
+const ansInput=document.getElementById("answer-input");
+const submitBtn=document.getElementById("submit-btn");
+const statusDiv=document.getElementById("status");
+const scoreDiv=document.getElementById("score");
 
-/* ---------- STATE ---------- */
-let allQuestions = [];
-let questions = [];
-let index = 0;
-let score = 0;
+/* STATE */
+let allQuestions=[];
+let questions=[];
+let idx=0;
+let score=0;
 let timer;
-let timeLeft = 20;
+let timeLeft=20;
 
-/* ---------- LOAD JSON ---------- */
-try {
-  const res = await fetch("./questions.json");
-  allQuestions = await res.json();
-} catch {
-  questionDiv.textContent = "Грешка при зареждане на въпросите.";
+/* LOAD JSON */
+try{
+  const res=await fetch("questions.json");
+  allQuestions=await res.json();
+}catch(e){
+  qText.textContent="Грешка при зареждане на questions.json";
   return;
 }
 
-/* ---------- HELPERS ---------- */
-function shuffle(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+/* RANDOM 20 */
+function pickRandom(n){
+  return [...allQuestions].sort(()=>Math.random()-0.5).slice(0,n);
 }
 
-function startTimer() {
+/* TIMER */
+function startTimer(){
   clearInterval(timer);
-  timeLeft = 20;
-  timerDiv.textContent = timeLeft;
-  timerDiv.classList.remove("danger");
+  timeLeft=20;
+  timerDiv.textContent=timeLeft;
+  timerDiv.classList.remove("warning");
 
-  timer = setInterval(() => {
+  timer=setInterval(()=>{
     timeLeft--;
-    timerDiv.textContent = timeLeft;
-    if (timeLeft <= 5) timerDiv.classList.add("danger");
-    if (timeLeft <= 0) {
+    timerDiv.textContent=timeLeft;
+    if(timeLeft<=5) timerDiv.classList.add("warning");
+    if(timeLeft<=0){
       clearInterval(timer);
       submitAnswer(true);
     }
-  }, 1000);
+  },1000);
 }
 
-function calculatePoints(diff, q) {
-  if (diff === 0) return 10;
-  if (q.t1 && diff <= q.t1) return 5;
-  if (q.t2 && diff <= q.t2) return 3;
-  if (q.t3 && diff <= q.t3) return 1;
+/* POINTS – ДИАПАЗОНИ */
+function calculatePoints(diff,q){
+  if(diff===0) return 10;
+  if(q.t1!=null && diff<=q.t1) return 5;
+  if(q.t2!=null && diff<=q.t2) return 3;
+  if(q.t3!=null && diff<=q.t3) return 1;
   return 0;
 }
 
-/* ---------- GAME ---------- */
-function showQuestion() {
-  if (index >= questions.length) {
-    questionDiv.textContent = "Край на играта!";
-    feedbackDiv.innerHTML = `<b>${playerNameInput.value}</b>, имаш ${score} точки.`;
-    submitBtn.disabled = true;
-    return;
-  }
-
-  const q = questions[index];
-  questionDiv.textContent = `${index + 1}. ${q.question}`;
-  feedbackDiv.textContent = "";
-  answerInput.value = "";
-  answerInput.focus();
+/* RENDER */
+function renderQuestion(){
+  const q=questions[idx];
+  qText.textContent=`${idx+1}. ${q.question}`;
+  ansInput.value="";
+  statusDiv.textContent="";
+  scoreDiv.textContent=`Точки: ${score}`;
   startTimer();
 }
 
-function submitAnswer(timeout=false) {
+/* SUBMIT */
+function submitAnswer(timeout=false){
   clearInterval(timer);
 
-  const q = questions[index];
-  const userValue = timeout ? NaN : Number(answerInput.value);
-  const diff = isNaN(userValue) ? Infinity : Math.abs(userValue - q.answer);
-  const points = calculatePoints(diff, q);
+  const q=questions[idx];
+  const correct=q.answer;
+  const user=timeout?null:Number(ansInput.value);
+  const diff=user===null?999:Math.abs(user-correct);
+  const pts=calculatePoints(diff,q);
+  score+=pts;
 
-  score += points;
-  scoreDiv.textContent = "Точки: " + score;
+  if(timeout){
+    statusDiv.textContent=`⏰ Времето изтече! Верен отговор: ${correct}`;
+  }else if(pts>0){
+    statusDiv.textContent=`✅ ${pts} точки (отклонение ${diff})`;
+  }else{
+    statusDiv.textContent=`❌ 0 точки. Верен отговор: ${correct}`;
+  }
 
-  feedbackDiv.innerHTML = `
-    Верен отговор: <b>${q.answer}</b><br>
-    Отклонение: ${diff === Infinity ? "—" : diff}<br>
-    Точки: <b>${points}</b>
-  `;
+  scoreDiv.textContent=`Точки: ${score}`;
 
-  index++;
-  setTimeout(showQuestion, 2000);
+  setTimeout(()=>{
+    idx++;
+    if(idx>=questions.length){
+      qText.innerHTML=`🏁 Край!<br>Резултат: <b>${score}</b> точки`;
+      timerDiv.textContent="";
+      ansInput.style.display="none";
+      submitBtn.style.display="none";
+    }else{
+      renderQuestion();
+    }
+  },1500);
 }
 
-/* ---------- START ---------- */
-startBtn.onclick = () => {
-  if (!playerNameInput.value.trim()) return;
-  startScreen.style.display = "none";
-  game.style.display = "block";
-  score = 0;
-  index = 0;
-  scoreDiv.textContent = "Точки: 0";
-  questions = shuffle(allQuestions).slice(0, 20);
-  showQuestion();
+/* EVENTS */
+submitBtn.onclick=()=>submitAnswer(false);
+
+startBtn.onclick=()=>{
+  if(!nameInput.value.trim()) return;
+  startScreen.style.display="none";
+  quiz.style.display="block";
+  questions=pickRandom(20);
+  idx=0;
+  score=0;
+  renderQuestion();
 };
-
-submitBtn.onclick = () => submitAnswer();
-
-answerInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") submitAnswer();
-});
 
 })();
 </script>
