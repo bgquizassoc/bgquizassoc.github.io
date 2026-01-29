@@ -106,37 +106,63 @@ button {
 <script>
 (async function(){
 
-/* DOM */
+/* ====== НАСТРОЙКИ НА ВРЕМЕТО ====== */
+const GAME_START_HOUR = 19;
+const GAME_START_MIN = 50;
+const GAME_END_HOUR   = 23;
+const GAME_END_MIN    = 0;
+
+/* ====== DOM ====== */
 const startScreen = document.getElementById("start-screen");
 const game = document.getElementById("game");
 const startBtn = document.getElementById("startBtn");
 const nameInput = document.getElementById("playerName");
-
 const timerDiv = document.getElementById("timer");
 const qText = document.getElementById("question");
 const ansInput = document.getElementById("answerInput");
 const submitBtn = document.getElementById("submitBtn");
-const feedbackDiv = document.getElementById("feedback");
+const feedback = document.getElementById("feedback");
 const scoreDiv = document.getElementById("score");
 
-/* STATE */
+/* ====== STATE ====== */
 let allQuestions = [];
 let questions = [];
 let idx = 0;
 let score = 0;
 let timer;
 let timeLeft = 20;
+let playerName = "";
 
-/* LOAD JSON */
+/* ====== ВРЕМЕВИ ПРОЗОРЕЦ ====== */
+function isGameOpenNow(){
+  const now = new Date();
+
+  const start = new Date();
+  start.setHours(GAME_START_HOUR, GAME_START_MIN, 0, 0);
+
+  const end = new Date();
+  end.setHours(GAME_END_HOUR, GAME_END_MIN, 0, 0);
+
+  return now >= start && now < end;
+}
+
+function msUntilGameEnds(){
+  const now = new Date();
+  const end = new Date();
+  end.setHours(GAME_END_HOUR, GAME_END_MIN, 0, 0);
+  return end - now;
+}
+
+/* ====== LOAD JSON ====== */
 const res = await fetch("./questions.json");
 allQuestions = await res.json();
 
-/* RANDOM */
+/* ====== RANDOM 20 ====== */
 function pickRandom(n){
   return [...allQuestions].sort(()=>Math.random()-0.5).slice(0,n);
 }
 
-/* TIMER */
+/* ====== TIMER ====== */
 function startTimer(){
   clearInterval(timer);
   timeLeft = 20;
@@ -154,34 +180,27 @@ function startTimer(){
   },1000);
 }
 
-/* POINTS */
-function calcPoints(diff, q) {
+/* ====== ТОЧКУВАНЕ (ДИАПАЗОНИ) ====== */
+function calcPoints(diff, q){
   if (diff === 0) return 10;
-
-  if (!q.ranges) return 0;
-
-  const near = Number(q.ranges.near);
-  const mid  = Number(q.ranges.mid);
-  const far  = Number(q.ranges.far);
-
-  if (!isNaN(near) && diff <= near) return 5;
-  if (!isNaN(mid)  && diff <= mid)  return 3;
-  if (!isNaN(far)  && diff <= far)  return 1;
-
+  if (!isNaN(q.t1) && diff <= q.t1) return 5;
+  if (!isNaN(q.t2) && diff <= q.t2) return 3;
+  if (!isNaN(q.t3) && diff <= q.t3) return 1;
   return 0;
 }
-/* RENDER */
+
+/* ====== ВЪПРОС ====== */
 function renderQuestion(){
   const q = questions[idx];
   qText.textContent = `${idx+1}. ${q.question}`;
   ansInput.value = "";
   ansInput.focus();
-  feedbackDiv.textContent = "";
+  feedback.textContent = "";
   scoreDiv.textContent = `Точки: ${score}`;
   startTimer();
 }
 
-/* SUBMIT */
+/* ====== ОТГОВОР ====== */
 function submitAnswer(timeout=false){
   clearInterval(timer);
 
@@ -197,11 +216,9 @@ function submitAnswer(timeout=false){
   score += pts;
 
   if(timeout){
-    feedbackDiv.textContent =
-      `⏰ Времето изтече! Верен отговор: ${correct}`;
+    feedback.textContent = `⏰ Времето изтече! Верен отговор: ${correct}`;
   } else {
-    feedbackDiv.textContent =
-      `Отклонение: ${diff} → ${pts} точки (верен: ${correct})`;
+    feedback.textContent = `Отклонение: ${diff} → ${pts} точки`;
   }
 
   scoreDiv.textContent = `Точки: ${score}`;
@@ -209,31 +226,47 @@ function submitAnswer(timeout=false){
   setTimeout(()=>{
     idx++;
     if(idx >= questions.length){
-      qText.innerHTML = `🏁 Край!<br>Общо точки: <b>${score}</b>`;
-      timerDiv.textContent = "";
-      ansInput.style.display = "none";
-      submitBtn.style.display = "none";
+      endGame();
     } else {
       renderQuestion();
     }
-  }, 1500);
+  }, 3000); // ⬅️ 3 секунди
 }
 
-/* EVENTS */
-submitBtn.onclick = ()=> submitAnswer(false);
+/* ====== КРАЙ ====== */
+function endGame(){
+  clearInterval(timer);
+  qText.innerHTML = `🏁 <b>${playerName}</b>, завърши с <b>${score}</b> точки`;
+  timerDiv.textContent = "";
+  ansInput.style.display = "none";
+  submitBtn.style.display = "none";
+}
 
-ansInput.addEventListener("keydown", e=>{
+/* ====== EVENTS ====== */
+submitBtn.onclick = () => submitAnswer(false);
+ansInput.addEventListener("keydown", e => {
   if(e.key === "Enter") submitAnswer(false);
 });
 
 startBtn.onclick = ()=>{
   if(!nameInput.value.trim()) return;
+
+  if(!isGameOpenNow()){
+    alert("❌ Цифромания е отключена всеки ден от 19:50 до 20:00");
+    return;
+  }
+
+  playerName = nameInput.value.trim();
   startScreen.style.display = "none";
   game.style.display = "block";
+
   questions = pickRandom(20);
   idx = 0;
   score = 0;
+
   renderQuestion();
+
+  setTimeout(endGame, msUntilGameEnds());
 };
 
 })();
