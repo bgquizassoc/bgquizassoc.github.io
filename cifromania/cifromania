@@ -106,7 +106,7 @@ let timeLeft = 20;
 
 /* ---------- LOAD EXTERNAL JSON ---------- */
 try {
-  const res = await fetch('cifromania_questions.json');
+  const res = await fetch('questions.json');
   allQuestions = await res.json();
 } catch (e) {
   qText.textContent = "Грешка при зареждане на questions.json";
