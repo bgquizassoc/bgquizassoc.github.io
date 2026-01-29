@@ -82,7 +82,7 @@ button {
 
 <body>
 
-<h1>🔢 Цифромания</h1>
+<h1>🔢 Цифромания 1</h1>
 
 <div id="start-screen" class="card">
   <p>Въведи име:</p>
@@ -104,19 +104,19 @@ button {
 </div>
 
 <script>
-
 (async function(){
 
 /* DOM */
 const startScreen = document.getElementById("start-screen");
-const quiz = document.getElementById("quiz");
-const startBtn = document.getElementById("start-btn");
-const nameInput = document.getElementById("player-name");
+const game = document.getElementById("game");
+const startBtn = document.getElementById("startBtn");
+const nameInput = document.getElementById("playerName");
+
 const timerDiv = document.getElementById("timer");
 const qText = document.getElementById("question");
-const ansInput = document.getElementById("answer-input");
-const submitBtn = document.getElementById("submit-btn");
-const statusDiv = document.getElementById("status");
+const ansInput = document.getElementById("answerInput");
+const submitBtn = document.getElementById("submitBtn");
+const feedbackDiv = document.getElementById("feedback");
 const scoreDiv = document.getElementById("score");
 
 /* STATE */
@@ -131,7 +131,7 @@ let timeLeft = 20;
 const res = await fetch("./questions.json");
 allQuestions = await res.json();
 
-/* RANDOM 20 */
+/* RANDOM */
 function pickRandom(n){
   return [...allQuestions].sort(()=>Math.random()-0.5).slice(0,n);
 }
@@ -141,12 +141,12 @@ function startTimer(){
   clearInterval(timer);
   timeLeft = 20;
   timerDiv.textContent = timeLeft;
-  timerDiv.classList.remove("warning");
+  timerDiv.classList.remove("danger");
 
   timer = setInterval(()=>{
     timeLeft--;
     timerDiv.textContent = timeLeft;
-    if(timeLeft <= 5) timerDiv.classList.add("warning");
+    if(timeLeft <= 5) timerDiv.classList.add("danger");
     if(timeLeft <= 0){
       clearInterval(timer);
       submitAnswer(true);
@@ -154,16 +154,16 @@ function startTimer(){
   },1000);
 }
 
-/* POINTS – ДО диапазон */
+/* POINTS */
 function calcPoints(diff, q){
   const t1 = Number(q.t1);
   const t2 = Number(q.t2);
   const t3 = Number(q.t3);
 
-  if (diff === 0) return 10;
-  if (!isNaN(t1) && diff <= t1) return 5;
-  if (!isNaN(t2) && diff <= t2) return 3;
-  if (!isNaN(t3) && diff <= t3) return 1;
+  if(diff === 0) return 10;
+  if(!isNaN(t1) && diff <= t1) return 5;
+  if(!isNaN(t2) && diff <= t2) return 3;
+  if(!isNaN(t3) && diff <= t3) return 1;
   return 0;
 }
 
@@ -173,7 +173,7 @@ function renderQuestion(){
   qText.textContent = `${idx+1}. ${q.question}`;
   ansInput.value = "";
   ansInput.focus();
-  statusDiv.textContent = "";
+  feedbackDiv.textContent = "";
   scoreDiv.textContent = `Точки: ${score}`;
   startTimer();
 }
@@ -186,7 +186,7 @@ function submitAnswer(timeout=false){
   const correct = Number(q.answer);
   const user = timeout ? null : Number(ansInput.value);
 
-  let diff = user === null || isNaN(user)
+  const diff = user === null || isNaN(user)
     ? Infinity
     : Math.abs(user - correct);
 
@@ -194,10 +194,10 @@ function submitAnswer(timeout=false){
   score += pts;
 
   if(timeout){
-    statusDiv.textContent =
+    feedbackDiv.textContent =
       `⏰ Времето изтече! Верен отговор: ${correct}`;
   } else {
-    statusDiv.textContent =
+    feedbackDiv.textContent =
       `Отклонение: ${diff} → ${pts} точки (верен: ${correct})`;
   }
 
@@ -217,16 +217,16 @@ function submitAnswer(timeout=false){
 }
 
 /* EVENTS */
-submitBtn.onclick = () => submitAnswer(false);
+submitBtn.onclick = ()=> submitAnswer(false);
 
-ansInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") submitAnswer(false);
+ansInput.addEventListener("keydown", e=>{
+  if(e.key === "Enter") submitAnswer(false);
 });
 
 startBtn.onclick = ()=>{
   if(!nameInput.value.trim()) return;
   startScreen.style.display = "none";
-  quiz.style.display = "block";
+  game.style.display = "block";
   questions = pickRandom(20);
   idx = 0;
   score = 0;
