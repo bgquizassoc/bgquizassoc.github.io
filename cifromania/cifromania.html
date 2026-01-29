@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>🔢 Цифромания</title>
+<title>1234 | Цифромания</title>
 
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -82,7 +82,7 @@ button {
 
 <body>
 
-<h1>1234<br>Цифромания</h1>
+<h1>🔢 Цифромания</h1>
 
 <div id="start-screen" class="card">
   <p>Въведи име:</p>
@@ -128,7 +128,7 @@ let timer;
 let timeLeft = 20;
 
 /* LOAD JSON */
-const res = await fetch("questions.json");
+const res = await fetch("./questions.json");
 allQuestions = await res.json();
 
 /* RANDOM 20 */
