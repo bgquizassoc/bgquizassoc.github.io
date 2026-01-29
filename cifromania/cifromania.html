@@ -82,7 +82,7 @@ button {
 
 <body>
 
-<h1>🔢 Цифромания 1</h1>
+<h1>🔢 Цифромания</h1>
 
 <div id="start-screen" class="card">
   <p>Въведи име:</p>
@@ -155,18 +155,21 @@ function startTimer(){
 }
 
 /* POINTS */
-function calcPoints(diff, q){
-  const t1 = Number(q.t1);
-  const t2 = Number(q.t2);
-  const t3 = Number(q.t3);
+function calcPoints(diff, q) {
+  if (diff === 0) return 10;
 
-  if(diff === 0) return 10;
-  if(!isNaN(t1) && diff <= t1) return 5;
-  if(!isNaN(t2) && diff <= t2) return 3;
-  if(!isNaN(t3) && diff <= t3) return 1;
+  if (!q.ranges) return 0;
+
+  const near = Number(q.ranges.near);
+  const mid  = Number(q.ranges.mid);
+  const far  = Number(q.ranges.far);
+
+  if (!isNaN(near) && diff <= near) return 5;
+  if (!isNaN(mid)  && diff <= mid)  return 3;
+  if (!isNaN(far)  && diff <= far)  return 1;
+
   return 0;
 }
-
 /* RENDER */
 function renderQuestion(){
   const q = questions[idx];
