@@ -87,7 +87,7 @@ button {
 
 <body>
 
-<h1>🔢 Цифромания</h1>
+<h1>🔢 Цифромания 1</h1>
 
 <div id="start-screen" class="card">
   <p>Въведи двете си имена:</p>
@@ -187,15 +187,12 @@ function startTimer(){
 
 /* ====== ТОЧКУВАНЕ (ДИАПАЗОНИ) ====== */
 function calcPoints(diff, q){
-  const t1 = Number(q.t1);
-  const t2 = Number(q.t2);
-  const t3 = Number(q.t3);
+  const r = q.ranges;
 
   if (diff === 0) return 10;
-
-  if (!isNaN(t1) && diff <= t1) return 5;
-  if (!isNaN(t2) && diff <= t2) return 3;
-  if (!isNaN(t3) && diff <= t3) return 1;
+  if (r && diff <= r.near) return 5;
+  if (r && diff <= r.mid)  return 3;
+  if (r && diff <= r.far)  return 1;
 
   return 0;
 }
