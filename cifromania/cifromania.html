@@ -216,10 +216,12 @@ function submitAnswer(timeout=false){
   score += pts;
 
   if(timeout){
-    feedback.textContent = `⏰ Времето изтече! Верен отговор: ${correct}`;
-  } else {
-    feedback.textContent = `Отклонение: ${diff} → ${pts} точки`;
-  }
+  feedback.textContent =
+    `⏰ Времето изтече! Верен отговор: ${correct}`;
+} else {
+  feedback.textContent =
+    `✔ Верен: ${correct} | Отклонение: ${diff} → ${pts} точки`;
+}
 
   scoreDiv.textContent = `Точки: ${score}`;
 
