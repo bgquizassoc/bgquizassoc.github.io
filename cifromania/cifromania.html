@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>1234 | Цифромания</title>
+<title>1234 | Цифромания 1</title>
 
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -76,6 +76,11 @@ button {
   margin-top: 10px;
   font-size: 1.2em;
   color: #ffd100;
+}
+
+  .correct-answer {
+  color: #00ff88;
+  font-weight: bold;
 }
 </style>
 </head>
@@ -219,8 +224,8 @@ function submitAnswer(timeout=false){
   feedback.textContent =
     `⏰ Времето изтече! Верен отговор: ${correct}`;
 } else {
-  feedback.textContent =
-    `✔ Верен: ${correct} | Отклонение: ${diff} → ${pts} точки`;
+ feedback.innerHTML =
+  `<span class="correct-answer">✔ Верен: ${correct}</span> | Отклонение: ${diff} → ${pts} точки`;
 }
 
   scoreDiv.textContent = `Точки: ${score}`;
