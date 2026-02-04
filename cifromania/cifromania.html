@@ -8,7 +8,9 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 
-body {
+body 
+  <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
+  {
   font-family: 'Segoe UI', Arial, sans-serif;
   background: #00264d;
   color: #fff;
@@ -273,7 +275,8 @@ startBtn.onclick = () => {
   }
 
   playerName = PLAYERS[id];
-
+// 🎵 ПУСКАМЕ МУЗИКАТА 
+  const bgMusic = document.getElementById("bg-music"); bgMusic.play().catch(()=>{});
   startScreen.style.display = "none";
   game.style.display = "block";
 
