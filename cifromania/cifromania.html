@@ -126,7 +126,7 @@ button {
 const GAME_START_HOUR = 14;
 const GAME_START_MIN = 50;
 const GAME_END_HOUR   = 23;
-const GAME_END_MIN    = 0;
+const GAME_END_MIN    = 50;
 
 /* ====== DOM ====== */
 const startScreen = document.getElementById("start-screen");
@@ -278,7 +278,7 @@ startBtn.onclick = () => {
   }
 
   if(!isGameOpenNow()){
-    alert("❌ Цифромания е отключена всеки ден от 19:50 до 20:00");
+    alert("❌ Цифромания е отключена всеки ден от 19:45 до 20:00");
     return;
   }
 
