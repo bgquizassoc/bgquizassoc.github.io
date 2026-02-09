@@ -120,29 +120,25 @@ button {
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+  import { 
+    getFirestore, 
+    doc, 
+    setDoc 
+  } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyB6dms9zUn-_xvF1LSVaheCNTWbROu0k",
+    apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
     authDomain: "cifromania-ac182.firebaseapp.com",
     projectId: "cifromania-ac182",
     storageBucket: "cifromania-ac182.appspot.com",
-    messagingSenderId: "165208525580",
-    appId: "1:165208525580:web:b364744eb0527b6517129"
+    messagingSenderId: "165208255580",
+    appId: "1:165208255580:web:b36744f0eb527b6571129"
   };
 
-  const app = initializeApp(firebaseConfig);
-  window.db = getFirestore(app);
+  const app = initializeApp(firebaseConfig); 
+  window.db = getFirestore(app); // ← ТОВА Е ПРАВИЛНОТО
 </script>
-
-<!-- ТВОЯТ СКРИПТ -->
-<script src="players.js"></script>
-<script>
-   ... твоята игра ...
-</script>
-
-
-  
+ 
   <script src="players.js"></script>
 
   
@@ -282,12 +278,29 @@ function submitAnswer(timeout=false){
 }
 
 /* ====== КРАЙ ====== */
-function endGame(){
-  clearInterval(timer);
-  qText.innerHTML = `🏁 <b>${playerName}</b>, завърши с <b>${score}</b> точки`;
-  timerDiv.textContent = "";
-  ansInput.style.display = "none";
-  submitBtn.style.display = "none";
+async function endGame(){
+    clearInterval(timer);
+
+    // 🟦 ЗАПИСВАМЕ РЕЗУЛТАТА В FIREBASE
+    const today = new Date().toISOString().split("T")[0];
+    const userId = idInput.value.trim();
+
+    await setDoc(
+        doc(window.db, "results", `${today}_${userId}`),
+        {
+            userId: userId,
+            name: playerName,
+            score: score,
+            gameId: today,
+            timestamp: Date.now()
+        }
+    );
+
+    // 🟦 ПОКАЗВАМЕ РЕЗУЛТАТА НА ЕКРАНА
+    qText.innerHTML = `<b>${playerName}</b>, завърши с <b>${score}</b> точки`;
+    timerDiv.textContent = "";
+    ansInput.style.display = "none";
+    submitBtn.style.display = "none";
 }
 
 /* ====== EVENTS ====== */
