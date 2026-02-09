@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>1234 | Цифромания </title>
+
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-PK66NTHPN8');
 </script>
+
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 
-body 
-    {
+body {
   font-family: 'Segoe UI', Arial, sans-serif;
   background: #00264d;
   color: #fff;
@@ -87,17 +87,44 @@ button {
   color: #ffd100;
 }
 
-  .correct-answer {
+.correct-answer {
   color: #00ff88;
   font-weight: bold;
+}
+
+/* ===== КЛАСАЦИЯ (ТОП 5) ===== */
+#leaderboard {
+  margin-top: 25px;
+  padding: 15px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+}
+
+#leaderboard h2 {
+  margin-bottom: 10px;
+  color: #ffd100;
+}
+
+#leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#leaderboard-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
 }
 </style>
 </head>
 
 <body>
-<audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
-<h1>🔢 Цифромания 🔢 </h1>
 
+<audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
+
+<h1>🔢 Цифромания 🔢</h1>
+
+<!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
   <p>Въведи ID-номера си:</p>
   <input id="playerId" placeholder="Въведи ID">
@@ -105,6 +132,7 @@ button {
   <button id="startBtn">Започни</button>
 </div>
 
+<!-- ===== ИГРА ===== -->
 <div id="game" class="card" style="display:none;">
   <div id="timer">20</div>
   <div id="question"></div>
@@ -117,15 +145,29 @@ button {
   <div id="score">Точки: 0</div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- ===== КЛАСАЦИЯ В РЕАЛНО ВРЕМЕ (ТОП 5) ===== -->
+<div id="leaderboard" class="card" style="display:none;">
+  <h2>Класация (ТОП 5)</h2>
+  <ol id="leaderboard-list"></ol>
+</div>
+
+<!-- ===== FIREBASE SDK ===== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
   import { 
     getFirestore, 
     doc, 
-    setDoc 
+    setDoc,
+    collection,
+    query,
+    where,
+    orderBy,
+    limit,
+    onSnapshot
   } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6
   const firebaseConfig = {
     apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
     authDomain: "cifromania-ac182.firebaseapp.com",
@@ -135,13 +177,23 @@ button {
     appId: "1:165208255580:web:b36744f0eb527b6571129"
   };
 
-  const app = initializeApp(firebaseConfig); 
-  window.db = getFirestore(app); // ← ТОВА Е ПРАВИЛНОТО
-</script>
- 
-  <script src="players.js"></script>
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-  
+  // Глобализираме, за да работят в другия скрипт
+  window.db = db;
+  window.doc = doc;
+  window.setDoc = setDoc;
+  window.collection = collection;
+  window.query = query;
+  window.where = where;
+  window.orderBy = orderBy;
+  window.limit = limit;
+  window.onSnapshot = onSnapshot;
+</script>
+
+<script src="players.js"></script>
+
 <script>
 (async function(){
 
@@ -155,14 +207,17 @@ const GAME_END_MIN    = 00;
 const startScreen = document.getElementById("start-screen");
 const game = document.getElementById("game");
 const startBtn = document.getElementById("startBtn");
-  const idInput = document.getElementById("playerId");
-const nameInput = document.getElementById("playerName");
+const idInput = document.getElementById("playerId");
 const timerDiv = document.getElementById("timer");
 const qText = document.getElementById("question");
 const ansInput = document.getElementById("answerInput");
 const submitBtn = document.getElementById("submitBtn");
 const feedback = document.getElementById("feedback");
 const scoreDiv = document.getElementById("score");
+
+/* ====== КЛАСАЦИЯ ====== */
+const leaderboardDiv = document.getElementById("leaderboard");
+const leaderboardList = document.getElementById("leaderboard-list");
 
 /* ====== STATE ====== */
 let allQuestions = [];
@@ -176,13 +231,10 @@ let playerName = "";
 /* ====== ВРЕМЕВИ ПРОЗОРЕЦ ====== */
 function isGameOpenNow(){
   const now = new Date();
-
   const start = new Date();
   start.setHours(GAME_START_HOUR, GAME_START_MIN, 0, 0);
-
   const end = new Date();
   end.setHours(GAME_END_HOUR, GAME_END_MIN, 0, 0);
-
   return now >= start && now < end;
 }
 
@@ -197,7 +249,7 @@ function msUntilGameEnds(){
 const res = await fetch("./questions.json");
 allQuestions = await res.json();
 
-/* ====== RANDOM 20 ====== */
+/* ====== RANDOM N ====== */
 function pickRandom(n){
   return [...allQuestions].sort(()=>Math.random()-0.5).slice(0,n);
 }
@@ -220,17 +272,16 @@ function startTimer(){
   },1000);
 }
 
-/* ====== ТОЧКУВАНЕ (ДИАПАЗОНИ) ====== */
+/* ====== ТОЧКУВАНЕ ====== */
 function calcPoints(diff, q){
   const r = q.ranges;
-
   if (diff === 0) return 10;
   if (r && diff <= r.near) return 5;
   if (r && diff <= r.mid)  return 3;
   if (r && diff <= r.far)  return 1;
-
   return 0;
 }
+
 /* ====== ВЪПРОС ====== */
 function renderQuestion(){
   const q = questions[idx];
@@ -258,12 +309,11 @@ function submitAnswer(timeout=false){
   score += pts;
 
   if(timeout){
-  feedback.textContent =
-    `⏰ Времето изтече! Верен отговор: ${correct}`;
-} else {
- feedback.innerHTML =
-  `<span class="correct-answer">✔ Верен: ${correct}</span> | Отклонение: ${diff} → ${pts} точки`;
-}
+    feedback.textContent = `⏰ Времето изтече! Верен отговор: ${correct}`;
+  } else {
+    feedback.innerHTML =
+      `<span class="correct-answer">✔ Верен: ${correct}</span> | Отклонение: ${diff} → ${pts} точки`;
+  }
 
   scoreDiv.textContent = `Точки: ${score}`;
 
@@ -274,33 +324,56 @@ function submitAnswer(timeout=false){
     } else {
       renderQuestion();
     }
-  }, 5000); // ⬅️ 5 секунди
+  }, 5000);
 }
 
-/* ====== КРАЙ ====== */
+/* ====== КЛАСАЦИЯ В РЕАЛНО ВРЕМЕ (ТОП 5) ====== */
+function startLeaderboard(){
+  const today = new Date().toISOString().split("T")[0];
+
+  const q = window.query(
+    window.collection(window.db, "results"),
+    window.where("gameId", "==", today),
+    window.orderBy("score", "desc"),
+    window.limit(5)
+  );
+
+  window.onSnapshot(q, (snapshot)=>{
+    leaderboardList.innerHTML = "";
+    snapshot.forEach(docSnap=>{
+      const d = docSnap.data();
+      const li = document.createElement("li");
+      li.textContent = `${d.name || d.userId} — ${d.score} т.`;
+      leaderboardList.appendChild(li);
+    });
+    leaderboardDiv.style.display = "block";
+  });
+}
+
+/* ====== КРАЙ НА ИГРАТА ====== */
 async function endGame(){
-    clearInterval(timer);
+  clearInterval(timer);
 
-    // 🟦 ЗАПИСВАМЕ РЕЗУЛТАТА В FIREBASE
-    const today = new Date().toISOString().split("T")[0];
-    const userId = idInput.value.trim();
+  const today = new Date().toISOString().split("T")[0];
+  const userId = idInput.value.trim();
 
-    await setDoc(
-        doc(window.db, "results", `${today}_${userId}`),
-        {
-            userId: userId,
-            name: playerName,
-            score: score,
-            gameId: today,
-            timestamp: Date.now()
-        }
-    );
+  await window.setDoc(
+    window.doc(window.db, "results", `${today}_${userId}`),
+    {
+      userId: userId,
+      name: playerName,
+      score: score,
+      gameId: today,
+      timestamp: Date.now()
+    }
+  );
 
-    // 🟦 ПОКАЗВАМЕ РЕЗУЛТАТА НА ЕКРАНА
-    qText.innerHTML = `<b>${playerName}</b>, завърши с <b>${score}</b> точки`;
-    timerDiv.textContent = "";
-    ansInput.style.display = "none";
-    submitBtn.style.display = "none";
+  qText.innerHTML = `<b>${playerName}</b>, завърши с <b>${score}</b> точки`;
+  timerDiv.textContent = "";
+  ansInput.style.display = "none";
+  submitBtn.style.display = "none";
+
+  startLeaderboard();
 }
 
 /* ====== EVENTS ====== */
@@ -323,12 +396,14 @@ startBtn.onclick = () => {
   }
 
   playerName = PLAYERS[id];
-// 🎵 ПУСКАМЕ МУЗИКАТА 
-  const bgMusic = document.getElementById("bg-music"); bgMusic.play().catch(()=>{});
+
+  const bgMusic = document.getElementById("bg-music");
+  bgMusic.play().catch(()=>{});
+
   startScreen.style.display = "none";
   game.style.display = "block";
 
-  questions = pickRandom(50);
+  questions = pickRandom(10); // ← за тест
   idx = 0;
   score = 0;
 
@@ -339,6 +414,5 @@ startBtn.onclick = () => {
 
 })();
 </script>
-
-</body>
+ </body>
 </html>
