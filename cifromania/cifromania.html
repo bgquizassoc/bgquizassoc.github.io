@@ -117,7 +117,35 @@ button {
   <div id="score">Точки: 0</div>
 </div>
 
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6dms9zUn-_xvF1LSVaheCNTWbROu0k",
+    authDomain: "cifromania-ac182.firebaseapp.com",
+    projectId: "cifromania-ac182",
+    storageBucket: "cifromania-ac182.appspot.com",
+    messagingSenderId: "165208525580",
+    appId: "1:165208525580:web:b364744eb0527b6517129"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  window.db = getFirestore(app);
+</script>
+
+<!-- ТВОЯТ СКРИПТ -->
+<script src="players.js"></script>
+<script>
+   ... твоята игра ...
+</script>
+
+
+  
   <script src="players.js"></script>
+
+  
 <script>
 (async function(){
 
