@@ -2,8 +2,9 @@
 <html lang="bg">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1234 | Цифромания</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>1234 | Цифромания </title>
+
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
 <script>
@@ -12,9 +13,10 @@
   gtag('js', new Date());
   gtag('config', 'G-PK66NTHPN8');
 </script>
-  
+
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
+* { margin:0; padding:0; box-sizing:border-box; }
+
 body {
   font-family: 'Segoe UI', Arial, sans-serif;
   background: #00264d;
@@ -24,13 +26,20 @@ body {
   padding: 20px;
   text-align: center;
 }
+
+h1 {
+  color: #ffd100;
+  margin-bottom: 20px;
+}
+
 .card {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.06);
   padding: 20px;
   border-radius: 16px;
   max-width: 600px;
-   margin: 0 auto;
+  margin: 0 auto;
 }
+
 input {
   padding: 12px;
   font-size: 1.2em;
@@ -50,6 +59,7 @@ button {
   font-weight: bold;
   cursor: pointer;
 }
+
 #timer {
   font-size: 2.4em;
   margin: 15px 0;
@@ -76,7 +86,6 @@ button {
   font-size: 1.2em;
   color: #ffd100;
 }
-
 
 .correct-answer {
   color: #00ff88;
@@ -111,15 +120,18 @@ button {
 
 <body>
 
+<audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
+
 <h1>🔢 Цифромания 🔢</h1>
 
 <!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
   <p>Въведи ID-номера си:</p>
-  <input id="playerId" placeholder="ID">
+  <input id="playerId" placeholder="Въведи ID">
   <br>
   <button id="startBtn">Започни</button>
 </div>
+
 <!-- ===== ИГРА ===== -->
 <div id="game" class="card" style="display:none;">
   <div id="timer">20</div>
@@ -134,34 +146,48 @@ button {
 </div>
 
 <!-- ===== КЛАСАЦИЯ В РЕАЛНО ВРЕМЕ (ТОП 5) ===== -->
-<div id="leaderboard" class="card" style="display:none">
+<div id="leaderboard" class="card" style="display:none;">
   <h2>Класация (ТОП 5)</h2>
   <ol id="leaderboard-list"></ol>
 </div>
 
-<!-- FIREBASE -->
+<!-- ===== FIREBASE SDK ===== -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import {
-  getFirestore, doc, setDoc,
-  collection, query, where, orderBy, limit, onSnapshot
-} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import { 
+    getFirestore, 
+    doc, 
+    setDoc,
+    collection,
+    query,
+    where,
+    orderBy,
+    limit,
+    onSnapshot
+  } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
-  authDomain: "cifromania-ac182.firebaseapp.com",
-  projectId: "cifromania-ac182"
-  storageBucket: "cifromania-ac182.appspot.com",
+    const firebaseConfig = {
+    apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+    authDomain: "cifromania-ac182.firebaseapp.com",
+    projectId: "cifromania-ac182",
+    storageBucket: "cifromania-ac182.appspot.com",
     messagingSenderId: "165208255580",
     appId: "1:165208255580:web:b36744f0eb527b6571129"
   };
 
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-window.db = db;
-window.fs = { doc, setDoc, collection, query, where, orderBy, limit, onSnapshot };
+  // Глобализираме, за да работят в другия скрипт
+  window.db = db;
+  window.doc = doc;
+  window.setDoc = setDoc;
+  window.collection = collection;
+  window.query = query;
+  window.where = where;
+  window.orderBy = orderBy;
+  window.limit = limit;
+  window.onSnapshot = onSnapshot;
 </script>
 
 <script src="players.js"></script>
@@ -169,152 +195,230 @@ window.fs = { doc, setDoc, collection, query, where, orderBy, limit, onSnapshot 
 <script>
 (async function(){
 
+<script>
+(async function(){
+
+/* ====== НАСТРОЙКИ НА ВРЕМЕТО ====== */
+const GAME_START_HOUR = 17;
+const GAME_START_MIN = 40;
+const GAME_END_HOUR   = 23;
+const GAME_END_MIN    = 0;
+
+/* ====== DOM ====== */
+const startScreen = document.getElementById("start-screen");
+const game = document.getElementById("game");
+const startBtn = document.getElementById("startBtn");
+const idInput = document.getElementById("playerId");
+const timerDiv = document.getElementById("timer");
+const qText = document.getElementById("question");
+const ansInput = document.getElementById("answerInput");
+const submitBtn = document.getElementById("submitBtn");
+const feedback = document.getElementById("feedback");
+const scoreDiv = document.getElementById("score");
+
+const leaderboardDiv = document.getElementById("leaderboard");
+const leaderboardList = document.getElementById("leaderboard-list");
+
+/* ====== STATE ====== */
+let allQuestions = [];
 let questions = [];
 let idx = 0;
 let score = 0;
 let timer;
 let timeLeft = 20;
-let playerId = "";
 let playerName = "";
 
-const startScreen = document.getElementById("start-screen");
-const game = document.getElementById("game");
-const qText = document.getElementById("question");
-const timerDiv = document.getElementById("timer");
-const ansInput = document.getElementById("answerInput");
-const feedback = document.getElementById("feedback");
-const scoreDiv = document.getElementById("score");
+/* ====== LOAD JSON ====== */
+const res = await fetch("./questions.json");
+allQuestions = await res.json();
 
-const res = await fetch("questions.json");
-const allQuestions = await res.json();
-
-function shuffle(arr){
-  return [...arr].sort(()=>Math.random()-0.5);
+/* ====== RANDOM ====== */
+function pickRandom(n){
+  return [...allQuestions].sort(()=>Math.random()-0.5).slice(0,n);
 }
 
+/* ====== TIME WINDOW ====== */
+function isGameOpenNow(){
+  const now = new Date();
+  const start = new Date();
+  start.setHours(GAME_START_HOUR, GAME_START_MIN,0,0);
+  const end = new Date();
+  end.setHours(GAME_END_HOUR, GAME_END_MIN,0,0);
+  return now>=start && now<end;
+}
+
+function msUntilGameEnds(){
+  const now = new Date();
+  const end = new Date();
+  end.setHours(GAME_END_HOUR,GAME_END_MIN,0,0);
+  return end-now;
+}
+
+/* ====== TIMER ====== */
 function startTimer(){
   clearInterval(timer);
-  timeLeft = 20;
-  timerDiv.textContent = timeLeft;
+  timeLeft=20;
+  timerDiv.textContent=timeLeft;
   timerDiv.classList.remove("danger");
 
-  timer = setInterval(()=>{
+  timer=setInterval(()=>{
     timeLeft--;
-    timerDiv.textContent = timeLeft;
-    if(timeLeft <= 5) timerDiv.classList.add("danger");
-    if(timeLeft <= 0){
+    timerDiv.textContent=timeLeft;
+    if(timeLeft<=5) timerDiv.classList.add("danger");
+    if(timeLeft<=0){
       clearInterval(timer);
       submitAnswer(true);
     }
   },1000);
 }
 
-function calcPoints(diff, q){
-  if(diff === 0) return 10;
-  if(diff <= q.ranges.near) return 5;
-  if(diff <= q.ranges.mid) return 3;
-  if(diff <= q.ranges.far) return 1;
+/* ====== POINTS ====== */
+function calcPoints(diff,q){
+  const r=q.ranges;
+  if(diff===0) return 10;
+  if(r && diff<=r.near) return 5;
+  if(r && diff<=r.mid) return 3;
+  if(r && diff<=r.far) return 1;
   return 0;
 }
 
+/* ====== QUESTION ====== */
 function renderQuestion(){
-  const q = questions[idx];
-  qText.textContent = `${idx+1}. ${q.question}`;
-  ansInput.value = "";
-  feedback.textContent = "";
-  scoreDiv.textContent = `Точки: ${score}`;
+  const q=questions[idx];
+  qText.textContent=`${idx+1}. ${q.question}`;
+  ansInput.value="";
+  ansInput.focus();
+  feedback.textContent="";
+  scoreDiv.textContent=`Точки: ${score}`;
   startTimer();
 }
 
+/* ====== ANSWER ====== */
 function submitAnswer(timeout=false){
   clearInterval(timer);
-  const q = questions[idx];
-  const correct = Number(q.answer);
-  const user = timeout ? null : Number(ansInput.value);
-  const diff = user === null || isNaN(user) ? Infinity : Math.abs(user - correct);
-  const pts = calcPoints(diff, q);
-  score += pts;
 
-  feedback.innerHTML = timeout
-    ? `⏰ Времето изтече. Верен: <b>${correct}</b>`
-    : `<span class="correct">✔ ${correct}</span> | +${pts} т.`;
+  const q=questions[idx];
+  const correct=Number(q.answer);
+  const user=timeout?null:Number(ansInput.value);
 
-  scoreDiv.textContent = `Точки: ${score}`;
+  const diff=user===null||isNaN(user)
+    ?Infinity
+    :Math.abs(user-correct);
+
+  const pts=calcPoints(diff,q);
+  score+=pts;
+
+  if(timeout){
+    feedback.innerHTML=`⏰ Времето изтече! <span class="correct-answer">✔ Верен: ${correct}</span>`;
+  }else{
+    feedback.innerHTML=`<span class="correct-answer">✔ Верен: ${correct}</span> | Отклонение: ${diff} → ${pts} точки`;
+  }
+
+  scoreDiv.textContent=`Точки: ${score}`;
 
   setTimeout(()=>{
     idx++;
-    if(idx >= questions.length){
+    if(idx>=questions.length){
       endGame();
-    } else {
+    }else{
       renderQuestion();
     }
-  }, 3000);
+  },5000);
 }
 
+/* ====== LIVE LEADERBOARD ====== */
+function startLeaderboard(){
+  const today=new Date().toISOString().split("T")[0];
+
+  const q=window.query(
+    window.collection(window.db,"results"),
+    window.where("gameId","==",today),
+    window.orderBy("score","desc"),
+    window.limit(5)
+  );
+
+  window.onSnapshot(q,(snap)=>{
+    leaderboardList.innerHTML="";
+    snap.forEach(docSnap=>{
+      const d=docSnap.data();
+      const li=document.createElement("li");
+      li.textContent=`${d.name||d.userId} — ${d.score} т.`;
+      leaderboardList.appendChild(li);
+    });
+    leaderboardDiv.style.display="block";
+  });
+}
+
+/* ====== END GAME ====== */
 async function endGame(){
   clearInterval(timer);
 
-  try {
-    const today = new Date().toISOString().split("T")[0];
-    await fs.setDoc(
-      fs.doc(db, "results", `${today}_${playerId}`),
-      { userId: playerId, name: playerName, score, gameId: today, ts: Date.now() }
+  const today=new Date().toISOString().split("T")[0];
+  const userId=idInput.value.trim();
+
+  try{
+    await window.setDoc(
+      window.doc(window.db,"results",`${today}_${userId}`),
+      {
+        userId:userId,
+        name:playerName,
+        score:score,
+        gameId:today,
+        timestamp:Date.now()
+      }
     );
-  } catch(e){
-    console.error("Firestore error", e);
+    console.log("🔥 Записано във Firebase");
+  }catch(e){
+    console.error("❌ Firebase error:",e);
   }
 
-  qText.innerHTML = `<b>${playerName}</b> завърши с <b>${score}</b> точки`;
-  document.getElementById("submitBtn").style.display = "none";
-  ansInput.style.display = "none";
+  qText.innerHTML=`🏁 <b>${playerName}</b>, завърши с <b>${score}</b> точки`;
+  timerDiv.textContent="";
+  ansInput.style.display="none";
+  submitBtn.style.display="none";
 
   startLeaderboard();
 }
 
-function startLeaderboard(){
-  const today = new Date().toISOString().split("T")[0];
-  const q = fs.query(
-    fs.collection(db, "results"),
-    fs.where("gameId","==",today),
-    fs.orderBy("score","desc"),
-    fs.limit(5)
-  );
-
-  fs.onSnapshot(q, snap=>{
-    const list = document.getElementById("leaderboard-list");
-    list.innerHTML = "";
-    snap.forEach(d=>{
-      const li = document.createElement("li");
-      li.textContent = `${d.data().name} — ${d.data().score}`;
-      list.appendChild(li);
-    });
-    document.getElementById("leaderboard").style.display="block";
-  });
-}
-
-document.getElementById("submitBtn").onclick = ()=>submitAnswer(false);
+/* ====== EVENTS ====== */
+submitBtn.onclick=()=>submitAnswer(false);
 ansInput.addEventListener("keydown",e=>{
   if(e.key==="Enter") submitAnswer(false);
 });
 
-document.getElementById("startBtn").onclick = ()=>{
-  const id = document.getElementById("playerId").value.trim();
-  if(!PLAYERS[id]) return alert("Невалидно ID");
+startBtn.onclick=()=>{
 
-  playerId = id;
-  playerName = PLAYERS[id];
+  const id=idInput.value.trim();
 
-  questions = shuffle(allQuestions).slice(0,10);
-  idx = 0;
-  score = 0;
+  if(!PLAYERS[id]){
+    alert("❌ Невалидно ID");
+    return;
+  }
+
+  if(!isGameOpenNow()){
+    alert("❌ Цифромания е отключена ot 19.40 do 20.00 часа");
+    return;
+  }
+
+  playerName=PLAYERS[id];
+
+  const bgMusic=document.getElementById("bg-music");
+  bgMusic.play().catch(()=>{});
 
   startScreen.style.display="none";
   game.style.display="block";
+
+  questions=pickRandom(10);
+  idx=0;
+  score=0;
+
   renderQuestion();
+
+  setTimeout(endGame,msUntilGameEnds());
 };
 
 })();
 </script>
 
-</body>
+ </body>
 </html>
