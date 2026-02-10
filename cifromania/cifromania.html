@@ -92,7 +92,7 @@ button {
   font-weight: bold;
 }
 
-/* ===== КЛАСАЦИЯ (ТОП 5) ===== */
+/* ===== КЛАСАЦИЯ ===== */
 #leaderboard {
   margin-top: 25px;
   padding: 15px;
@@ -145,9 +145,9 @@ button {
   <div id="score">Точки: 0</div>
 </div>
 
-<!-- ===== КЛАСАЦИЯ В РЕАЛНО ВРЕМЕ (ТОП 5) ===== -->
+<!-- ===== КЛАСАЦИЯ ===== -->
 <div id="leaderboard" class="card" style="display:none;">
-  <h2>Класация (ТОП 5)</h2>
+  <h2>Класация</h2>
   <ol id="leaderboard-list"></ol>
 </div>
 
@@ -179,7 +179,6 @@ button {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Глобализираме, за да работят в другия скрипт
   window.db = db;
   window.doc = doc;
   window.setDoc = setDoc;
@@ -325,7 +324,7 @@ function submitAnswer(timeout=false){
   },5000);
 }
 
-/* ====== LIVE LEADERBOARD (ТОП 5) ====== */
+/* ====== ТОП 5 ====== */
 function startLeaderboard(){
   const today=new Date().toISOString().split("T")[0];
 
@@ -334,6 +333,28 @@ function startLeaderboard(){
     window.where("gameId","==",today),
     window.orderBy("score","desc"),
     window.limit(5)
+  );
+
+  window.onSnapshot(q,(snap)=>{
+    leaderboardList.innerHTML="";
+    snap.forEach(docSnap=>{
+      const d=docSnap.data();
+      const li=document.createElement("li");
+      li.textContent=`${d.name||d.userId} — ${d.score} т.`;
+      leaderboardList.appendChild(li);
+    });
+    leaderboardDiv.style.display="block";
+  });
+}
+
+/* ====== ПЪЛНА КЛАСАЦИЯ ====== */
+function startFullLeaderboard(){
+  const today=new Date().toISOString().split("T")[0];
+
+  const q=window.query(
+    window.collection(window.db,"results"),
+    window.where("gameId","==",today),
+    window.orderBy("score","desc")
   );
 
   window.onSnapshot(q,(snap)=>{
@@ -366,7 +387,6 @@ async function endGame(){
         timestamp:Date.now()
       }
     );
-    console.log("🔥 Записано във Firebase");
   }catch(e){
     console.error("❌ Firebase error:",e);
   }
@@ -376,7 +396,7 @@ async function endGame(){
   ansInput.style.display="none";
   submitBtn.style.display="none";
 
-  startLeaderboard();
+  startFullLeaderboard();
 }
 
 /* ====== EVENTS ====== */
@@ -395,7 +415,7 @@ startBtn.onclick=async ()=>{
   }
 
   if(!isGameOpenNow()){
-    alert("❌ Цифромания е отключена ot 19.40 do 20.00 часа");
+    alert("❌ Цифромания е отключена от 19.40 до 20.00 часа");
     return;
   }
 
@@ -405,7 +425,7 @@ startBtn.onclick=async ()=>{
 
   if (existing.exists()) {
     alert("Вече си играл днес! Виж класацията.");
-    startLeaderboard();
+    startFullLeaderboard();
     startScreen.style.display = "none";
     game.style.display = "none";
     return;
@@ -419,7 +439,7 @@ startBtn.onclick=async ()=>{
   startScreen.style.display="none";
   game.style.display="block";
 
-  startLeaderboard();
+  startLeaderboard(); // ТОП 5 по време на игра
 
   questions=pickRandom(50);
   idx=0;
