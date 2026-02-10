@@ -3,11 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Цифромания</title>
-
+<title>1234 | Цифромания</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-PK66NTHPN8');
+</script>
+  
 <style>
+  * { margin:0; padding:0; box-sizing:border-box; }
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', Arial, sans-serif;
   background: #00264d;
   color: #fff;
   max-width: 900px;
@@ -18,52 +27,113 @@ body {
 .card {
   background: rgba(255,255,255,0.08);
   padding: 20px;
-  border-radius: 14px;
+  border-radius: 16px;
   max-width: 600px;
-  margin: 20px auto;
+   margin: 0 auto;
 }
-input, button {
+input {
   padding: 12px;
+  font-size: 1.2em;
+  border-radius: 8px;
+  border: none;
+  width: 80%;
+  text-align: center;
+}
+
+button {
+  margin-top: 15px;
+  padding: 12px 24px;
   font-size: 1.1em;
   border-radius: 8px;
   border: none;
-  margin-top: 10px;
-}
-button {
   background: #ffd100;
   font-weight: bold;
   cursor: pointer;
 }
 #timer {
-  font-size: 2em;
+  font-size: 2.4em;
+  margin: 15px 0;
+  color: #ffeb3b;
+  font-weight: bold;
+}
+
+#timer.danger {
+  color: #ff5252;
+}
+
+#question {
+  font-size: 1.4em;
+  margin: 20px 0;
+}
+
+#feedback {
+  margin-top: 15px;
+  font-size: 1.1em;
+}
+
+#score {
+  margin-top: 10px;
+  font-size: 1.2em;
   color: #ffd100;
 }
-#timer.danger { color: #ff5252; }
-.correct { color: #00ff88; }
+
+
+.correct-answer {
+  color: #00ff88;
+  font-weight: bold;
+}
+
+/* ===== КЛАСАЦИЯ (ТОП 5) ===== */
+#leaderboard {
+  margin-top: 25px;
+  padding: 15px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+}
+
+#leaderboard h2 {
+  margin-bottom: 10px;
+  color: #ffd100;
+}
+
+#leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#leaderboard-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
 </style>
 </head>
 
 <body>
 
-<h1>🔢 Цифромания</h1>
+<h1>🔢 Цифромания 🔢</h1>
 
+<!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
-  <p>Въведи ID:</p>
+  <p>Въведи ID-номера си:</p>
   <input id="playerId" placeholder="ID">
   <br>
   <button id="startBtn">Започни</button>
 </div>
-
-<div id="game" class="card" style="display:none">
+<!-- ===== ИГРА ===== -->
+<div id="game" class="card" style="display:none;">
   <div id="timer">20</div>
   <div id="question"></div>
-  <input id="answerInput" type="number" placeholder="Отговор">
+
+  <input type="number" id="answerInput" placeholder="Въведи число">
   <br>
   <button id="submitBtn">Отговори</button>
+
   <div id="feedback"></div>
   <div id="score">Точки: 0</div>
 </div>
 
+<!-- ===== КЛАСАЦИЯ В РЕАЛНО ВРЕМЕ (ТОП 5) ===== -->
 <div id="leaderboard" class="card" style="display:none">
   <h2>Класация (ТОП 5)</h2>
   <ol id="leaderboard-list"></ol>
@@ -81,7 +151,11 @@ const firebaseConfig = {
   apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
   authDomain: "cifromania-ac182.firebaseapp.com",
   projectId: "cifromania-ac182"
-};
+  storageBucket: "cifromania-ac182.appspot.com",
+    messagingSenderId: "165208255580",
+    appId: "1:165208255580:web:b36744f0eb527b6571129"
+  };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
