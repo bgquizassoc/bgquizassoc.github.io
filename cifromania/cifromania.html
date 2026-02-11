@@ -103,6 +103,7 @@ button {
 #leaderboard h2 {
   margin-bottom: 10px;
   color: #ffd100;
+  font-size: 1.05em;
 }
 
 #leaderboard-list {
@@ -147,7 +148,7 @@ button {
 
 <!-- ===== КЛАСАЦИЯ ===== -->
 <div id="leaderboard" class="card" style="display:none;">
-  <h2>Класация - 11 февр. 2026 г</h2>
+  <h2 id="leaderboard-title">Класация</h2>
   <ol id="leaderboard-list"></ol>
 </div>
 
@@ -216,6 +217,7 @@ const scoreDiv = document.getElementById("score");
 
 const leaderboardDiv = document.getElementById("leaderboard");
 const leaderboardList = document.getElementById("leaderboard-list");
+const leaderboardTitle = document.getElementById("leaderboard-title");
 
 /* ====== STATE ====== */
 let allQuestions = [];
@@ -324,7 +326,34 @@ function submitAnswer(timeout=false){
   },5000);
 }
 
-/* ====== ТОП 5 ====== */
+/* ====== НАЧАЛЕН ТОП 6 ====== */
+function startDailyTop6(){
+  const today=new Date().toISOString().split("T")[0];
+
+  const q=window.query(
+    window.collection(window.db,"results"),
+    window.where("gameId","==",today),
+    window.orderBy("score","desc"),
+    window.limit(6)
+  );
+
+  leaderboardTitle.textContent = "Топ 6 за деня (пълната класация се вижда след края на играта)";
+
+  window.onSnapshot(q,(snap)=>{
+    leaderboardList.innerHTML="";
+    let position = 1;
+    snap.forEach(docSnap=>{
+      const d=docSnap.data();
+      const li=document.createElement("li");
+      li.textContent=`${position}. ${d.name||d.userId} — ${d.score} т.`;
+      leaderboardList.appendChild(li);
+      position++;
+    });
+    leaderboardDiv.style.display="block";
+  });
+}
+
+/* ====== ТОП 5 ПО ВРЕМЕ НА ИГРА ====== */
 function startLeaderboard(){
   const today=new Date().toISOString().split("T")[0];
 
@@ -335,13 +364,17 @@ function startLeaderboard(){
     window.limit(5)
   );
 
+  leaderboardTitle.textContent = "Топ 5 за деня";
+
   window.onSnapshot(q,(snap)=>{
     leaderboardList.innerHTML="";
+    let position = 1;
     snap.forEach(docSnap=>{
       const d=docSnap.data();
       const li=document.createElement("li");
-      li.textContent=`${d.name||d.userId} — ${d.score} т.`;
+      li.textContent=`${position}. ${d.name||d.userId} — ${d.score} т.`;
       leaderboardList.appendChild(li);
+      position++;
     });
     leaderboardDiv.style.display="block";
   });
@@ -357,13 +390,17 @@ function startFullLeaderboard(){
     window.orderBy("score","desc")
   );
 
+  leaderboardTitle.textContent = "Класация за деня";
+
   window.onSnapshot(q,(snap)=>{
     leaderboardList.innerHTML="";
+    let position = 1;
     snap.forEach(docSnap=>{
       const d=docSnap.data();
       const li=document.createElement("li");
-      li.textContent=`${d.name||d.userId} — ${d.score} т.`;
+      li.textContent=`${position}. ${d.name||d.userId} — ${d.score} т.`;
       leaderboardList.appendChild(li);
+      position++;
     });
     leaderboardDiv.style.display="block";
   });
@@ -387,6 +424,23 @@ async function endGame(){
         timestamp:Date.now()
       }
     );
+
+// ====== АРХИВИРАНЕ ======
+try {
+  await window.setDoc(
+    window.doc(window.db, "archive", today, userId),
+    {
+      userId: userId,
+      name: playerName,
+      score: score,
+      gameId: today,
+      timestamp: Date.now()
+    }
+  );
+} catch (e) {
+  console.error("❌ Archive error:", e);
+}
+
   }catch(e){
     console.error("❌ Firebase error:",e);
   }
@@ -424,10 +478,9 @@ startBtn.onclick=async ()=>{
   const existing = await window.getDoc(docRef);
 
   if (existing.exists()) {
-    alert("Вече си играл днес! Виж класацията.");
-    startFullLeaderboard();
-    startScreen.style.display = "none";
+    startScreen.innerHTML = "<p>Вече си играл за днес, заповядай утре пак.</p>";
     game.style.display = "none";
+    startFullLeaderboard();
     return;
   }
 
@@ -449,6 +502,9 @@ startBtn.onclick=async ()=>{
 
   setTimeout(endGame,msUntilGameEnds());
 };
+
+/* ====== СТАРТОВ ТОП 6 ПРИ ЗАРЕЖДАНЕ ====== */
+startDailyTop6();
 
 })();
 </script>
