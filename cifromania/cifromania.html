@@ -334,10 +334,10 @@ function startDailyTop6(){
     window.collection(window.db,"results"),
     window.where("gameId","==",today),
     window.orderBy("score","desc"),
-    window.limit(6)
+    window.limit(10)
   );
 
-  leaderboardTitle.textContent = "Топ 6 за деня (пълната класация се вижда след края на играта)";
+  leaderboardTitle.textContent = "Топ 10 за деня (пълната класация се вижда след края на играта)";
 
   window.onSnapshot(q,(snap)=>{
     leaderboardList.innerHTML="";
