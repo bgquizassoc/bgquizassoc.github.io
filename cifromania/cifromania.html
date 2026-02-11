@@ -390,7 +390,7 @@ function startFullLeaderboard(){
     window.orderBy("score","desc")
   );
 
-  leaderboardTitle.textContent = "Класация за деня";
+  leaderboardTitle.textContent = "Класация за деня - 11 февр. 2026";
 
   window.onSnapshot(q,(snap)=>{
     leaderboardList.innerHTML="";
@@ -410,44 +410,46 @@ function startFullLeaderboard(){
 async function endGame(){
   clearInterval(timer);
 
-  const today=new Date().toISOString().split("T")[0];
-  const userId=idInput.value.trim();
+  const today = new Date().toISOString().split("T")[0];
+  const userId = idInput.value.trim();
 
-  try{
+  try {
+    // ====== ЗАПИС В RESULTS ======
     await window.setDoc(
-      window.doc(window.db,"results",`${today}_${userId}`),
+      window.doc(window.db, "results", `${today}_${userId}`),
       {
-        userId:userId,
-        name:playerName,
-        score:score,
-        gameId:today,
-        timestamp:Date.now()
+        userId: userId,
+        name: playerName,
+        score: score,
+        gameId: today,
+        timestamp: Date.now()
       }
     );
 
-// ====== АРХИВИРАНЕ ======
-try {
-  await window.setDoc(
-    window.doc(window.db, "archive", today, userId),
-    {
-      userId: userId,
-      name: playerName,
-      score: score,
-      gameId: today,
-      timestamp: Date.now()
-    }
-  );
-  }catch(e){
-    console.error("❌ Firebase error:",e);
+    // ====== АРХИВИРАНЕ ======
+    await window.setDoc(
+      window.doc(window.db, "archive", today, userId),
+      {
+        userId: userId,
+        name: playerName,
+        score: score,
+        gameId: today,
+        timestamp: Date.now()
+      }
+    );
+
+  } catch (e) {
+    console.error("❌ Firebase error:", e);
   }
 
-  qText.innerHTML=`🏁 <b>${playerName}</b>, завърши с <b>${score}</b> точки`;
-  timerDiv.textContent="";
-  ansInput.style.display="none";
-  submitBtn.style.display="none";
+  qText.innerHTML = `🏁 <b>${playerName}</b>, завърши с <b>${score}</b> точки`;
+  timerDiv.textContent = "";
+  ansInput.style.display = "none";
+  submitBtn.style.display = "none";
 
   startFullLeaderboard();
 }
+
 
 /* ====== EVENTS ====== */
 submitBtn.onclick=()=>submitAnswer(false);
