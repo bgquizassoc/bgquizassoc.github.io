@@ -123,7 +123,7 @@ button {
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>🔢 Цифромания 2🔢</h1>
+<h1>🔢 Цифромания 3🔢</h1>
 
 <!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
@@ -365,7 +365,7 @@ function startDailyTop6(){
 
 /* ====== ТОП 5 ПО ВРЕМЕ НА ИГРА ====== */
 function startLeaderboard(){
-  const today=new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("sv-SE");
 
   const q=window.query(
     window.collection(window.db,"results"),
@@ -392,7 +392,7 @@ function startLeaderboard(){
 
 /* ====== ПЪЛНА КЛАСАЦИЯ ====== */
 function startFullLeaderboard(){
-  const today=new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("sv-SE");
 
   const q=window.query(
     window.collection(window.db,"results"),
@@ -418,8 +418,7 @@ function startFullLeaderboard(){
 /* ====== END GAME ====== */
 async function endGame() {
   clearInterval(timer);
-
-  const today = new Date().toISOString().split("T")[0];
+const today = new Date().toLocaleDateString("sv-SE");
   const userId = idInput.value.trim();
 
   /* ====== ЗАПИС В RESULTS ====== */
@@ -515,8 +514,7 @@ startBtn.onclick=async ()=>{
     alert("❌ Цифромания е отключена от 19.40 до 20.00 часа");
     return;
   }
-
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("sv-SE");
   const docRef = window.doc(window.db, "results", `${today}_${id}`);
   const existing = await window.getDoc(docRef);
 
