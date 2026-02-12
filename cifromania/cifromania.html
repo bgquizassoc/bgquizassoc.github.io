@@ -123,7 +123,7 @@ button {
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>🔢 Цифромания🔢</h1>
+<h1>🔢 Цифромания 1🔢</h1>
 
 <!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
@@ -462,12 +462,39 @@ async function endGame() {
   ansInput.style.display = "none";
   submitBtn.style.display = "none";
 
-  startFullLeaderboard();
+ 
 }
 /* ====== АРХИВ БУТОН ====== */
 document.getElementById("archiveBtn").onclick = () => {
     window.location.href = "archive.html";
 };
+/* ====== ДНЕШНА КЛАСАЦИЯ ====== */
+function showTodayLeaderboard() {
+    const today = new Date().toLocaleDateString("sv-SE");
+
+    leaderboardTitle.textContent = `Днешна класация – ${today}`;
+
+    const q = window.query(
+        window.collection(window.db, "results"),
+        window.where("gameId", "==", today),
+        window.orderBy("score", "desc")
+    );
+
+    window.onSnapshot(q, (snap) => {
+        leaderboardList.innerHTML = "";
+        let pos = 1;
+
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const li = document.createElement("li");
+            li.textContent = `${pos}. ${d.name} — ${d.score} т.`;
+            leaderboardList.appendChild(li);
+            pos++;
+        });
+
+        leaderboard.style.display = "block";
+    });
+}
 
 /* ====== EVENTS ====== */
 submitBtn.onclick=()=>submitAnswer(false);
@@ -520,7 +547,7 @@ startBtn.onclick=async ()=>{
 };
 
 /* ====== СТАРТОВ ТОП 6 ПРИ ЗАРЕЖДАНЕ ====== */
-startDailyTop6();
+showTodayLeaderboard();
 
 })();
 </script>
