@@ -123,7 +123,7 @@ button {
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>🔢 Цифромания 🔢</h1>
+<h1>🔢 Цифромания 12 февруари 🔢</h1>
 
 <!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
@@ -428,7 +428,7 @@ async function endGame(){
 
     // ====== АРХИВИРАНЕ ======
     await window.setDoc(
-      window.doc(window.db, "archive", today, userId),
+       window.doc(window.db, "archive", today, "players", userId),
       {
         userId: userId,
         name: playerName,
