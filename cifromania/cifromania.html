@@ -131,6 +131,7 @@ button {
   <input id="playerId" placeholder="ето тук">
   <br>
   <button id="startBtn">Започни</button>
+  <button id="archiveBtn">Архив класирания</button>
 </div>
 
 <!-- ===== ИГРА ===== -->
@@ -342,13 +343,22 @@ function startDailyTop6(){
   window.onSnapshot(q,(snap)=>{
     leaderboardList.innerHTML="";
     let position = 1;
-    snap.forEach(docSnap=>{
-      const d=docSnap.data();
-      const li=document.createElement("li");
-      li.textContent=`${position}. ${d.name||d.userId} — ${d.score} т.`;
-      leaderboardList.appendChild(li);
-      position++;
-    });
+    snap.forEach(docSnap => {
+    const d = docSnap.data();
+    const li = document.createElement("li");
+
+    li.textContent = `${position}. ${d.name} — ${d.score} т.`;
+
+    // 🟢 Оцветяване на текущия играч
+    if (d.userId === idInput.value.trim()) {
+        li.style.color = "limegreen";
+        li.style.fontWeight = "bold";
+    }
+
+    leaderboardList.appendChild(li);
+    position++;
+});
+
     leaderboardDiv.style.display="block";
   });
 }
@@ -454,9 +464,10 @@ async function endGame() {
 
   startFullLeaderboard();
 }
-
-
-
+/* ====== АРХИВ БУТОН ====== */
+document.getElementById("archiveBtn").onclick = () => {
+    window.location.href = "archive.html";
+};
 
 /* ====== EVENTS ====== */
 submitBtn.onclick=()=>submitAnswer(false);
