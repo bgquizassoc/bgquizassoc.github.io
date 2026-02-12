@@ -329,7 +329,7 @@ function submitAnswer(timeout=false){
 
 /* ====== НАЧАЛЕН ТОП 6 ====== */
 function startDailyTop6(){
-  const today=new Date().toISOString().split("T")[0];
+ const today = new Date().toLocaleDateString("sv-SE");
 
   const q=window.query(
     window.collection(window.db,"results"),
