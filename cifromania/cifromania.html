@@ -123,12 +123,12 @@ button {
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>🔢 Цифромания 🔢</h1>
+<h1>🔢 Цифромания 3 🔢</h1>
 
 <!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
   <p>Въведи ID-номера си:</p>
-  <input id="playerId" placeholder="Въведи ID">
+  <input id="playerId" placeholder="ето тук">
   <br>
   <button id="startBtn">Започни</button>
 </div>
@@ -390,7 +390,7 @@ function startFullLeaderboard(){
     window.orderBy("score","desc")
   );
 
-  leaderboardTitle.textContent = "Класация за деня - 11 февр. 2026";
+  leaderboardTitle.textContent = "Класация за деня - 12 февр. 2026";
 
   window.onSnapshot(q,(snap)=>{
     leaderboardList.innerHTML="";
