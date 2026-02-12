@@ -123,7 +123,7 @@ button {
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>🔢 Цифромания 12 февруари 🔢</h1>
+<h1>🔢 Цифромания 🔢</h1>
 
 <!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
@@ -405,16 +405,15 @@ function startFullLeaderboard(){
     leaderboardDiv.style.display="block";
   });
 }
-
 /* ====== END GAME ====== */
-async function endGame(){
+async function endGame() {
   clearInterval(timer);
 
   const today = new Date().toISOString().split("T")[0];
   const userId = idInput.value.trim();
 
+  /* ====== ЗАПИС В RESULTS ====== */
   try {
-    // ====== ЗАПИС В RESULTS ======
     await window.setDoc(
       window.doc(window.db, "results", `${today}_${userId}`),
       {
@@ -425,10 +424,15 @@ async function endGame(){
         timestamp: Date.now()
       }
     );
+    console.log("✔ RESULTS записан:", today, userId, score);
+  } catch (err) {
+    console.error("❌ RESULTS ERROR:", err);
+  }
 
-    // ====== АРХИВИРАНЕ ======
+  /* ====== АРХИВИРАНЕ ====== */
+  try {
     await window.setDoc(
-       window.doc(window.db, "archive", today, "players", userId),
+      window.doc(window.db, "archive", today, "players", userId),
       {
         userId: userId,
         name: playerName,
@@ -437,11 +441,12 @@ async function endGame(){
         timestamp: Date.now()
       }
     );
-
-  } catch (e) {
-    console.error("❌ Firebase error:", e);
+    console.log("✔ ARCHIVE записан:", today, userId, score);
+  } catch (err) {
+    console.error("❌ ARCHIVE ERROR:", err);
   }
 
+  /* ====== UI ====== */
   qText.innerHTML = `🏁 <b>${playerName}</b>, завърши с <b>${score}</b> точки`;
   timerDiv.textContent = "";
   ansInput.style.display = "none";
@@ -449,6 +454,8 @@ async function endGame(){
 
   startFullLeaderboard();
 }
+
+
 
 
 /* ====== EVENTS ====== */
