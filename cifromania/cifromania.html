@@ -123,7 +123,7 @@ button {
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>🔢 Цифромания🔢</h1>
+<h1>🔢 Цифромания 1🔢</h1>
 
 <!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
@@ -495,11 +495,18 @@ startBtn.onclick=async ()=>{
 
   startLeaderboard();
 
-  questions=pickRandom(50);
-  idx=0;
-  score=0;
+  if (saved && saved.userId === id) {
+    // Има прогрес → НЕ нулираме нищо
+    questions = pickRandom(50);
+    renderQuestion();
+} else {
+    // Няма прогрес → започваме от начало
+    questions = pickRandom(50);
+    idx = 0;
+    score = 0;
+    renderQuestion();
+}
 
-  renderQuestion();
 
   setTimeout(endGame,msUntilGameEnds());
 };
