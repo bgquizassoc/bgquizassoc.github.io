@@ -131,6 +131,7 @@ button {
   <input id="playerId" placeholder="ето тук">
   <br>
   <button id="startBtn">Започни</button>
+  <button id="continueBtn" style="display:none;">Продължи оттам, докъдето стигна</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
 
@@ -199,8 +200,8 @@ button {
 (async function(){
 
 /* ====== НАСТРОЙКИ НА ВРЕМЕТО ====== */
-const GAME_START_HOUR = 00;
-const GAME_START_MIN = 01;
+const GAME_START_HOUR = 0;
+const GAME_START_MIN = 1;
 const GAME_END_HOUR   = 23;
 const GAME_END_MIN    = 59;
 
@@ -208,6 +209,7 @@ const GAME_END_MIN    = 59;
 const startScreen = document.getElementById("start-screen");
 const game = document.getElementById("game");
 const startBtn = document.getElementById("startBtn");
+const continueBtn = document.getElementById("continueBtn");
 const idInput = document.getElementById("playerId");
 const timerDiv = document.getElementById("timer");
 const qText = document.getElementById("question");
@@ -253,6 +255,26 @@ function msUntilGameEnds(){
   const end = new Date();
   end.setHours(GAME_END_HOUR,GAME_END_MIN,0,0);
   return end-now;
+}
+
+/* ====== SAVE PROGRESS ====== */
+function saveProgress() {
+  localStorage.setItem("cifromania_progress", JSON.stringify({
+    userId: idInput.value.trim(),
+    name: playerName,
+    idx,
+    score
+  }));
+}
+
+/* ====== LOAD PROGRESS ====== */
+function loadProgress() {
+  return JSON.parse(localStorage.getItem("cifromania_progress"));
+}
+
+/* ====== CLEAR PROGRESS ====== */
+function clearProgress() {
+  localStorage.removeItem("cifromania_progress");
 }
 
 /* ====== TIMER ====== */
@@ -317,6 +339,8 @@ function submitAnswer(timeout=false){
 
   scoreDiv.textContent=`Точки: ${score}`;
 
+  saveProgress();
+
   setTimeout(()=>{
     idx++;
     if(idx>=questions.length){
@@ -327,180 +351,67 @@ function submitAnswer(timeout=false){
   },5000);
 }
 
-/* ====== НАЧАЛЕН ТОП 6 ====== */
-function startDailyTop6(){
- const today = new Date().toLocaleDateString("sv-SE");
-
-  const q=window.query(
-    window.collection(window.db,"results"),
-    window.where("gameId","==",today),
-    window.orderBy("score","desc"),
-    window.limit(10)
-  );
-
-  leaderboardTitle.textContent = "Топ 10 за деня (пълната класация се вижда след края на играта)";
-
-  window.onSnapshot(q,(snap)=>{
-    leaderboardList.innerHTML="";
-    let position = 1;
-    snap.forEach(docSnap => {
-    const d = docSnap.data();
-    const li = document.createElement("li");
-
-    li.textContent = `${position}. ${d.name} — ${d.score} т.`;
-
-    // 🟢 Оцветяване на текущия играч
-    if (d.userId === idInput.value.trim()) {
-        li.style.color = "limegreen";
-        li.style.fontWeight = "bold";
-    }
-
-    leaderboardList.appendChild(li);
-    position++;
-});
-
-    leaderboardDiv.style.display="block";
-  });
-}
-
-/* ====== ТОП 5 ПО ВРЕМЕ НА ИГРА ====== */
-function startLeaderboard(){
+/* ====== FIRESTORE SAVE ====== */
+async function saveToFirestore(finalScore) {
   const today = new Date().toLocaleDateString("sv-SE");
-
-  const q=window.query(
-    window.collection(window.db,"results"),
-    window.where("gameId","==",today),
-    window.orderBy("score","desc"),
-    window.limit(5)
-  );
-
-  leaderboardTitle.textContent = "Топ 5 за деня";
-
-  window.onSnapshot(q,(snap)=>{
-    leaderboardList.innerHTML="";
-    let position = 1;
-    snap.forEach(docSnap=>{
-      const d=docSnap.data();
-      const li=document.createElement("li");
-      li.textContent=`${position}. ${d.name||d.userId} — ${d.score} т.`;
-      leaderboardList.appendChild(li);
-      position++;
-    });
-    leaderboardDiv.style.display="block";
-  });
-}
-
-/* ====== ПЪЛНА КЛАСАЦИЯ ====== */
-function startFullLeaderboard(){
-  const today = new Date().toLocaleDateString("sv-SE");
-
-  const q=window.query(
-    window.collection(window.db,"results"),
-    window.where("gameId","==",today),
-    window.orderBy("score","desc")
-  );
-
-  leaderboardTitle.textContent = "Класация за деня - 12 февр. 2026";
-
-  window.onSnapshot(q,(snap)=>{
-    leaderboardList.innerHTML="";
-    let position = 1;
-    snap.forEach(docSnap=>{
-      const d=docSnap.data();
-      const li=document.createElement("li");
-      li.textContent=`${position}. ${d.name||d.userId} — ${d.score} т.`;
-      leaderboardList.appendChild(li);
-      position++;
-    });
-    leaderboardDiv.style.display="block";
-  });
-}
-/* ====== END GAME ====== */
-async function endGame() {
-  clearInterval(timer);
-const today = new Date().toLocaleDateString("sv-SE");
   const userId = idInput.value.trim();
 
-  /* ====== ЗАПИС В RESULTS ====== */
+  const data = {
+    userId,
+    name: playerName,
+    score: finalScore,
+    gameId: today,
+    timestamp: Date.now()
+  };
+
   try {
     await window.setDoc(
       window.doc(window.db, "results", `${today}_${userId}`),
-      {
-        userId: userId,
-        name: playerName,
-        score: score,
-        gameId: today,
-        timestamp: Date.now()
-      }
+      data
     );
-    console.log("✔ RESULTS записан:", today, userId, score);
   } catch (err) {
     console.error("❌ RESULTS ERROR:", err);
   }
 
-  /* ====== АРХИВИРАНЕ ====== */
   try {
     await window.setDoc(
       window.doc(window.db, "archive", today, "players", userId),
-      {
-        userId: userId,
-        name: playerName,
-        score: score,
-        gameId: today,
-        timestamp: Date.now()
-      }
+      data
     );
-    console.log("✔ ARCHIVE записан:", today, userId, score);
   } catch (err) {
     console.error("❌ ARCHIVE ERROR:", err);
   }
+}
 
-  /* ====== UI ====== */
+/* ====== END GAME ====== */
+async function endGame() {
+  clearInterval(timer);
+  await saveToFirestore(score);
+  clearProgress();
+
   qText.innerHTML = `🏁 <b>${playerName}</b>, завърши с <b>${score}</b> точки`;
   timerDiv.textContent = "";
   ansInput.style.display = "none";
   submitBtn.style.display = "none";
-
- 
 }
-/* ====== АРХИВ БУТОН ====== */
-document.getElementById("archiveBtn").onclick = () => {
-    window.location.href = "archive.html";
+
+/* ====== CONTINUE GAME ====== */
+continueBtn.onclick = () => {
+  const saved = loadProgress();
+  if (!saved) return;
+
+  playerName = saved.name;
+  idx = saved.idx;
+  score = saved.score;
+
+  startScreen.style.display = "none";
+  game.style.display = "block";
+
+  questions = pickRandom(50);
+  renderQuestion(idx);
 };
-/* ====== ДНЕШНА КЛАСАЦИЯ ====== */
-function showTodayLeaderboard() {
-    const today = new Date().toLocaleDateString("sv-SE");
 
-    leaderboardTitle.textContent = `Днешна класация – ${today}`;
-
-    const q = window.query(
-        window.collection(window.db, "results"),
-        window.where("gameId", "==", today),
-        window.orderBy("score", "desc")
-    );
-
-    window.onSnapshot(q, (snap) => {
-        leaderboardList.innerHTML = "";
-        let pos = 1;
-
-        snap.forEach(docSnap => {
-            const d = docSnap.data();
-            const li = document.createElement("li");
-            li.textContent = `${pos}. ${d.name} — ${d.score} т.`;
-            leaderboardList.appendChild(li);
-            pos++;
-        });
-
-        leaderboardDiv.style.display = "block";
-    });
-}
-
-/* ====== EVENTS ====== */
-submitBtn.onclick=()=>submitAnswer(false);
-ansInput.addEventListener("keydown",e=>{
-  if(e.key==="Enter") submitAnswer(false);
-});
-
+/* ====== START GAME ====== */
 startBtn.onclick=async ()=>{
 
   const id=idInput.value.trim();
@@ -514,11 +425,18 @@ startBtn.onclick=async ()=>{
     alert("❌ Цифромания е отключена от 19.40 до 20.00 часа");
     return;
   }
+
   const today = new Date().toLocaleDateString("sv-SE");
   const docRef = window.doc(window.db, "results", `${today}_${id}`);
   const existing = await window.getDoc(docRef);
 
   if (existing.exists()) {
+    // Архивиране при повторно влизане
+    await window.setDoc(
+      window.doc(window.db, "archive", today, "players", id),
+      existing.data()
+    );
+
     startScreen.innerHTML = "<p>Вече си играл за днес, заповядай утре пак.</p>";
     game.style.display = "none";
     startFullLeaderboard();
@@ -527,13 +445,16 @@ startBtn.onclick=async ()=>{
 
   playerName=PLAYERS[id];
 
-  const bgMusic=document.getElementById("bg-music");
-  bgMusic.play().catch(()=>{});
+  const saved = loadProgress();
+  if (saved && saved.userId === id) {
+    continueBtn.style.display = "inline-block";
+    continueBtn.textContent = `Продължи от въпрос ${saved.idx + 1}`;
+  }
 
   startScreen.style.display="none";
   game.style.display="block";
 
-  startLeaderboard(); // ТОП 5 по време на игра
+  startLeaderboard();
 
   questions=pickRandom(50);
   idx=0;
@@ -548,8 +469,10 @@ startBtn.onclick=async ()=>{
 window.addEventListener("load", () => {
   showTodayLeaderboard();
 }); 
+
 })();
 </script>
+
 
 </body>
 </html>
