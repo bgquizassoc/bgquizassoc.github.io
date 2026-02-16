@@ -123,7 +123,7 @@ button {
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>🔢 Цифромания 1🔢</h1>
+<h1>🔢 Цифромания🔢</h1>
 
 <!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
@@ -382,6 +382,34 @@ async function saveToFirestore(finalScore) {
     console.error("❌ ARCHIVE ERROR:", err);
   }
 }
+
+/* ====== ТОП 5 ПО ВРЕМЕ НА ИГРА ====== */
+function startLeaderboard(){
+  const today = new Date().toLocaleDateString("sv-SE");
+
+  const q = window.query(
+    window.collection(window.db,"results"),
+    window.where("gameId","==",today),
+    window.orderBy("score","desc"),
+    window.limit(5)
+  );
+
+  leaderboardTitle.textContent = "Топ 5 за деня";
+
+  window.onSnapshot(q,(snap)=>{
+    leaderboardList.innerHTML="";
+    let position = 1;
+    snap.forEach(docSnap=>{
+      const d = docSnap.data();
+      const li = document.createElement("li");
+      li.textContent = `${position}. ${d.name || d.userId} — ${d.score} т.`;
+      leaderboardList.appendChild(li);
+      position++;
+    });
+    leaderboardDiv.style.display="block";
+  });
+}
+
 
 /* ====== END GAME ====== */
 async function endGame() {
