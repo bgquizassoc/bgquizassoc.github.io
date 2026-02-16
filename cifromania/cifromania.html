@@ -465,10 +465,38 @@ startBtn.onclick=async ()=>{
   setTimeout(endGame,msUntilGameEnds());
 };
 
-/* ====== СТАРТОВ ТОП 6 ПРИ ЗАРЕЖДАНЕ ====== */
+/* ====== ДНЕШНА КЛАСАЦИЯ НА СТАРТОВИЯ ЕКРАН ====== */
+function showTodayLeaderboard() {
+    const today = new Date().toLocaleDateString("sv-SE");
+
+    leaderboardTitle.textContent = `Днешна класация – ${today}`;
+
+    const q = window.query(
+        window.collection(window.db, "results"),
+        window.where("gameId", "==", today),
+        window.orderBy("score", "desc")
+    );
+
+    window.onSnapshot(q, (snap) => {
+        leaderboardList.innerHTML = "";
+        let pos = 1;
+
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const li = document.createElement("li");
+            li.textContent = `${pos}. ${d.name} — ${d.score} т.`;
+            leaderboardList.appendChild(li);
+            pos++;
+        });
+
+        leaderboardDiv.style.display = "block";
+    });
+}
+
+/* ====== СТАРТОВ ТОП ПРИ ЗАРЕЖДАНЕ ====== */
 window.addEventListener("load", () => {
   showTodayLeaderboard();
-}); 
+});
 
 })();
 </script>
