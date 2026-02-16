@@ -123,7 +123,7 @@ button {
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>🔢 Цифромания 1🔢</h1>
+<h1>🔢 Цифромания🔢</h1>
 
 <!-- ===== СТАРТ ЕКРАН ===== -->
 <div id="start-screen" class="card">
@@ -221,6 +221,7 @@ const scoreDiv = document.getElementById("score");
 const leaderboardDiv = document.getElementById("leaderboard");
 const leaderboardList = document.getElementById("leaderboard-list");
 const leaderboardTitle = document.getElementById("leaderboard-title");
+const bgMusic = document.getElementById("bg-music");
 
 /* ====== STATE ====== */
 let allQuestions = [];
@@ -257,24 +258,28 @@ function msUntilGameEnds(){
   return end-now;
 }
 
-/* ====== SAVE PROGRESS ====== */
+/* ====== PROGRESS (LOCALSTORAGE) ====== */
+const PROGRESS_KEY = "cifromania_progress";
+
 function saveProgress() {
-  localStorage.setItem("cifromania_progress", JSON.stringify({
-    userId: idInput.value.trim(),
+  const userId = idInput.value.trim();
+  if (!userId) return;
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify({
+    userId,
     name: playerName,
     idx,
     score
   }));
 }
 
-/* ====== LOAD PROGRESS ====== */
 function loadProgress() {
-  return JSON.parse(localStorage.getItem("cifromania_progress"));
+  const raw = localStorage.getItem(PROGRESS_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
 }
 
-/* ====== CLEAR PROGRESS ====== */
 function clearProgress() {
-  localStorage.removeItem("cifromania_progress");
+  localStorage.removeItem(PROGRESS_KEY);
 }
 
 /* ====== TIMER ====== */
@@ -308,6 +313,10 @@ function calcPoints(diff,q){
 /* ====== QUESTION ====== */
 function renderQuestion(){
   const q=questions[idx];
+  if (!q) {
+    endGame();
+    return;
+  }
   qText.textContent=`${idx+1}. ${q.question}`;
   ansInput.value="";
   ansInput.focus();
@@ -321,6 +330,11 @@ function submitAnswer(timeout=false){
   clearInterval(timer);
 
   const q=questions[idx];
+  if (!q) {
+    endGame();
+    return;
+  }
+
   const correct=Number(q.answer);
   const user=timeout?null:Number(ansInput.value);
 
@@ -410,7 +424,6 @@ function startLeaderboard(){
   });
 }
 
-
 /* ====== END GAME ====== */
 async function endGame() {
   clearInterval(timer);
@@ -423,20 +436,33 @@ async function endGame() {
   submitBtn.style.display = "none";
 }
 
-/* ====== CONTINUE GAME ====== */
-continueBtn.onclick = () => {
-  const saved = loadProgress();
-  if (!saved) return;
+/* ====== РЕЗЮМЕ НА ИГРА ====== */
+function resumeGame(saved){
+  const userId = saved.userId;
+  playerName = saved.name || PLAYERS[userId] || "";
+  idInput.value = userId;
 
-  playerName = saved.name;
   idx = saved.idx;
   score = saved.score;
 
   startScreen.style.display = "none";
   game.style.display = "block";
 
+  try { bgMusic.play(); } catch(e){}
+
+  startLeaderboard();
+
   questions = pickRandom(50);
   renderQuestion();
+
+  setTimeout(endGame, msUntilGameEnds());
+}
+
+/* ====== CONTINUE BUTTON ====== */
+continueBtn.onclick = () => {
+  const saved = loadProgress();
+  if (!saved) return;
+  resumeGame(saved);
 };
 
 /* ====== EVENTS ====== */
@@ -469,8 +495,8 @@ startBtn.onclick=async ()=>{
   const docRef = window.doc(window.db, "results", `${today}_${id}`);
   const existing = await window.getDoc(docRef);
 
+  // ако вече има записан резултат за днес → край
   if (existing.exists()) {
-    // Архивиране при повторно влизане
     await window.setDoc(
       window.doc(window.db, "archive", today, "players", id),
       existing.data()
@@ -478,40 +504,39 @@ startBtn.onclick=async ()=>{
 
     startScreen.innerHTML = "<p>Вече си играл за днес, заповядай утре пак.</p>";
     game.style.display = "none";
-    startFullLeaderboard();
     return;
   }
 
-  playerName=PLAYERS[id];
-
   const saved = loadProgress();
+
+  // ако има недовършена игра за това ID → продължаваме, не започваме нова
   if (saved && saved.userId === id) {
-    continueBtn.style.display = "inline-block";
-    continueBtn.textContent = `Продължи от въпрос ${saved.idx + 1}`;
+    resumeGame(saved);
+    return;
   }
+
+  // нова игра
+  playerName = PLAYERS[id];
+  idInput.value = id;
+  clearProgress();
 
   startScreen.style.display="none";
   game.style.display="block";
 
+  try { bgMusic.play(); } catch(e){}
+
   startLeaderboard();
 
-  if (saved && saved.userId === id) {
-    // Има прогрес → НЕ нулираме нищо
-    questions = pickRandom(50);
-    renderQuestion();
-} else {
-    // Няма прогрес → започваме от начало
-    questions = pickRandom(50);
-    idx = 0;
-    score = 0;
-    renderQuestion();
-}
+  questions=pickRandom(50);
+  idx=0;
+  score=0;
 
+  renderQuestion();
 
   setTimeout(endGame,msUntilGameEnds());
 };
 
-/* ====== ДНЕШНА КЛАСАЦИЯ НА СТАРТОВИЯ ЕКРАН ====== */
+/* ====== ДНЕШНА КЛАСАЦИЯ НА СТАРТОВИЯ ЕКРАН + ПРОДЪЛЖИ ====== */
 function showTodayLeaderboard() {
     const today = new Date().toLocaleDateString("sv-SE");
 
@@ -539,13 +564,20 @@ function showTodayLeaderboard() {
     });
 }
 
-/* ====== СТАРТОВ ТОП ПРИ ЗАРЕЖДАНЕ ====== */
 window.addEventListener("load", () => {
   showTodayLeaderboard();
+
+  const saved = loadProgress();
+  if (saved) {
+    idInput.value = saved.userId;
+    continueBtn.style.display = "inline-block";
+    continueBtn.textContent = `Продължи от въпрос ${saved.idx + 1}`;
+  }
 });
 
 })();
 </script>
+
 
 
 </body>
