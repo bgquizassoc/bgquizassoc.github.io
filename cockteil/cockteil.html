@@ -184,7 +184,7 @@
     <button id="close-explanation-btn" class="yellow-btn">Затвори</button>
   </div>
 </div>
-
+<script src="players.js"></script>
 <script>
 (async function(){
 
@@ -337,13 +337,7 @@
 
   // ===== ЗАРЕЖДАНЕ НА ДАННИ =====
 
-  try {
-    const playersRes = await fetch('players.json');
-    PLAYERS = await playersRes.json();
-  } catch(e) {
-    console.error("Грешка при зареждане на players.json", e);
-  }
-
+  
   try {
     const res = await fetch('questions.json');
     ALL_QUESTIONS = await res.json();
