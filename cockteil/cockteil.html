@@ -114,26 +114,35 @@
       text-align: center;
     }
 
-    #ranking {
-      margin-top: 25px;
-      font-size: 0.95em;
-      text-align: left;
-    }
+  #ranking {
+  margin-top: 25px;
+  text-align: left;
+  font-size: 1em;
+  background: rgba(255,255,255,0.05);
+  padding: 15px;
+  border-radius: 10px;
+}
 
-    #ranking h2 {
-      font-size: 1.2em;
-      margin-bottom: 10px;
-      color: #ffd100;
-    }
+#ranking h2 {
+  margin-bottom: 10px;
+  color: #ffd100;
+  font-size: 1.2em;
+}
 
-    #ranking ul {
-      list-style: none;
-      padding-left: 0;
-    }
+#ranking ol {
+  margin: 0;
+  padding-left: 20px;
+}
 
-    #ranking li {
-      margin-bottom: 4px;
-    }
+#ranking li {
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #444;
+}
+
+#ranking li:last-child {
+  border-bottom: none;
+}
 
     #already-played-msg {
       margin-top: 15px;
@@ -144,8 +153,8 @@
 </head>
 
 <body>
-
-<h1>Игри на Знания<br>🍹 Куиз Коктейл 1🍹</h1>
+<audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
+<h1>Игри на Знания<br>🍹 Куиз Коктейл🍹</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето ID:</p>
@@ -197,23 +206,23 @@ console.log("PLAYERS:", typeof PLAYERS);
   // ===== НАСТРОЙКИ НА ИГРАТА =====
 
   const AREA_DISTRIBUTION = {
-    "География": 3,
-    "История": 3,
-    "Философия": 2,
-    "Митология": 2,
-    "Религия": 2,
-    "Изкуство": 2,
+    "География": 4,
+    "История": 4,
+    "Философия": 1,
+    "Митология": 1,
+    "Религия": 1,
+    "Изкуство": 3,
     "Кулинария": 3,
-    "Кино": 3,
+    "Кино": 4,
     "Литература": 3,
     "Музика": 3,
     "Наука": 3,
-    "Архитектура": 3,
+    "Архитектура": 1,
     "Астрономия": 3,
     "Биология": 3,
     "Физика": 3,
     "Химия": 3,
-    "Спорт": 3,
+    "Спорт": 4,
     "Футбол": 3
   };
 
@@ -484,6 +493,11 @@ console.log("PLAYERS:", typeof PLAYERS);
   };
 
   startBtn.onclick = async () => {
+    // Пускане на музиката след първия клик
+const music = document.getElementById("bg-music");
+music.volume = 0.25; // тиха музика, както в стария стил
+music.play().catch(()=>{});
+
     const id = playerIdInput.value.trim();
     if (!id) {
       alert("Въведете ID!");
@@ -626,13 +640,14 @@ function loadRanking() {
   const q = query(col, orderBy("percent", "desc"));
 
   onSnapshot(q, (snap) => {
-    let html = `<h2>Класиране за днес (${todayKey()})</h2><ul>`;
-    snap.forEach(doc => {
-      const d = doc.data();
-      html += `<li><b>${d.playerName}</b>: ${d.percent}% (${d.score}/${d.total})</li>`;
-    });
-    html += "</ul>";
-    document.getElementById("ranking").innerHTML = html;
+   let html = `<h2>Класиране за днес (${todayKey()})</h2><ol>`;
+snap.forEach(doc => {
+  const d = doc.data();
+  html += `<li><b>${d.playerName}</b>: ${d.percent}% (${d.score}/${d.total})</li>`;
+});
+html += "</ol>";
+document.getElementById("ranking").innerHTML = html;
+
   });
 }
 
