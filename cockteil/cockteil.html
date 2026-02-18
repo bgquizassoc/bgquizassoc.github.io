@@ -541,6 +541,15 @@ console.log("PLAYERS:", typeof PLAYERS);
 
     const percent = Math.round(score / questions.length * 100);
 
+    submitResultToFirebase({
+  playerId,
+  playerName,
+  score,
+  total: questions.length,
+  percent
+});
+
+
     qText.innerHTML =
       `🏁 Край на играта, <b>${playerName}</b>!<br><br>
       Резултат: <b>${score}</b> от <b>${questions.length}</b> (${percent}%).<br><br>`;
@@ -579,38 +588,79 @@ console.log("PLAYERS:", typeof PLAYERS);
     explanationDiv.style.display = "none";
   };
 
-  // ===== ТУК ЩЕ ДОЙДЕ FIREBASE БЛОКЪТ =====
-  /*
-    ===== FIREBASE BLOCK START =====
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { 
+  getFirestore, doc, setDoc, getDoc,
+  collection, query, orderBy, onSnapshot
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    Тук поставяш целия блок за:
-      - инициализация на Firebase
-      - checkAlreadyPlayedToday(playerId) → задава alreadyPlayedToday = true/false
-      - зареждане на класирането за деня и визуализация в rankingDiv
-      - submitResultToFirebase({ playerId, playerName, score, total, percent })
-      - архивиране в "archive"
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
 
-    Примерна структура на функциите, които да дефинираш тук:
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    async function checkAlreadyPlayedToday(playerId) {
-      // 1) Определи днешната дата (YYYY-MM-DD)
-      // 2) Провери в колекция "results" дали има документ за този playerId
-      // 3) Ако има → alreadyPlayedToday = true; alreadyPlayedMsg.textContent = "Днес вече си играл.";
-      // 4) Ако няма → alreadyPlayedToday = false;
-      // 5) Зареди класирането за деня и го покажи в rankingDiv
-    }
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
 
-    async function submitResultToFirebase(result) {
-      // result: { playerId, playerName, score, total, percent }
-      // 1) Запиши в "results" за днешната дата
-      // 2) Запиши в "archive/дата/players/playerId"
-      // 3) Обнови класирането в rankingDiv
-    }
+async function checkAlreadyPlayedToday(playerId) {
+  const ref = doc(db, "games", "kokteil", "results", todayKey(), "players", playerId);
+  const snap = await getDoc(ref);
 
-    В startBtn.onclick и finishGame() можеш да извикаш тези функции.
+  if (snap.exists()) {
+    alreadyPlayedToday = true;
+    alreadyPlayedMsg.textContent = "Днес вече сте играли.";
+    startBtn.disabled = true;
+    continueBtn.style.display = "none";
+    return true;
+  }
 
-    ===== FIREBASE BLOCK END =====
-  */
+  alreadyPlayedToday = false;
+  return false;
+}
+
+function loadRanking() {
+  const col = collection(db, "games", "kokteil", "results", todayKey(), "players");
+  const q = query(col, orderBy("percent", "desc"));
+
+  onSnapshot(q, (snap) => {
+    let html = `<h2>Класиране за днес (${todayKey()})</h2><ul>`;
+    snap.forEach(doc => {
+      const d = doc.data();
+      html += `<li><b>${d.playerName}</b>: ${d.percent}% (${d.score}/${d.total})</li>`;
+    });
+    html += "</ul>";
+    rankingDiv.innerHTML = html;
+  });
+}
+
+async function submitResultToFirebase({ playerId, playerName, score, total, percent }) {
+  const resultRef = doc(db, "games", "kokteil", "results", todayKey(), "players", playerId);
+  await setDoc(resultRef, {
+    playerId, playerName, score, total, percent, timestamp: Date.now()
+  });
+
+  const archiveRef = doc(db, "games", "kokteil", "archive", playerId);
+  await setDoc(archiveRef, {
+    [todayKey()]: { score, total, percent }
+  }, { merge: true });
+}
+
+startBtn.addEventListener("click", async () => {
+  const id = playerIdInput.value.trim();
+  if (!id) return;
+  await checkAlreadyPlayedToday(id);
+});
+
+loadRanking();
+
 
 })();
 </script>
