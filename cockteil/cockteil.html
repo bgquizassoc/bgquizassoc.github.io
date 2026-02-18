@@ -184,6 +184,7 @@
     <button id="close-explanation-btn" class="yellow-btn">Затвори</button>
   </div>
 </div>
+
 <script src="players.js"></script>
   <script>
 console.log("ТЕСТ: players.js се зарежда ли?");
@@ -251,7 +252,7 @@ console.log("PLAYERS:", typeof PLAYERS);
   let timeLeft = 20;
   let timer;
   let gameHistory = [];
-  let alreadyPlayedToday = false; // ще се задава от Firebase блока
+  window.alreadyPlayedToday = false; // глобално, за да може Firebase модулът да го пипа
 
   // ===== ПОМОЩНИ ФУНКЦИИ =====
 
@@ -391,7 +392,6 @@ console.log("PLAYERS:", typeof PLAYERS);
 
     return selected;
   }
-
   // ===== РЕНДЕР НА ВЪПРОС =====
 
   function renderQuestion(i) {
@@ -468,8 +468,6 @@ console.log("PLAYERS:", typeof PLAYERS);
     playerId = saved.playerId;
     playerName = saved.name || PLAYERS[playerId] || playerId;
 
-    // Тук може да се направи проверка с Firebase дали вече е играл днес.
-    // Ако alreadyPlayedToday = true → блокираме.
     if (alreadyPlayedToday) {
       alreadyPlayedMsg.textContent = "Днес вече си играл.";
       return;
@@ -500,10 +498,6 @@ console.log("PLAYERS:", typeof PLAYERS);
     playerId = id;
     playerName = PLAYERS[id];
 
-    // ТУК ЩЕ ВЛЕЗЕ ПРОВЕРКАТА С FIREBASE ДАЛИ ВЕЧЕ Е ИГРАЛ ДНЕС.
-    // Firebase блокът ще задава alreadyPlayedToday = true/false
-    // и ще може да върне и класирането за деня.
-    // Ако alreadyPlayedToday е true → показваме съобщение и спираме.
     if (alreadyPlayedToday) {
       alreadyPlayedMsg.textContent = "Днес вече си играл.";
       return;
@@ -535,20 +529,18 @@ console.log("PLAYERS:", typeof PLAYERS);
 
     renderQuestion(idx);
   }
-
   function finishGame() {
     clearInterval(timer);
 
     const percent = Math.round(score / questions.length * 100);
 
     submitResultToFirebase({
-  playerId,
-  playerName,
-  score,
-  total: questions.length,
-  percent
-});
-
+      playerId,
+      playerName,
+      score,
+      total: questions.length,
+      percent
+    });
 
     qText.innerHTML =
       `🏁 Край на играта, <b>${playerName}</b>!<br><br>
@@ -579,16 +571,19 @@ console.log("PLAYERS:", typeof PLAYERS);
 
     document.getElementById("history-btn").onclick = showHistoryScreen;
     document.getElementById("retry-btn").onclick = onRetryClicked;
-
-    // ТУК ЩЕ СЕ ИЗВИКА ФУНКЦИЯТА ЗА ЗАПИС В FIREBASE (класиране + архив)
-    // например: submitResultToFirebase({ playerId, playerName, score, total: questions.length, percent });
   }
 
   document.getElementById("close-explanation-btn").onclick = () => {
     explanationDiv.style.display = "none";
   };
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+})();  <!-- ЗАТВАРЯНЕ НА ОСНОВНИЯ СКРИПТ -->
+</script>
+
+<!-- ===== FIREBASE МОДУЛЕН СКРИПТ (ОТДЕЛЕН) ===== -->
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { 
   getFirestore, doc, setDoc, getDoc,
   collection, query, orderBy, onSnapshot
@@ -615,14 +610,14 @@ async function checkAlreadyPlayedToday(playerId) {
   const snap = await getDoc(ref);
 
   if (snap.exists()) {
-    alreadyPlayedToday = true;
-    alreadyPlayedMsg.textContent = "Днес вече сте играли.";
-    startBtn.disabled = true;
-    continueBtn.style.display = "none";
+    window.alreadyPlayedToday = true;
+    document.getElementById("already-played-msg").textContent = "Днес вече сте играли.";
+    document.getElementById("start-btn").disabled = true;
+    document.getElementById("continue-btn").style.display = "none";
     return true;
   }
 
-  alreadyPlayedToday = false;
+  window.alreadyPlayedToday = false;
   return false;
 }
 
@@ -637,7 +632,7 @@ function loadRanking() {
       html += `<li><b>${d.playerName}</b>: ${d.percent}% (${d.score}/${d.total})</li>`;
     });
     html += "</ul>";
-    rankingDiv.innerHTML = html;
+    document.getElementById("ranking").innerHTML = html;
   });
 }
 
@@ -653,16 +648,20 @@ async function submitResultToFirebase({ playerId, playerName, score, total, perc
   }, { merge: true });
 }
 
-startBtn.addEventListener("click", async () => {
-  const id = playerIdInput.value.trim();
+// правим функциите достъпни за основния скрипт
+window.submitResultToFirebase = submitResultToFirebase;
+window.checkAlreadyPlayedToday = checkAlreadyPlayedToday;
+
+// проверка при натискане на "Старт"
+document.getElementById("start-btn").addEventListener("click", async () => {
+  const id = document.getElementById("player-id").value.trim();
   if (!id) return;
   await checkAlreadyPlayedToday(id);
 });
 
+// зареждаме класирането
 loadRanking();
 
-
-})();
 </script>
 
 </body>
