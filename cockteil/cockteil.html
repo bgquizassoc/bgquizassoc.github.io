@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Игри на Знания - Куиз Коктейл</title>
+  <title>Игри на Знания - Куиз Коктейл 2</title>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -507,6 +507,15 @@ music.play().catch(()=>{});
     if (!PLAYERS[id]) {
       alert("Невалидно ID!");
       return;
+    }
+    // ТУК СЕ СЛАГА ПРОВЕРКАТА
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const playedRef = doc(db, "results", todayKey, "players", id);
+    const playedSnap = await getDoc(playedRef);
+
+    if (playedSnap.exists()) {
+        alert("Днес вече си играл.");
+        return;
     }
 
     playerId = id;
