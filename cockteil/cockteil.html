@@ -154,7 +154,7 @@
 
 <body>
 <audio id="bg-music" src="VeronicaSave.mp3" loop preload="auto"></audio>
-<h1>Игри на Знания<br>🍹 Куиз Коктейл 1🍹</h1>
+<h1>Игри на Знания<br>🍹 Куиз Коктейл 2🍹</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето ID:</p>
@@ -493,10 +493,9 @@ console.log("PLAYERS:", typeof PLAYERS);
   };
 
   startBtn.onclick = async () => {
-    // Пускане на музиката след първия клик
-const music = document.getElementById("bg-music");
-music.volume = 0.25; // тиха музика, както в стария стил
-music.play().catch(()=>{});
+    const music = document.getElementById("bg-music");
+    music.volume = 0.25;
+    music.play().catch(()=>{});
 
     const id = playerIdInput.value.trim();
     if (!id) {
@@ -508,26 +507,51 @@ music.play().catch(()=>{});
       alert("Невалидно ID!");
       return;
     }
-    // ТУК СЕ СЛАГА ПРОВЕРКАТА
-    const todayKey = new Date().toISOString().slice(0, 10);
-    const playedRef = doc(db, "games", "kokteil", "results", todayKey, "players", id);
-    const playedSnap = await getDoc(playedRef);
 
-    if (playedSnap.exists()) {
-        alert("Днес вече си играл.");
-        return;
-    }
+    // ЕДИНСТВЕНАТА ПРОВЕРКА
+    await checkAlreadyPlayedToday(id);
+    if (alreadyPlayedToday) return;
 
     playerId = id;
     playerName = PLAYERS[id];
 
-    if (alreadyPlayedToday) {
-      alreadyPlayedMsg.textContent = "Днес вече си играл.";
-      return;
-    }
-
     localStorage.removeItem("quiz_cocktail_progress");
 
+    questions = buildQuestionsForGame();
+    idx = 0;
+    score = 0;
+    gameHistory = [];
+
+    startScreen.style.display = "none";
+    quizDiv.style.display = "block";
+
+    renderQuestion(0);
+};
+
+
+   
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     questions = buildQuestionsForGame();
     idx = 0;
     score = 0;
