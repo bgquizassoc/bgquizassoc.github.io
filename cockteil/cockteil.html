@@ -154,7 +154,7 @@
 
 <body>
 <audio id="bg-music" src="VeronicaSave.mp3" loop preload="auto"></audio>
-<h1>Игри на Знания<br>🍹 Куиз Коктейл 🍹</h1>
+<h1>Игри на Знания<br>🍹 Куиз Коктейл 1🍹</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето ID:</p>
@@ -510,7 +510,7 @@ music.play().catch(()=>{});
     }
     // ТУК СЕ СЛАГА ПРОВЕРКАТА
     const todayKey = new Date().toISOString().slice(0, 10);
-    const playedRef = doc(db, "results", todayKey, "players", id);
+    const playedRef = doc(db, "games", "kokteil", "results", todayKey, "players", id);
     const playedSnap = await getDoc(playedRef);
 
     if (playedSnap.exists()) {
