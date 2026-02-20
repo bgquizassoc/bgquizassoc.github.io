@@ -540,7 +540,7 @@ startBtn.onclick=async ()=>{
 function showTodayLeaderboard() {
     const today = new Date().toLocaleDateString("sv-SE");
 
-    leaderboardTitle.textContent = `Днешна класация – ${today}`;
+    leaderboardTitle.textContent = `Цифромания - Дневна класация – ${today}`;
 
     const q = window.query(
         window.collection(window.db, "results"),
