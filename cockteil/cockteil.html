@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Игри на Знания - Куиз Коктейл 2</title>
+  <title>Игри на Знания - Куиз Коктейл </title>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -154,7 +154,7 @@
 
 <body>
 <audio id="bg-music" src="VeronicaSave.mp3" loop preload="auto"></audio>
-<h1>Игри на Знания<br>🍹 Куиз Коктейл 3🍹</h1>
+<h1>Игри на Знания<br>🍹 Куиз Коктейл 🍹</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето ID:</p>
@@ -637,7 +637,7 @@ function loadRanking() {
   const q = query(col, orderBy("percent", "desc"));
 
   onSnapshot(q, (snap) => {
-   let html = `<h2>Класиране за днес (${todayKey()})</h2><ol>`;
+   let html = `<h2>Куиз Коктейл - Дневна класация (${todayKey()})</h2><ol>`;
 snap.forEach(doc => {
   const d = doc.data();
   html += `<li><b>${d.playerName}</b>: ${d.percent}% (${d.score}/${d.total})</li>`;
