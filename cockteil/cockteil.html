@@ -637,7 +637,7 @@ function loadRanking() {
   const q = query(col, orderBy("percent", "desc"));
 
   onSnapshot(q, (snap) => {
-   let html = `<h2>Куиз Коктейл - Дневна класация (${todayKey()})</h2><ol>`;
+   let html = `<h2>Куиз Коктейл - Дневна класация - ${todayKey()}</h2><ol>`;
 snap.forEach(doc => {
   const d = doc.data();
   html += `<li><b>${d.playerName}</b>: ${d.percent}% (${d.score}/${d.total})</li>`;
