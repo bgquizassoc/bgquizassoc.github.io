@@ -558,9 +558,19 @@ function showTodayLeaderboard() {
     window.onSnapshot(q, (snap) => {
         leaderboardList.innerHTML = "";
         let pos = 1;
-
+ // ТУК СЪЗДАВАМЕ ГЛОБАЛНИЯ МАСИВ
+    window.dailyRanking = [];
+      
         snap.forEach(docSnap => {
             const d = docSnap.data();
+
+  // ТУК ПЪЛНИМ МАСИВА
+      window.dailyRanking.push({
+        id: docSnap.id,
+        name: d.name,
+        score: d.score
+      });
+          
             const li = document.createElement("li");
             li.textContent = `${pos}. ${d.name} — ${d.score} т.`;
             leaderboardList.appendChild(li);
