@@ -197,7 +197,7 @@ async function archiveToday() {
     const ranking = dailyRanking; // масив [{id, name, score}, ...]
     await saveDailyArchive(db, date, ranking);
   }
-
+document.getElementById("archiveBtn").addEventListener("click", archiveToday);
   
 </script>
 
