@@ -385,15 +385,14 @@ async function saveToFirestore(finalScore) {
     timestamp: Date.now()
   };
 
-  try {
-    await window.setDoc(
-      window.doc(window.db, "results", `${today}_${userId}`),
-      data
-    );
-  } catch (err) {
-    console.error("❌ RESULTS ERROR:", err);
-  }
+  // 🔥 СЪЗДАВАМЕ ДОКУМЕНТА ЗА ДЕНЯ
+  await window.setDoc(
+    window.doc(window.db, "archive", today),
+    { created: Date.now() },
+    { merge: true }
+  );
 
+  // 🔥 ЗАПИСВАМЕ ИГРАЧА В ПОДКОЛЕКЦИЯТА
   try {
     await window.setDoc(
       window.doc(window.db, "archive", today, "players", userId),
@@ -401,6 +400,16 @@ async function saveToFirestore(finalScore) {
     );
   } catch (err) {
     console.error("❌ ARCHIVE ERROR:", err);
+  }
+
+  // 🔥 ЗАПИСВАМЕ И В results
+  try {
+    await window.setDoc(
+      window.doc(window.db, "results", `${today}_${userId}`),
+      data
+    );
+  } catch (err) {
+    console.error("❌ RESULTS ERROR:", err);
   }
 }
 
