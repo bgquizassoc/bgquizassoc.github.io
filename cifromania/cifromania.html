@@ -169,7 +169,7 @@ button {
     limit,
     onSnapshot
   } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-
+  import { saveDailyArchive } from "./archive_writer.js"; 
   const firebaseConfig = {
     apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
     authDomain: "cifromania-ac182.firebaseapp.com",
@@ -178,7 +178,7 @@ button {
     messagingSenderId: "165208255580",
     appId: "1:165208255580:web:b36744f0eb527b6571129"
   };
-
+  //Ще ГО СЛОЖА ТУК 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
@@ -192,6 +192,13 @@ button {
   window.orderBy = orderBy;
   window.limit = limit;
   window.onSnapshot = onSnapshot;
+async function archiveToday() {
+    const date = new Date().toISOString().slice(0, 10);
+    const ranking = dailyRanking; // масив [{id, name, score}, ...]
+    await saveDailyArchive(db, date, ranking);
+  }
+
+  
 </script>
 
 <script src="players.js"></script>
