@@ -56,7 +56,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, collection, getDocs
+  getFirestore, doc, listCollections
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -73,16 +73,15 @@ const db = getFirestore(app);
 
 async function loadArchiveDays() {
   const list = document.getElementById("days");
-  const snap = await getDocs(collection(db, "games", "kokteil", "archive"));
 
-  let days = [];
+  // ВАЖНО: listCollections чете подколекциите (датите)
+  const root = doc(db, "games", "kokteil", "archive");
+  const cols = await listCollections(root);
 
-  snap.forEach(doc => {
-    const id = doc.id;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(id)) days.push(id);
-  });
-
-  days.sort((a, b) => b.localeCompare(a));
+  let days = cols
+    .map(c => c.id)
+    .filter(id => /^\d{4}-\d{2}-\d{2}$/.test(id))
+    .sort((a, b) => b.localeCompare(a));
 
   list.innerHTML = days.length
     ? days.map(day => `<li><a href="cocktail_archive_day.html?date=${day}">${day}</a></li>`).join("")
