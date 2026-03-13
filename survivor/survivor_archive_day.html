@@ -52,7 +52,7 @@ async function loadPlayers() {
 
   snap.forEach(doc => {
     const d = doc.data();
-    html += `<li>${pos}. ${d.playerName} — ${d.maxQuestionReached} въпросa</li>`;
+    html += `<li>${d.playerName} — ${d.maxQuestionReached} въпросa</li>`;
     pos++;
   });
 
