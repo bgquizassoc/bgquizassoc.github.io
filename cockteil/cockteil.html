@@ -4,14 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Игри на Знания - Куиз Коктейл </title>
+
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-PK66NTHPN8');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PK66NTHPN8');
+  </script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -55,11 +56,21 @@
     .answers button.wrong { background: #b71c1c; }
 
     #timer {
-      text-align: center; font-weight: 800; margin: 20px 0;
+      text-align: center;
+      font-weight: 800;
+      color: #ffeb3b;
+      margin: 20px 0;
       font-size: clamp(1.8em, 5vw, 2.6em);
-      color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+      text-shadow: 0 0 12px #ffcc00, 0 0 20px #ffcc00;
+      letter-spacing: 1px;
     }
     #timer.warning { color: #ff4c4c; }
+
+    #seconds {
+      display: inline-block;
+      min-width: 70px;
+      text-align: center;
+    }
 
     #status { margin-top: 10px; font-weight: bold; min-height: 30px; }
 
@@ -106,56 +117,66 @@
     }
     .yellow-btn:hover { background:#ffcc33; transform:scale(1.05); }
 
-    #timer {
-      text-align: center;
-      font-weight: 800;
-      color: #ffeb3b;
-      margin: 20px 0;
-      font-size: clamp(1.8em, 5vw, 2.6em);
-      text-shadow: 0 0 12px #ffcc00, 0 0 20px #ffcc00;
-      letter-spacing: 1px;
+    #ranking {
+      margin-top: 25px;
+      text-align: left;
+      font-size: 1em;
+      background: rgba(255,255,255,0.05);
+      padding: 15px;
+      border-radius: 10px;
     }
 
-    #seconds {
-      display: inline-block;
-      min-width: 70px;
-      text-align: center;
+    #ranking h2 {
+      margin-bottom: 10px;
+      color: #ffd100;
+      font-size: 1.2em;
     }
 
-  #ranking {
-  margin-top: 25px;
-  text-align: left;
-  font-size: 1em;
-  background: rgba(255,255,255,0.05);
-  padding: 15px;
-  border-radius: 10px;
-}
+    #ranking ol {
+      margin: 0;
+      padding-left: 20px;
+    }
 
-#ranking h2 {
-  margin-bottom: 10px;
-  color: #ffd100;
-  font-size: 1.2em;
-}
+    #ranking li {
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #444;
+    }
 
-#ranking ol {
-  margin: 0;
-  padding-left: 20px;
-}
-
-#ranking li {
-  margin-bottom: 6px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #444;
-}
-
-#ranking li:last-child {
-  border-bottom: none;
-}
+    #ranking li:last-child {
+      border-bottom: none;
+    }
 
     #already-played-msg {
       margin-top: 15px;
       color: #ffb3b3;
       font-weight: bold;
+    }
+
+    /* светещо зелено крайно класиране */
+    #final-result {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(0, 255, 128, 0.08);
+      color: #7CFC00;
+      font-weight: bold;
+      text-shadow: 0 0 8px #00ff7f;
+    }
+
+    #archive-btn {
+      margin-top: 10px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #ffd100;
+      color: #111;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #archive-btn:hover {
+      background:#ffcc33;
+      transform:scale(1.05);
     }
   </style>
 </head>
@@ -179,6 +200,10 @@
   <div id="already-played-msg"></div>
 
   <div id="ranking"></div>
+
+  <button id="archive-btn" onclick="location.href='cocktail_archive.html'">
+    Архив класиране
+  </button>
 </div>
 
 <div id="quiz" style="display:none;">
@@ -203,7 +228,7 @@
 </div>
 
 <script src="players.js"></script>
-  <script>
+<script>
 console.log("ТЕСТ: players.js се зарежда ли?");
 console.log("PLAYERS:", typeof PLAYERS);
 </script>
@@ -259,17 +284,20 @@ console.log("PLAYERS:", typeof PLAYERS);
 
   // ===== СЪСТОЯНИЕ НА ИГРАТА =====
 
- 
   let ALL_QUESTIONS = [];
   let questions = [];
   let playerId = '';
   let playerName = '';
   let idx = 0;
-  let score = 0;
+
+  // НОВО: разделяме точки и верни отговори
+  let points = 0;
+  let correctAnswers = 0;
+
   let timeLeft = 20;
   let timer;
   let gameHistory = [];
-  window.alreadyPlayedToday = false; // глобално, за да може Firebase модулът да го пипа
+  window.alreadyPlayedToday = false;
 
   // ===== ПОМОЩНИ ФУНКЦИИ =====
 
@@ -352,15 +380,11 @@ console.log("PLAYERS:", typeof PLAYERS);
   }
 
   function onRetryClicked() {
-    // ТУК Е ЛОГИКАТА "ОПИТАЙ ПАК" → "Вече си играл днес"
-    // Ако Firebase блокът е маркирал alreadyPlayedToday = true,
-    // просто показваме съобщение.
     alreadyPlayedMsg.textContent = "Вече си играл днес.";
   }
 
   // ===== ЗАРЕЖДАНЕ НА ДАННИ =====
 
-  
   try {
     const res = await fetch('questions.json');
     ALL_QUESTIONS = await res.json();
@@ -369,12 +393,15 @@ console.log("PLAYERS:", typeof PLAYERS);
     return;
   }
 
-  // Последен резултат (локално, за удобство)
+  // Последен резултат (локално, за удобство) – НОВ ФОРМАТ
   const last = JSON.parse(localStorage.getItem('quiz_cocktail_lastResult'));
   if (last) {
     lastResultDiv.innerHTML =
-      `<b>Последен резултат:</b><br>${last.name} — ${last.score}/${last.total} (${last.percent}%)<br>
-       <small>${last.date}</small>`;
+      `<div id="final-result">
+         Последен резултат:<br>
+         ${last.name} — ${last.points} точки (${last.correctAnswers} верни отговора)
+         <br><small>${last.date}</small>
+       </div>`;
   }
 
   // Проверка за локален прогрес (за "Продължи")
@@ -399,16 +426,15 @@ console.log("PLAYERS:", typeof PLAYERS);
       selected = selected.concat(taken);
     }
 
-    // Ако по някаква причина са повече от 50, режем до 50
     if (selected.length > TOTAL_QUESTIONS) {
       selected = selected.slice(0, TOTAL_QUESTIONS);
     }
 
-    // Сортиране по трудност: от най-лесен (100) към най-труден (малко число)
     selected.sort((a, b) => b.hard - a.hard);
 
     return selected;
   }
+
   // ===== РЕНДЕР НА ВЪПРОС =====
 
   function renderQuestion(i) {
@@ -438,7 +464,15 @@ console.log("PLAYERS:", typeof PLAYERS);
         if (chosen === correct) {
           btn.classList.add("correct");
           status.textContent = "✅ Верен отговор!";
-          score++;
+
+          // НОВО: броим верни + точки според номера на въпроса
+          correctAnswers++;
+
+          const questionNumber = i + 1;
+          if (questionNumber <= 20) points += 1;
+          else if (questionNumber <= 40) points += 2;
+          else points += 3;
+
         } else {
           btn.classList.add("wrong");
           status.textContent = `❌ Грешно! Верният отговор е: ${q.correct}`;
@@ -455,7 +489,8 @@ console.log("PLAYERS:", typeof PLAYERS);
           explanation: q.explanation
         });
 
-        currentScoreDiv.textContent = `Текущ резултат: ${score} точки`;
+        currentScoreDiv.textContent =
+          `Текущ резултат: ${points} точки (${correctAnswers} верни отговора)`;
         currentScoreDiv.style.display = "block";
 
         explanationText.innerHTML = q.explanation;
@@ -467,7 +502,8 @@ console.log("PLAYERS:", typeof PLAYERS);
           playerId,
           name: playerName,
           idx: i,
-          score,
+          points,
+          correctAnswers,
           total: questions.length
         }));
       };
@@ -493,7 +529,8 @@ console.log("PLAYERS:", typeof PLAYERS);
     questions = buildQuestionsForGame();
 
     idx = saved.idx;
-    score = saved.score;
+    points = saved.points || 0;
+    correctAnswers = saved.correctAnswers || 0;
 
     startScreen.style.display = "none";
     quizDiv.style.display = "block";
@@ -527,14 +564,16 @@ console.log("PLAYERS:", typeof PLAYERS);
 
     questions = buildQuestionsForGame();
     idx = 0;
-    score = 0;
+    points = 0;
+    correctAnswers = 0;
     gameHistory = [];
 
     startScreen.style.display = "none";
     quizDiv.style.display = "block";
 
     renderQuestion(0);
-};
+  };
+
   // ===== НАВИГАЦИЯ МЕЖДУ ВЪПРОСИТЕ =====
 
   nextBtn.onclick = nextQuestionFromExplanation;
@@ -548,38 +587,46 @@ console.log("PLAYERS:", typeof PLAYERS);
 
     renderQuestion(idx);
   }
+
   function finishGame() {
     clearInterval(timer);
-
-    const percent = Math.round(score / questions.length * 100);
 
     submitResultToFirebase({
       playerId,
       playerName,
-      score,
-      total: questions.length,
-      percent
+      points,
+      correctAnswers,
+      total: questions.length
     });
 
     qText.innerHTML =
       `🏁 Край на играта, <b>${playerName}</b>!<br><br>
-      Резултат: <b>${score}</b> от <b>${questions.length}</b> (${percent}%).<br><br>`;
+      Резултат: <b>${points} точки</b> (${correctAnswers} верни отговора от ${questions.length}).<br><br>`;
 
     answersDiv.innerHTML = "";
     nextBtn.disabled = true;
     timerDisplay.textContent = "";
     currentScoreDiv.style.display = "none";
 
-    localStorage.setItem("quiz_cocktail_lastResult", JSON.stringify({
+    const lastObj = {
       playerId,
       name: playerName,
-      score,
+      points,
+      correctAnswers,
       total: questions.length,
-      percent,
       date: new Date().toLocaleString('bg-BG')
-    }));
+    };
 
+    localStorage.setItem("quiz_cocktail_lastResult", JSON.stringify(lastObj));
     localStorage.removeItem("quiz_cocktail_progress");
+
+    // светещо зелено крайно класиране (като в Survivor)
+    lastResultDiv.innerHTML =
+      `<div id="final-result">
+         Крайно класиране:<br>
+         ${playerName} — ${points} точки (${correctAnswers} верни отговора)
+         <br><small>${lastObj.date}</small>
+       </div>`;
 
     qText.innerHTML += `
       <div style="display:flex; justify-content:center; gap:12px; margin-top:20px;">
@@ -596,7 +643,7 @@ console.log("PLAYERS:", typeof PLAYERS);
     explanationDiv.style.display = "none";
   };
 
-})();  <!-- ЗАТВАРЯНЕ НА ОСНОВНИЯ СКРИПТ -->
+})();  // ЗАТВАРЯНЕ НА ОСНОВНИЯ СКРИПТ
 </script>
 
 <!-- ===== FIREBASE МОДУЛЕН СКРИПТ (ОТДЕЛЕН) ===== -->
@@ -642,29 +689,39 @@ async function checkAlreadyPlayedToday(playerId) {
 
 function loadRanking() {
   const col = collection(db, "games", "kokteil", "results", todayKey(), "players");
-  const q = query(col, orderBy("percent", "desc"));
+  const q = query(col, orderBy("points", "desc"));
 
   onSnapshot(q, (snap) => {
-   let html = `<h2>Куиз Коктейл - Дневна класация - ${todayKey()}</h2><ol>`;
-snap.forEach(doc => {
-  const d = doc.data();
-  html += `<li><b>${d.playerName}</b>: ${d.percent}% (${d.score}/${d.total})</li>`;
-});
-html += "</ol>";
-document.getElementById("ranking").innerHTML = html;
-
+    let html = `<h2>Куиз Коктейл - Дневна класация - ${todayKey()}</h2><ol>`;
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+      html += `<li><b>${d.playerName}</b> — ${d.points} точки (${d.correctAnswers} верни отговора)</li>`;
+    });
+    html += "</ol>";
+    document.getElementById("ranking").innerHTML = html;
   });
 }
 
-async function submitResultToFirebase({ playerId, playerName, score, total, percent }) {
+async function submitResultToFirebase({ playerId, playerName, points, correctAnswers, total }) {
   const resultRef = doc(db, "games", "kokteil", "results", todayKey(), "players", playerId);
   await setDoc(resultRef, {
-    playerId, playerName, score, total, percent, timestamp: Date.now()
+    playerId,
+    playerName,
+    points,
+    correctAnswers,
+    total,
+    timestamp: Date.now()
   });
 
-  const archiveRef = doc(db, "games", "kokteil", "archive", playerId);
+  // НОВ АРХИВ – по дни, както при другите игри
+  const archiveRef = doc(db, "games", "kokteil", "archive", todayKey(), "players", playerId);
   await setDoc(archiveRef, {
-    [todayKey()]: { score, total, percent }
+    playerId,
+    playerName,
+    points,
+    correctAnswers,
+    total,
+    timestamp: Date.now()
   }, { merge: true });
 }
 
@@ -686,3 +743,4 @@ loadRanking();
 
 </body>
 </html>
+
