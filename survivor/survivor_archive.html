@@ -39,9 +39,22 @@ async function loadArchiveDays() {
   const list = document.getElementById("days");
   const snap = await getDocs(collection(db, "games", "survivor", "archive"));
 
-  let html = "";
+  let days = [];
+
   snap.forEach(doc => {
-    const day = doc.id;
+    const id = doc.id;
+
+    // 🔥 Показваме само дати във формат YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(id)) {
+      days.push(id);
+    }
+  });
+
+  // 🔥 Сортиране: най-новите най-отгоре
+  days.sort((a, b) => b.localeCompare(a));
+
+  let html = "";
+  days.forEach(day => {
     html += `<li><a href="survivor_archive_day.html?date=${day}">${day}</a></li>`;
   });
 
