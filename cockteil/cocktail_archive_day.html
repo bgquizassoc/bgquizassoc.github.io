@@ -19,7 +19,7 @@ h1 {
 }
 
 ol {
-    max-width: 500px;
+    max-width: 400px;
     margin: 0 auto;
     padding: 0;
 }
@@ -35,7 +35,7 @@ li {
     list-style-position: inside;
 }
 
-/* зелено име вътре в класацията */
+/* зелено име */
 .highlight-player {
     color: #00ff7f !important;
     background: rgba(0,255,128,0.15);
@@ -83,20 +83,17 @@ async function loadPlayers() {
 
   const snap = await getDocs(q);
 
-  let html = "";
   let rows = [];
-
   snap.forEach(doc => rows.push(doc.data()));
 
-  rows.forEach(d => {
-    html += `<li data-id="${d.playerId}">
-      ${d.playerName} — ${d.points} точки (${d.correctAnswers} верни отговора)
-    </li>`;
-  });
+  list.innerHTML = rows.length
+    ? rows.map(d => `
+        <li data-id="${d.playerId}">
+          ${d.playerName} — ${d.points} точки (${d.correctAnswers} верни отговора)
+        </li>
+      `).join("")
+    : "<p>Няма данни за този ден.</p>";
 
-  list.innerHTML = html || "<p>Няма данни за този ден.</p>";
-
-  // зелено име, ако играчът е дошъл от играта
   const currentId = localStorage.getItem("lastPlayedId");
   if (currentId) {
     const li = list.querySelector(`li[data-id="${currentId}"]`);
