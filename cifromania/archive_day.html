@@ -64,7 +64,9 @@ li {
   import {
     getFirestore,
     collection,
-    getDocs
+    getDocs,
+    query,
+    orderBy
   } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -86,12 +88,22 @@ li {
 
   async function loadPlayers() {
     const list = document.getElementById("players");
-    const snap = await getDocs(collection(db, "archive", date, "players"));
 
+    // 🔥 ВЗИМАМЕ ПОДРЕДЕНИТЕ ПО ТОЧКИ ИГРАЧИ
+    const q = query(
+      collection(db, "archive", date, "players"),
+      orderBy("score", "desc")
+    );
+
+    const snap = await getDocs(q);
+
+    let pos = 1;
     let html = "";
+
     snap.forEach(doc => {
       const data = doc.data();
-      html += `<li>${data.name} — ${data.score} т.</li>`;
+      html += `<li>${pos}. ${data.name} — ${data.score} т.</li>`;
+      pos++;
     });
 
     list.innerHTML = html || "<p>Няма данни за този ден.</p>";
@@ -99,6 +111,3 @@ li {
 
   loadPlayers();
 </script>
-
-</body>
-</html>
