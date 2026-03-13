@@ -686,7 +686,7 @@ function todayKey() {
 }
 
 /* ============================================================
-   ПРОВЕРКА ДАЛИ ИГРАЧЪТ Е ИГРАЛ ДНЕС (1 игра на ден)
+   ПРОВЕРКА ДАЛИ ИГРАЧЪТ Е ИГРАЛ ДНЕС
 ============================================================ */
 async function checkAlreadyPlayedToday(playerId) {
   const ref = doc(db, "games", "survivor", "results", todayKey(), "players", playerId);
@@ -705,7 +705,7 @@ async function checkAlreadyPlayedToday(playerId) {
 }
 
 /* ============================================================
-   ДНЕВНА КЛАСАЦИЯ (ПРЕДИ ИГРАТА)
+   ДНЕВНА КЛАСАЦИЯ
 ============================================================ */
 function loadRanking() {
   const col = collection(db, "games", "survivor", "results", todayKey(), "players");
@@ -725,7 +725,7 @@ function loadRanking() {
 }
 
 /* ============================================================
-   КРАЙНО КЛАСИРАНЕ (СЛЕД ИГРАТА)
+   КРАЙНО КЛАСИРАНЕ
 ============================================================ */
 function loadFinalRanking(playerId) {
   const col = collection(db, "games", "survivor", "results", todayKey(), "players");
@@ -749,11 +749,12 @@ function loadFinalRanking(playerId) {
 }
 
 /* ============================================================
-   ЗАПИС НА РЕЗУЛТАТА
+   ЗАПИС НА РЕЗУЛТАТА + АВТОМАТИЧЕН АРХИВ
 ============================================================ */
 async function submitResultToFirebase({ playerId, playerName, maxQuestionReached }) {
-  const resultRef = doc(db, "games", "survivor", "results", todayKey(), "players", playerId);
 
+  // 1) Запис в results
+  const resultRef = doc(db, "games", "survivor", "results", todayKey(), "players", playerId);
   await setDoc(resultRef, {
     playerId,
     playerName,
@@ -761,21 +762,29 @@ async function submitResultToFirebase({ playerId, playerName, maxQuestionReached
     timestamp: Date.now()
   });
 
-  const archiveRef = doc(db, "games", "survivor", "archive", playerId);
-  await setDoc(archiveRef, {
-    [todayKey()]: { maxQuestionReached }
-  }, { merge: true });
+  // 2) Създаваме документа за деня в архива
+  const archiveDayRef = doc(db, "games", "survivor", "archive", todayKey());
+  await setDoc(archiveDayRef, { created: Date.now() }, { merge: true });
+
+  // 3) Записваме играча в архива за деня
+  const archivePlayerRef = doc(db, "games", "survivor", "archive", todayKey(), "players", playerId);
+  await setDoc(archivePlayerRef, {
+    playerId,
+    playerName,
+    maxQuestionReached,
+    timestamp: Date.now()
+  });
 }
 
 /* ============================================================
-   ЕКСПОРТ КЪМ ОСНОВНИЯ СКРИПТ
+   ЕКСПОРТ
 ============================================================ */
 window.submitResultToFirebase = submitResultToFirebase;
 window.checkAlreadyPlayedToday = checkAlreadyPlayedToday;
 window.loadFinalRanking = loadFinalRanking;
 
 /* ============================================================
-   ПРОВЕРКА ПРИ НАТИСКАНЕ НА "СТАРТ"
+   ПРОВЕРКА ПРИ "СТАРТ"
 ============================================================ */
 document.getElementById("start-btn").addEventListener("click", async () => {
   const id = document.getElementById("player-id").value.trim();
@@ -789,6 +798,7 @@ document.getElementById("start-btn").addEventListener("click", async () => {
 loadRanking();
 
 </script>
+
 
 </body>
 </html>
