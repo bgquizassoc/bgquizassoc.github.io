@@ -79,20 +79,14 @@ async function loadArchiveDays() {
 
   snap.forEach(doc => {
     const id = doc.id;
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(id)) {
-      days.push(id);
-    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(id)) days.push(id);
   });
 
   days.sort((a, b) => b.localeCompare(a));
 
-  let html = "";
-  days.forEach(day => {
-    html += `<li><a href="cocktail_archive_day.html?date=${day}">${day}</a></li>`;
-  });
-
-  list.innerHTML = html || "<p>Все още няма архивирани дни.</p>";
+  list.innerHTML = days.length
+    ? days.map(day => `<li><a href="cocktail_archive_day.html?date=${day}">${day}</a></li>`).join("")
+    : "<p>Все още няма архивирани дни.</p>";
 }
 
 loadArchiveDays();
