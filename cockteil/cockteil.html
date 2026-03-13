@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Игри на Знания - Куиз Коктейл </title>
+  <title>Игри на Знания - Куиз Коктейл</title>
 
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
@@ -86,13 +86,22 @@
       border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
     }
 
-    button.start, button.continue-btn {
-      margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    button.start, button.continue-btn, #archive-btn {
+      padding: 10px 18px; font-size: 1.05em;
       border-radius: 8px; border: none;
       background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+      white-space: nowrap;
     }
-    button.start:hover, button.continue-btn:hover {
+    button.start:hover, button.continue-btn:hover, #archive-btn:hover {
       background:#ffcc33; transform:scale(1.05);
+    }
+
+    .btn-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
     }
 
     #current-score {
@@ -153,57 +162,43 @@
       font-weight: bold;
     }
 
-    /* светещо зелено крайно класиране */
-    #final-result {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 10px;
-      background: rgba(0, 255, 128, 0.08);
-      color: #7CFC00;
+    /* зелено име вътре в класацията */
+    .highlight-player {
+      color: #7CFC00 !important;
       font-weight: bold;
       text-shadow: 0 0 8px #00ff7f;
-    }
-
-    #archive-btn {
-      margin-top: 10px;
-      padding: 10px 16px;
-      border-radius: 8px;
-      border: none;
-      background: #ffd100;
-      color: #111;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #archive-btn:hover {
-      background:#ffcc33;
-      transform:scale(1.05);
+      background: rgba(0,255,128,0.08);
+      border-radius: 6px;
+      padding: 4px 6px;
     }
   </style>
 </head>
 
 <body>
 <audio id="bg-music" src="VeronicaSave.mp3" loop preload="auto"></audio>
-<h1>Игри на Знания<br>🍹 Куиз Коктейл (в ремонт)🍹</h1>
+<h1>Игри на Знания<br>🍹 Куиз Коктейл 🍹</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето ID:</p>
 
   <input type="text" id="player-id" placeholder="ID ..." /><br>
 
-  <button class="start" id="start-btn">Започни!</button><br>
+  <div class="btn-row">
+    <button class="start" id="start-btn">Започни!</button>
 
-  <button class="continue-btn" id="continue-btn" style="display:none;">
-    Продължи от мястото, където спряхте
-  </button>
+    <button class="continue-btn" id="continue-btn" style="display:none;">
+      Продължи от мястото, където спряхте
+    </button>
+
+    <button id="archive-btn" onclick="location.href='cocktail_archive.html'">
+      Архив класиране
+    </button>
+  </div>
 
   <div id="last-result" style="margin-top:15px;"></div>
   <div id="already-played-msg"></div>
 
   <div id="ranking"></div>
-
-  <button id="archive-btn" onclick="location.href='cocktail_archive.html'">
-    Архив класиране
-  </button>
 </div>
 
 <div id="quiz" style="display:none;">
@@ -232,7 +227,6 @@
 console.log("ТЕСТ: players.js се зарежда ли?");
 console.log("PLAYERS:", typeof PLAYERS);
 </script>
-
 <script>
 (async function(){
 
@@ -290,7 +284,7 @@ console.log("PLAYERS:", typeof PLAYERS);
   let playerName = '';
   let idx = 0;
 
-  // НОВО: разделяме точки и верни отговори
+  // разделяме точки и верни отговори
   let points = 0;
   let correctAnswers = 0;
 
@@ -298,6 +292,7 @@ console.log("PLAYERS:", typeof PLAYERS);
   let timer;
   let gameHistory = [];
   window.alreadyPlayedToday = false;
+  window.currentPlayerId = null;
 
   // ===== ПОМОЩНИ ФУНКЦИИ =====
 
@@ -393,15 +388,13 @@ console.log("PLAYERS:", typeof PLAYERS);
     return;
   }
 
-  // Последен резултат (локално, за удобство) – НОВ ФОРМАТ
+  // Последен резултат (локално, за удобство) – нов формат
   const last = JSON.parse(localStorage.getItem('quiz_cocktail_lastResult'));
   if (last) {
     lastResultDiv.innerHTML =
-      `<div id="final-result">
-         Последен резултат:<br>
-         ${last.name} — ${last.points} точки (${last.correctAnswers} верни отговора)
-         <br><small>${last.date}</small>
-       </div>`;
+      `<b>Последен резултат:</b><br>
+       ${last.name} — ${last.points} точки (${last.correctAnswers} верни отговора)<br>
+       <small>${last.date}</small>`;
   }
 
   // Проверка за локален прогрес (за "Продължи")
@@ -465,7 +458,7 @@ console.log("PLAYERS:", typeof PLAYERS);
           btn.classList.add("correct");
           status.textContent = "✅ Верен отговор!";
 
-          // НОВО: броим верни + точки според номера на въпроса
+          // ново: броим верни + точки според номера на въпроса
           correctAnswers++;
 
           const questionNumber = i + 1;
@@ -520,6 +513,7 @@ console.log("PLAYERS:", typeof PLAYERS);
     if (!saved) return;
     playerId = saved.playerId;
     playerName = saved.name || PLAYERS[playerId] || playerId;
+    window.currentPlayerId = playerId;
 
     if (alreadyPlayedToday) {
       alreadyPlayedMsg.textContent = "Днес вече си играл.";
@@ -553,12 +547,12 @@ console.log("PLAYERS:", typeof PLAYERS);
       return;
     }
 
-    // ЕДИНСТВЕНАТА ПРОВЕРКА
     await checkAlreadyPlayedToday(id);
     if (alreadyPlayedToday) return;
 
     playerId = id;
     playerName = PLAYERS[id];
+    window.currentPlayerId = playerId;
 
     localStorage.removeItem("quiz_cocktail_progress");
 
@@ -620,13 +614,10 @@ console.log("PLAYERS:", typeof PLAYERS);
     localStorage.setItem("quiz_cocktail_lastResult", JSON.stringify(lastObj));
     localStorage.removeItem("quiz_cocktail_progress");
 
-    // светещо зелено крайно класиране (като в Survivor)
     lastResultDiv.innerHTML =
-      `<div id="final-result">
-         Крайно класиране:<br>
-         ${playerName} — ${points} точки (${correctAnswers} верни отговора)
-         <br><small>${lastObj.date}</small>
-       </div>`;
+      `<b>Последен резултат:</b><br>
+       ${playerName} — ${points} точки (${correctAnswers} верни отговора)<br>
+       <small>${lastObj.date}</small>`;
 
     qText.innerHTML += `
       <div style="display:flex; justify-content:center; gap:12px; margin-top:20px;">
@@ -643,12 +634,9 @@ console.log("PLAYERS:", typeof PLAYERS);
     explanationDiv.style.display = "none";
   };
 
-})();  // ЗАТВАРЯНЕ НА ОСНОВНИЯ СКРИПТ
+})();  // край на основния скрипт
 </script>
-
-<!-- ===== FIREBASE МОДУЛЕН СКРИПТ (ОТДЕЛЕН) ===== -->
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { 
   getFirestore, doc, setDoc, getDoc,
@@ -693,12 +681,30 @@ function loadRanking() {
 
   onSnapshot(q, (snap) => {
     let html = `<h2>Куиз Коктейл - Дневна класация - ${todayKey()}</h2><ol>`;
+    const rows = [];
     snap.forEach(docSnap => {
       const d = docSnap.data();
-      html += `<li><b>${d.playerName}</b> — ${d.points} точки (${d.correctAnswers} верни отговора)</li>`;
+      rows.push(d);
     });
+
+    rows.forEach(d => {
+      html += `<li data-id="${d.playerId}">
+        <b>${d.playerName}</b> — ${d.points} точки (${d.correctAnswers} верни отговора)
+      </li>`;
+    });
+
     html += "</ol>";
-    document.getElementById("ranking").innerHTML = html;
+    const rankingEl = document.getElementById("ranking");
+    rankingEl.innerHTML = html;
+
+    const currentId = window.currentPlayerId;
+    if (currentId) {
+      const li = rankingEl.querySelector(`li[data-id="${currentId}"]`);
+      if (li) {
+        li.classList.add("highlight-player");
+        li.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
   });
 }
 
@@ -713,7 +719,7 @@ async function submitResultToFirebase({ playerId, playerName, points, correctAns
     timestamp: Date.now()
   });
 
-  // НОВ АРХИВ – по дни, както при другите игри
+  // архив по дни, както при другите игри
   const archiveRef = doc(db, "games", "kokteil", "archive", todayKey(), "players", playerId);
   await setDoc(archiveRef, {
     playerId,
@@ -743,4 +749,3 @@ loadRanking();
 
 </body>
 </html>
-
