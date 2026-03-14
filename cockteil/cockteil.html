@@ -709,7 +709,15 @@ function loadRanking() {
 }
 
 async function submitResultToFirebase({ playerId, playerName, points, correctAnswers, total }) {
-  const resultRef = doc(db, "games", "kokteil", "results", todayKey(), "players", playerId);
+
+  // дневен резултат
+  const resultRef = doc(
+    db,
+    "games", "kokteil",
+    "results", todayKey(),
+    "players", playerId
+  );
+
   await setDoc(resultRef, {
     playerId,
     playerName,
@@ -719,8 +727,14 @@ async function submitResultToFirebase({ playerId, playerName, points, correctAns
     timestamp: Date.now()
   });
 
-  // архив по дни, както при другите игри
-  const archiveRef = doc(db, "games", "kokteil", "archive", todayKey(), "players", playerId);
+  // архив по дни
+  const archiveRef = doc(
+    db,
+    "games", "kokteil",
+    "archive", todayKey(),
+    "players", playerId
+  );
+
   await setDoc(archiveRef, {
     playerId,
     playerName,
@@ -730,6 +744,7 @@ async function submitResultToFirebase({ playerId, playerName, points, correctAns
     timestamp: Date.now()
   }, { merge: true });
 }
+
 
 // правим функциите достъпни за основния скрипт
 window.submitResultToFirebase = submitResultToFirebase;
