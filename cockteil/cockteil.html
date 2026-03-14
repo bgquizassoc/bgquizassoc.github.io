@@ -583,6 +583,7 @@ console.log("PLAYERS:", typeof PLAYERS);
   }
 
   function finishGame() {
+    console.log("FINISH GAME REACHED");
     clearInterval(timer);
 
     submitResultToFirebase({
@@ -709,7 +710,7 @@ function loadRanking() {
 }
 
 async function submitResultToFirebase({ playerId, playerName, points, correctAnswers, total }) {
-
+ console.log("SUBMIT CALLED");
   // дневен резултат
   const resultRef = doc(
     db,
