@@ -35,11 +35,17 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 document.getElementById("startBtn").onclick = async () => {
+
+  // Първи въпрос = 60 секунди
+  const FIRST_QUESTION_DURATION = 60000; // 60 000 ms = 60 сек
+
   await setDoc(doc(db, "games", "lightning", "state", "current"), {
     index: 0,
     phase: "question",
-    startTime: Date.now()
+    startTime: Date.now(),
+    duration: FIRST_QUESTION_DURATION
   });
+
   alert("Играта стартира!");
 };
 </script>
