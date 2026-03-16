@@ -34,19 +34,56 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-document.getElementById("startBtn").onclick = async () => {
+let questions = [];
 
-  // Първи въпрос = 60 секунди
-  const FIRST_QUESTION_DURATION = 60000; // 60 000 ms = 60 сек
+async function loadQuestions() {
+  const res = await fetch("lightning/questions.json");
+  questions = await res.json();
+}
 
+async function setState(index, phase, durationMs) {
   await setDoc(doc(db, "games", "lightning", "state", "current"), {
-    index: 0,
-    phase: "question",
+    index,
+    phase,
     startTime: Date.now(),
-    duration: FIRST_QUESTION_DURATION
+    duration: durationMs
   });
+}
 
-  alert("Играта стартира!");
+async function runGame() {
+  await loadQuestions();
+  const total = questions.length;
+
+  const FIRST_Q = 60000;   // 60 сек
+  const Q = 20000;         // 20 сек
+  const EXPL = 30000;      // 30 сек
+  const RANK = 10000;      // 10 сек
+
+  let t = 0;
+
+  for (let i = 0; i < total; i++) {
+    const qDur = (i === 0) ? FIRST_Q : Q;
+
+    // Въпрос
+    setTimeout(() => setState(i, "question", qDur), t);
+    t += qDur;
+
+    // Обяснение
+    setTimeout(() => setState(i, "explanation", EXPL), t);
+    t += EXPL;
+
+    // Класиране
+    setTimeout(() => setState(i, "ranking", RANK), t);
+    t += RANK;
+  }
+
+  // Накрая – финално класиране (по избор може да оставим последното)
+}
+
+document.getElementById("startBtn").onclick = async () => {
+  await setState(0, "waiting", 0); // за да вкараме всички в чакалнята
+  await runGame();
+  alert("Играта стартира и ще върви автоматично!");
 };
 </script>
 
