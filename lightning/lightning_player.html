@@ -73,7 +73,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 2⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 3⚡</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето име:</p>
@@ -244,12 +244,15 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
           });
         }
 
-        await setDoc(doc(db, "games", "lightning", "results", player, String(index)), {
-          answer: ans,
-          correct: q.correct,
-          timestamp: Date.now()
-        });
-      };
+        await setDoc(
+  doc(db, "games", "lightning", "results", player, "answers", String(index)),
+  {
+    answer: ans,
+    correct: q.correct,
+    timestamp: Date.now()
+  }
+);
+
 
       answersDiv.appendChild(btn);
     });
