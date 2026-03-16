@@ -4,53 +4,47 @@
 <meta charset="UTF-8">
 <title>Архив класирания</title>
 <style>
- body {
+  body {
     font-family: Arial, sans-serif;
-    background: #0b3d91; /* твоят син фон */
-    color: white;
-    margin: 0;
+    background: #00264d;
     padding: 20px;
-}
+    color: white; /* текстът по подразбиране става бял */
+  }
 
-h1 {
+  h1 {
     text-align: center;
-    margin-bottom: 20px;
-    color: #ffffff;
-}
+    margin-bottom: 30px;
+    color: white; /* бял надпис */
+  }
 
-#days, #list {
-    max-width: 500px;
-    margin: 0 auto;
-    padding: 0;
-}
-
-a.day-link {
-    display: block;
-    background: white;
-    color: #0b3d91;
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-    border: 2px solid #ffffff33;
-}
-
-a.day-link:hover {
-    background: #dff5ff;
-}
-
-li {
-    background: white;
-    color: #0b3d91;
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 8px;
+  ul {
     list-style: none;
-    border: 2px solid #ffffff33;
-    font-weight: bold;
-}
+    padding: 0;
+    max-width: 400px;
+    margin: 0 auto;
+  }
 
+  li {
+    background: white;
+    color: #0033aa;
+    padding: 12px 18px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ccd7ff;
+    transition: 0.2s;
+  }
+
+  li:hover {
+    background: #e8eeff;
+    transform: translateX(4px);
+  }
+
+  a {
+    font-size: 20px;
+    color: #0033aa;
+    text-decoration: none;
+    display: block;
+  }
 </style>
 </head>
 <body>
