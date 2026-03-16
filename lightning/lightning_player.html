@@ -1,83 +1,109 @@
 <!doctype html>
 <html lang="bg">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚡ Светкавичен куиз – Играч</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>⚡ Игри на Знания - Светкавичен куиз ⚡</title>
 
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+
   body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background:#00264d;
-    color:white;
-    padding:20px;
-    max-width:900px;
-    margin:auto;
-    text-align:center;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 900px; margin: 0 auto; padding: 20px;
+    background: #00264d;
+    color: #ffffff;
   }
+
   h1 {
-    color:#ffd100;
-    text-shadow:0 0 5px #ffb400;
-    margin-bottom:20px;
+    text-align: center; color: #ffd100;
+    font-size: clamp(1.5em, 4vw, 2em);
+    margin: 10px auto 15px auto;
+    text-shadow: 0 0 5px #ffb400;
   }
-  #quizBox {
-    background:rgba(255,255,255,0.05);
-    padding:20px;
-    border-radius:16px;
-    max-width:600px;
-    margin:auto;
-    display:none;
+
+  #start-screen, #waiting-screen, #quiz, #explanation, #ranking {
+    width: 100%; max-width: 600px; text-align: center;
+    margin-top: 30px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 0 10px rgba(255,209,0,0.2);
   }
+
+  input {
+    padding: 10px; font-size: 1.1em; border-radius: 8px;
+    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+  }
+
+  button {
+    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    border-radius: 8px; border: none;
+    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background:#ffcc33; transform:scale(1.05); }
+
   #timer {
-    font-size:2em;
-    font-weight:800;
-    color:#ffeb3b;
-    text-shadow:0 0 12px #ffcc00;
-    margin-bottom:20px;
+    text-align: center; font-weight: 800; margin: 20px 0;
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
   }
-  #timer.warning { color:#ff4c4c; }
-  #question { font-size:1.5em; margin:20px 0; }
+  #timer.warning { color: #ff4c4c; }
+
+  #question { font-size: 1.6em; margin: 20px 0; font-weight: 600; }
+
   .answers button {
-    width:100%; padding:14px; margin:8px 0;
-    background:#333; color:white; border:none;
-    border-radius:10px; font-size:1.2em; cursor:pointer;
+    display: block; width: 100%; margin: 10px 0; padding: 16px;
+    border: none; border-radius: 10px; cursor: pointer;
+    font-size: 1.2em; background: #333; color: #fff;
   }
-  .answers button.correct { background:#2e7d32; }
-  .answers button.wrong { background:#b71c1c; }
-  #explanationBox, #rankingBox {
-    display:none;
-    background:rgba(255,255,255,0.08);
-    padding:20px;
-    border-radius:12px;
-    max-width:600px;
-    margin:20px auto;
+  .answers button.correct { background: #2e7d32; }
+  .answers button.wrong { background: #b71c1c; }
+
+  /* Анимация на точките */
+  #dots {
+    display: inline-block;
+    width: 30px;
+    text-align: left;
+    font-weight: bold;
   }
-</style>
+  </style>
 </head>
 
 <body>
 
-<h1>⚡ Светкавичен куиз ⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест ⚡</h1>
 
-<div id="nameBox">
-  <p>Въведете име:</p>
-  <input id="playerName" style="padding:10px; width:80%; border-radius:8px;">
-  <button id="startBtn" style="margin-top:10px; padding:10px 20px;">Старт</button>
+<!-- Начален екран -->
+<div id="start-screen">
+  <p>Въведете Вашето име:</p>
+  <input type="text" id="playerName" placeholder="Име ..." />
+  <button id="enterBtn">Влез в играта</button>
 </div>
 
-<div id="quizBox">
+<!-- Чакалня -->
+<div id="waiting-screen" style="display:none;">
+  <h2>Играта още не е започнала.</h2>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
+</div>
+
+<!-- Въпрос -->
+<div id="quiz" style="display:none;">
   <div id="timer"><span id="timeLeft">-</span> сек.</div>
   <div id="question"></div>
   <div id="answers" class="answers"></div>
 </div>
 
-<div id="explanationBox">
+<!-- Обяснение -->
+<div id="explanation" style="display:none;">
   <h3>Обяснение</h3>
   <div id="explanationText"></div>
 </div>
 
-<div id="rankingBox">
+<!-- Класиране -->
+<div id="ranking" style="display:none;">
   <h3>Класиране</h3>
   <div id="rankingList"></div>
 </div>
@@ -103,10 +129,11 @@ const db = getFirestore(app);
 let player = "";
 let questions = [];
 
-const nameBox = document.getElementById("nameBox");
-const quizBox = document.getElementById("quizBox");
-const explanationBox = document.getElementById("explanationBox");
-const rankingBox = document.getElementById("rankingBox");
+const startScreen = document.getElementById("start-screen");
+const waitingScreen = document.getElementById("waiting-screen");
+const quizDiv = document.getElementById("quiz");
+const explanationDiv = document.getElementById("explanation");
+const rankingDiv = document.getElementById("ranking");
 
 const qText = document.getElementById("question");
 const answersDiv = document.getElementById("answers");
@@ -114,49 +141,42 @@ const timeLeftEl = document.getElementById("timeLeft");
 const explanationText = document.getElementById("explanationText");
 const rankingList = document.getElementById("rankingList");
 
-function normalize(s){ return String(s).trim(); }
+function showOnly(div) {
+  startScreen.style.display = "none";
+  waitingScreen.style.display = "none";
+  quizDiv.style.display = "none";
+  explanationDiv.style.display = "none";
+  rankingDiv.style.display = "none";
+
+  div.style.display = "block";
+}
 
 async function loadQuestions() {
   const res = await fetch("questions.json");
   questions = await res.json();
 }
 
-function showPhase(phase) {
-  quizBox.style.display = phase === "question" ? "block" : "none";
-  explanationBox.style.display = phase === "explanation" ? "block" : "none";
-  rankingBox.style.display = phase === "ranking" ? "block" : "none";
-}
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете име!");
 
-function renderQuestion(i) {
-  const q = questions[i];
-  qText.textContent = `${i+1}. ${q.question}`;
-  answersDiv.innerHTML = "";
+  await loadQuestions();
+  showOnly(waitingScreen);
+};
 
-  q.answers.forEach(ans => {
-    const btn = document.createElement("button");
-    btn.textContent = ans;
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  document.getElementById("dots").textContent = ".".repeat(dotCount);
+}, 400);
 
-    btn.onclick = async () => {
-      const correct = normalize(q.correct);
-      const chosen = normalize(ans);
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  timeLeftEl.textContent = remaining;
 
-      if (chosen === correct) btn.classList.add("correct");
-      else {
-        btn.classList.add("wrong");
-        Array.from(answersDiv.children).forEach(b => {
-          if (normalize(b.textContent) === correct) b.classList.add("correct");
-        });
-      }
-
-      await setDoc(doc(db, "games", "lightning", "results", player, String(i)), {
-        answer: ans,
-        correct: q.correct,
-        timestamp: Date.now()
-      });
-    };
-
-    answersDiv.appendChild(btn);
-  });
+  if (remaining <= 5) document.getElementById("timer").classList.add("warning");
+  else document.getElementById("timer").classList.remove("warning");
 }
 
 async function renderRanking() {
@@ -170,8 +190,8 @@ async function renderRanking() {
     let total = 0;
     for (const qIndex in answers) {
       const q = questions[qIndex];
-      const correct = normalize(q.correct);
-      const chosen = normalize(answers[qIndex].answer);
+      const correct = q.correct.trim();
+      const chosen = answers[qIndex].answer.trim();
 
       if (chosen === correct) {
         if (qIndex < 10) total += 1;
@@ -189,41 +209,62 @@ async function renderRanking() {
     .join("");
 }
 
-function updateTimer(startTime, duration) {
-  const now = Date.now();
-  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
-  timeLeftEl.textContent = remaining;
+onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
+  if (!snap.exists()) return;
 
-  if (remaining <= 5) document.getElementById("timer").classList.add("warning");
-  else document.getElementById("timer").classList.remove("warning");
-}
+  const { index, phase, startTime, duration } = snap.data();
 
-document.getElementById("startBtn").onclick = async () => {
-  player = document.getElementById("playerName").value.trim();
-  if (!player) return alert("Въведете име!");
+  if (phase === "waiting") {
+    showOnly(waitingScreen);
+    return;
+  }
 
-  nameBox.style.display = "none";
-  await loadQuestions();
+  if (phase === "question") {
+    showOnly(quizDiv);
 
-  onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
-    if (!snap.exists()) return;
+    const q = questions[index];
+    qText.textContent = `${index+1}. ${q.question}`;
+    answersDiv.innerHTML = "";
 
-    const { index, phase, startTime } = snap.data();
+    q.answers.forEach(ans => {
+      const btn = document.createElement("button");
+      btn.textContent = ans;
 
-    showPhase(phase);
+      btn.onclick = async () => {
+        const correct = q.correct.trim();
+        const chosen = ans.trim();
 
-    if (phase === "question") renderQuestion(index);
-    if (phase === "explanation") {
-      explanationText.textContent = questions[index].explanation;
-    }
-    if (phase === "ranking") renderRanking();
+        if (chosen === correct) btn.classList.add("correct");
+        else {
+          btn.classList.add("wrong");
+          Array.from(answersDiv.children).forEach(b => {
+            if (b.textContent.trim() === correct) b.classList.add("correct");
+          });
+        }
 
-    const phaseDur = phase === "question" ? 20000 :
-                     phase === "explanation" ? 30000 : 10000;
+        await setDoc(doc(db, "games", "lightning", "results", player, String(index)), {
+          answer: ans,
+          correct: q.correct,
+          timestamp: Date.now()
+        });
+      };
 
-    setInterval(() => updateTimer(startTime, phaseDur), 200);
-  });
-};
+      answersDiv.appendChild(btn);
+    });
+
+    setInterval(() => updateTimer(startTime, duration), 200);
+  }
+
+  if (phase === "explanation") {
+    showOnly(explanationDiv);
+    explanationText.textContent = questions[index].explanation;
+  }
+
+  if (phase === "ranking") {
+    showOnly(rankingDiv);
+    renderRanking();
+  }
+});
 </script>
 
 </body>
