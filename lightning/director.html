@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<title>Lightning Director</title>
+<style>
+  body {
+    background: #001a33;
+    color: white;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    text-align: center;
+  }
+  h1 { margin-bottom: 20px; }
+  #statusBox {
+    background: rgba(255,255,255,0.1);
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 500px;
+    margin: 0 auto;
+    font-size: 1.2em;
+  }
+  button {
+    margin-top: 20px;
+    padding: 12px 20px;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 8px;
+    background: #ffd100;
+    color: #111;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover { background:#ffcc33; }
+</style>
+</head>
+<body>
+
+<h1>⚡ Lightning Quiz – Режисьорски панел</h1>
+
+<div id="statusBox">
+  <div>Текущ въпрос: <span id="qIndex">-</span></div>
+  <div>Фаза: <span id="phase">-</span></div>
+  <div>Оставащо време: <span id="remaining">-</span> сек.</div>
+</div>
+
+<button id="startBtn">Старт на играта</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const TOTAL_QUESTIONS = 30;
+
+const PHASES = [
+  { name: "question", duration: 20000 },
+  { name: "explanation", duration: 30000 },
+  { name: "ranking", duration: 10000 }
+];
+
+let qIndex = 0;
+let phaseIndex = 0;
+let phaseStart = 0;
+
+const qIndexEl = document.getElementById("qIndex");
+const phaseEl = document.getElementById("phase");
+const remainingEl = document.getElementById("remaining");
+
+async function updateFirestore() {
+  await setDoc(doc(db, "games", "lightning", "state", "current"), {
+    index: qIndex,
+    phase: PHASES[phaseIndex].name,
+    startTime: phaseStart
+  });
+}
+
+function updateUI() {
+  qIndexEl.textContent = qIndex + 1;
+  phaseEl.textContent = PHASES[phaseIndex].name;
+
+  const now = Date.now();
+  const elapsed = now - phaseStart;
+  const remaining = Math.max(0, Math.ceil((PHASES[phaseIndex].duration - elapsed) / 1000));
+
+  remainingEl.textContent = remaining;
+}
+
+async function nextPhase() {
+  phaseIndex++;
+
+  if (phaseIndex >= PHASES.length) {
+    phaseIndex = 0;
+    qIndex++;
+  }
+
+  if (qIndex >= TOTAL_QUESTIONS) {
+    alert("Играта приключи!");
+    return;
+  }
+
+  phaseStart = Date.now();
+  await updateFirestore();
+}
+
+document.getElementById("startBtn").onclick = async () => {
+  qIndex = 0;
+  phaseIndex = 0;
+  phaseStart = Date.now();
+
+  await updateFirestore();
+
+  setInterval(async () => {
+    updateUI();
+
+    const now = Date.now();
+    if (now - phaseStart >= PHASES[phaseIndex].duration) {
+      await nextPhase();
+    }
+  }, 200);
+};
+</script>
+
+</body>
+</html>
