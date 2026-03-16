@@ -8,13 +8,13 @@
     font-family: Arial, sans-serif;
     background: #00264d;
     padding: 20px;
-    color: white; /* текстът по подразбиране става бял */
+    color: white;
   }
 
   h1 {
     text-align: center;
     margin-bottom: 30px;
-    color: white; /* бял надпис */
+    color: white;
   }
 
   ul {
@@ -50,7 +50,9 @@
 <body>
 
 <h1>Архив на класиранията</h1>
-<div id="days"></div>
+
+<!-- ТУК Е ПРОМЯНАТА: UL вместо DIV -->
+<ul id="days"></ul>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -73,15 +75,15 @@
   const db = getFirestore(app);
 
   async function loadArchive() {
-    const daysDiv = document.getElementById("days");
+    const daysList = document.getElementById("days");
     const snap = await getDocs(collection(db, "archive"));
 
     let html = "";
     snap.forEach(doc => {
-      html += `<a href="archive_day.html?date=${doc.id}">${doc.id}</a>`;
+      html += `<li><a href="archive_day.html?date=${doc.id}">${doc.id}</a></li>`;
     });
 
-    daysDiv.innerHTML = html || "<p>Няма архивирани дни.</p>";
+    daysList.innerHTML = html || "<p>Няма архивирани дни.</p>";
   }
 
   loadArchive();
