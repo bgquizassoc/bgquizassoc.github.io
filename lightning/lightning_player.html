@@ -177,36 +177,41 @@ function updateTimer(startTime, duration) {
 }
 
 async function renderRanking() {
-  const snap = await getDocs(collection(db, "games", "lightning", "results"));
+  const playersSnap = await getDocs(collection(db, "games", "lightning", "results"));
   const scores = {};
 
-  snap.forEach(docSnap => {
-    const pid = docSnap.id;
-    const answers = docSnap.data();
+  for (const playerDoc of playersSnap.docs) {
+    const playerName = playerDoc.id;
+    const answersSnap = await getDocs(collection(db, "games", "lightning", "results", playerName, "answers"));
 
     let total = 0;
-    for (const qIndex in answers) {
+
+    answersSnap.forEach(ansDoc => {
+      const qIndex = Number(ansDoc.id);
+      const data = ansDoc.data();
       const q = questions[qIndex];
-      if (!q) continue;
+      if (!q) return;
+
       const correct = q.correct.trim();
-      const chosen = answers[qIndex].answer.trim();
+      const chosen = data.answer.trim();
 
       if (chosen === correct) {
-        const idx = Number(qIndex);
-        if (idx < 10) total += 1;
-        else if (idx < 20) total += 2;
+        if (qIndex < 10) total += 1;
+        else if (qIndex < 20) total += 2;
         else total += 3;
       }
-    }
-    scores[pid] = total;
-  });
+    });
 
-  const sorted = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+    scores[playerName] = total;
+  }
+
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
   rankingList.innerHTML = sorted
     .map(([name, pts]) => `<div>${name}: ${pts} т.</div>`)
     .join("");
 }
+
 
 onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
   if (!snap.exists()) return;
