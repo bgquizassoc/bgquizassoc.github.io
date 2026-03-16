@@ -73,7 +73,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 3⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 4⚡</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето име:</p>
@@ -210,7 +210,7 @@ async function renderRanking() {
 
 onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
   if (!snap.exists()) return;
-  if (!ready) return; // докато не е въвел име, не пипаме нищо
+  if (!ready) return;
 
   const { index, phase, startTime, duration } = snap.data();
 
@@ -245,14 +245,14 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
         }
 
         await setDoc(
-  doc(db, "games", "lightning", "results", player, "answers", String(index)),
-  {
-    answer: ans,
-    correct: q.correct,
-    timestamp: Date.now()
-  }
-);
-
+          doc(db, "games", "lightning", "results", player, "answers", String(index)),
+          {
+            answer: ans,
+            correct: q.correct,
+            timestamp: Date.now()
+          }
+        );
+      };
 
       answersDiv.appendChild(btn);
     });
@@ -276,4 +276,3 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
 </script>
 
 </body>
-</html>
