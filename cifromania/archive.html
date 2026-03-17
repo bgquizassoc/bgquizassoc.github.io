@@ -51,7 +51,6 @@
 
 <h1>Архив на класиранията</h1>
 
-<!-- ТУК Е ПРОМЯНАТА: UL вместо DIV -->
 <ul id="days"></ul>
 
 <script type="module">
@@ -78,10 +77,17 @@
     const daysList = document.getElementById("days");
     const snap = await getDocs(collection(db, "archive"));
 
-    let html = "";
-    snap.forEach(doc => {
-      html += `<li><a href="archive_day.html?date=${doc.id}">${doc.id}</a></li>`;
-    });
+    // Събираме всички дати в масив
+    let dates = [];
+    snap.forEach(doc => dates.push(doc.id));
+
+    // Обръщаме реда → най-новите най-отгоре
+    dates.sort().reverse();
+
+    // Генерираме HTML
+    let html = dates
+      .map(date => `<li><a href="archive_day.html?date=${date}">${date}</a></li>`)
+      .join("");
 
     daysList.innerHTML = html || "<p>Няма архивирани дни.</p>";
   }
