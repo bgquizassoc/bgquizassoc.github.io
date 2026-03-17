@@ -73,7 +73,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 7⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 8⚡</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето име:</p>
@@ -175,22 +175,17 @@ function updateTimer(startTime, duration) {
   if (remaining <= 5) document.getElementById("timer").classList.add("warning");
   else document.getElementById("timer").classList.remove("warning");
 }
+
 async function renderRanking() {
-  console.log("renderRanking стартира");
-
   const playersSnap = await getDocs(collection(db, "games", "lightning", "results"));
-  console.log("playersSnap.size =", playersSnap.size);
-
   const scores = {};
 
   for (const playerDoc of playersSnap.docs) {
     const playerName = playerDoc.id;
-    console.log("Играч:", playerName);
 
     const answersSnap = await getDocs(
       collection(db, "games", "lightning", "results", playerName, "answers")
     );
-    console.log("answers.size за", playerName, "=", answersSnap.size);
 
     let total = 0;
 
@@ -213,17 +208,12 @@ async function renderRanking() {
     scores[playerName] = total;
   }
 
-  console.log("scores =", scores);
-
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
   rankingList.innerHTML = sorted
     .map(([name, pts]) => `<div>${name}: ${pts} т.</div>`)
     .join("");
 }
-
-
-
 
 onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
   if (!snap.exists()) return;
@@ -261,6 +251,14 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
           });
         }
 
+        /* ⭐ ФИКС: Създаваме реален документ за играча */
+        await setDoc(
+          doc(db, "games", "lightning", "results", player),
+          { exists: true },
+          { merge: true }
+        );
+
+        /* Записваме отговора */
         await setDoc(
           doc(db, "games", "lightning", "results", player, "answers", String(index)),
           {
@@ -293,3 +291,4 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
 </script>
 
 </body>
+</html>
