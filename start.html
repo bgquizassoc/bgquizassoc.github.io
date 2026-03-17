@@ -14,7 +14,7 @@
 <body>
 
 <h1>🎬 Старт на Светкавичен куиз</h1>
-<button id="startBtn">СТАРТ 3</button>
+<button id="startBtn">СТАРТ 4</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -58,10 +58,10 @@ async function runGame() {
   const total = questions.length;
 
   // Времетраене
-  const FIRST_Q = 40000; // 60 сек
+  const FIRST_Q = 20000; // 60 сек
   const Q = 20000;       // 20 сек
-  const EXPL = 30000;    // 30 сек
-  const RANK = 10000;    // 10 сек
+  const EXPL = 10000;    // 30 сек
+  const RANK = 5000;    // 10 сек
 
   let t = 0;
 
