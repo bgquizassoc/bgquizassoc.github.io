@@ -6,7 +6,7 @@
 <style>
  body {
     font-family: Arial, sans-serif;
-    background: #0b3d91; /* твоят син фон */
+    background: #0b3d91;
     color: white;
     margin: 0;
     padding: 20px;
@@ -18,43 +18,27 @@ h1 {
     color: #ffffff;
 }
 
-#days, #list {
-    max-width: 500px;
+/* 🔥 ФИКСИРАНА ШИРИНА 400px */
+#players {
+    max-width: 400px;
     margin: 0 auto;
     padding: 0;
-}
-
-a.day-link {
-    display: block;
-    background: white;
-    color: #0b3d91;
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-    border: 2px solid #ffffff33;
-}
-
-a.day-link:hover {
-    background: #dff5ff;
 }
 
 li {
     background: white;
     color: #0b3d91;
-    padding: 10px;
-    margin-bottom: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
     border-radius: 8px;
     list-style: none;
     border: 2px solid #ffffff33;
     font-weight: bold;
+    font-size: 18px;
 }
-
 </style>
 </head>
 <body>
-
 
 <h1 id="title">Архив</h1>
 <ol id="players"></ol>
@@ -89,7 +73,6 @@ li {
   async function loadPlayers() {
     const list = document.getElementById("players");
 
-    // 🔥 ВЗИМАМЕ ПОДРЕДЕНИТЕ ПО ТОЧКИ ИГРАЧИ
     const q = query(
       collection(db, "archive", date, "players"),
       orderBy("score", "desc")
@@ -111,3 +94,6 @@ li {
 
   loadPlayers();
 </script>
+
+</body>
+</html>
