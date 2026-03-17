@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Архив на Светкавичния куиз</title>
+
+  <style>
+    body {
+      background: #00264d;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #ffd100;
+      text-shadow: 0 0 5px #ffb400;
+      margin-bottom: 20px;
+    }
+
+    .episode {
+      background: rgba(255,255,255,0.08);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border-left: 6px solid #ffd100;
+    }
+
+    .test {
+      border-left: 6px solid #00e5ff;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 10px 16px;
+      background: #ffd100;
+      color: #003344;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .filterBtn {
+      margin: 5px;
+      padding: 8px 14px;
+      background: #00e5ff;
+      color: #003344;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Архив на Светкавичния куиз</h1>
+
+<div>
+  <button class="filterBtn" onclick="showAll()">Всички</button>
+  <button class="filterBtn" onclick="showReal()">Истински игри</button>
+  <button class="filterBtn" onclick="showTests()">Тестове</button>
+</div>
+
+<div id="episodes"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const episodesDiv = document.getElementById("episodes");
+let allEpisodes = [];
+
+async function loadEpisodes() {
+  const snap = await getDocs(collection(db, "games", "lightning", "episodes"));
+
+  const episodes = [];
+
+  for (const docSnap of snap.docs) {
+    const id = docSnap.id;
+
+    // Четем summary
+    const summarySnap = await getDocs(
+      collection(db, "games", "lightning", "episodes", id)
+    );
+
+    let fullName = id;
+    let winner = "";
+    let players = 0;
+
+    for (const s of summarySnap.docs) {
+      if (s.id === "summary") {
+        const data = s.data();
+        fullName = data.fullName || id;
+        winner = data.winner || "";
+        players = data.players || 0;
+      }
+    }
+
+    episodes.push({
+      id,
+      fullName,
+      winner,
+      players,
+      isTest: id.startsWith("test")
+    });
+  }
+
+  // Подреждаме по дата (низходящо)
+  episodes.sort((a, b) => b.id.localeCompare(a.id));
+
+  allEpisodes = episodes;
+  renderEpisodes(episodes);
+}
+
+function renderEpisodes(list) {
+  episodesDiv.innerHTML = list.map(ep => `
+    <div class="episode ${ep.isTest ? 'test' : ''}">
+      <h3>${ep.fullName}</h3>
+      <p><strong>Играч(и):</strong> ${ep.players}</p>
+      <p><strong>Победител:</strong> ${ep.winner || '—'}</p>
+
+      <a class="btn" href="history.html?episodeId=${ep.id}&player=${encodeURIComponent(ep.winner)}">
+        История на победителя
+      </a>
+
+      <a class="btn" href="player.html?episodeId=${ep.id}">
+        Отвори класиране
+      </a>
+    </div>
+  `).join("");
+}
+
+window.showAll = () => renderEpisodes(allEpisodes);
+window.showReal = () => renderEpisodes(allEpisodes.filter(e => !e.isTest));
+window.showTests = () => renderEpisodes(allEpisodes.filter(e => e.isTest));
+
+loadEpisodes();
+</script>
+
+</body>
+</html>
