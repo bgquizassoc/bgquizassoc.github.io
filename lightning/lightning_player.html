@@ -73,7 +73,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 5⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 6⚡</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето име:</p>
@@ -182,7 +182,11 @@ async function renderRanking() {
 
   for (const playerDoc of playersSnap.docs) {
     const playerName = playerDoc.id;
-    const answersSnap = await getDocs(collection(db, "games", "lightning", "results", playerName, "answers"));
+
+    // Влизаме в под-колекцията answers
+    const answersSnap = await getDocs(
+      collection(db, "games", "lightning", "results", playerName, "answers")
+    );
 
     let total = 0;
 
@@ -211,6 +215,7 @@ async function renderRanking() {
     .map(([name, pts]) => `<div>${name}: ${pts} т.</div>`)
     .join("");
 }
+
 
 
 onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
