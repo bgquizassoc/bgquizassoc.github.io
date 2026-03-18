@@ -162,6 +162,7 @@
       font-weight: bold;
     }
 
+    /* зелено име вътре в класацията */
     .highlight-player {
       color: #7CFC00 !important;
       font-weight: bold;
@@ -175,127 +176,7 @@
 
 <body>
 <audio id="bg-music" src="VeronicaSave.mp3" loop preload="auto"></audio>
-<h1>Игри на Знания<br>🍹 Куиз Коктейл 3🍹</h1>
-
-<!-- ПЪРВО: FIREBASE МОДУЛЪТ -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { 
-  getFirestore, doc, setDoc, getDoc,
-  collection, query, orderBy, onSnapshot
-} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
-  authDomain: "cifromania-ac182.firebaseapp.com",
-  projectId: "cifromania-ac182",
-  storageBucket: "cifromania-ac182.appspot.com",
-  messagingSenderId: "165208255580",
-  appId: "1:165208255580:web:b36744f0eb527b6571129"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-async function checkAlreadyPlayedToday(playerId) {
-  const ref = doc(db, "games", "kokteil", "results", todayKey(), "players", playerId);
-  const snap = await getDoc(ref);
-
-  if (snap.exists()) {
-    window.alreadyPlayedToday = true;
-    document.getElementById("already-played-msg").textContent = "Днес вече сте играли.";
-    document.getElementById("start-btn").disabled = true;
-    document.getElementById("continue-btn").style.display = "none";
-    return true;
-  }
-
-  window.alreadyPlayedToday = false;
-  return false;
-}
-
-function loadRanking() {
-  const col = collection(db, "games", "kokteil", "results", todayKey(), "players");
-  const q = query(col, orderBy("points", "desc"));
-
-  onSnapshot(q, (snap) => {
-    let html = `<h2>Куиз Коктейл - Дневна класация - ${todayKey()}</h2><ol>`;
-    const rows = [];
-    snap.forEach(docSnap => {
-      rows.push(docSnap.data());
-    });
-
-    rows.forEach(d => {
-      html += `<li data-id="${d.playerId}">
-        <b>${d.playerName}</b> — ${d.points} точки (${d.correctAnswers} верни отговора)
-      </li>`;
-    });
-
-    html += "</ol>";
-    const rankingEl = document.getElementById("ranking");
-    rankingEl.innerHTML = html;
-
-    const currentId = window.currentPlayerId;
-    if (currentId) {
-      const li = rankingEl.querySelector(`li[data-id="${currentId}"]`);
-      if (li) {
-        li.classList.add("highlight-player");
-        li.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }
-  });
-}
-
-async function submitResultToFirebase({ playerId, playerName, points, correctAnswers, total }) {
-  console.log("SUBMIT CALLED");
-
-  const resultRef = doc(
-    db,
-    "games", "kokteil",
-    "results", todayKey(),
-    "players", playerId
-  );
-
-  await setDoc(resultRef, {
-    playerId,
-    playerName,
-    points,
-    correctAnswers,
-    total,
-    timestamp: Date.now()
-  });
-
-  const archiveRef = doc(
-    db,
-    "games", "kokteil",
-    "archive", todayKey(),
-    "players", playerId
-  );
-
-  await setDoc(archiveRef, {
-    playerId,
-    playerName,
-    points,
-    correctAnswers,
-    total,
-    timestamp: Date.now()
-  }, { merge: true });
-}
-
-window.submitResultToFirebase = submitResultToFirebase;
-window.checkAlreadyPlayedToday = checkAlreadyPlayedToday;
-
-document.getElementById("start-btn").addEventListener("click", async () => {
-  const id = document.getElementById("player-id").value.trim();
-  if (!id) return;
-  await checkAlreadyPlayedToday(id);
-});
-
-loadRanking();
-</script>
+<h1>Игри на Знания<br>🍹 Куиз Коктейл 2🍹</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето ID:</p>
@@ -323,7 +204,7 @@ loadRanking();
 <div id="quiz" style="display:none;">
   <div id="timer">
     <span class="label">Оставащо време:</span>
-    <span id="seconds">15 сек.</span>
+    <span id="seconds">20 сек.</span>
   </div>
   <div id="question"></div>
   <div id="answers" class="answers"></div>
@@ -346,9 +227,10 @@ loadRanking();
 console.log("ТЕСТ: players.js се зарежда ли?");
 console.log("PLAYERS:", typeof PLAYERS);
 </script>
-
 <script>
 (async function(){
+
+  // ===== НАСТРОЙКИ НА ИГРАТА =====
 
   const AREA_DISTRIBUTION = {
     "География": 4,
@@ -373,6 +255,8 @@ console.log("PLAYERS:", typeof PLAYERS);
 
   const TOTAL_QUESTIONS = 50;
 
+  // ===== DOM ЕЛЕМЕНТИ =====
+
   const startScreen = document.getElementById('start-screen');
   const playerIdInput = document.getElementById('player-id');
   const startBtn = document.getElementById('start-btn');
@@ -392,12 +276,15 @@ console.log("PLAYERS:", typeof PLAYERS);
   const explanationDiv = document.getElementById('explanation');
   const explanationText = document.getElementById('explanation-text');
 
+  // ===== СЪСТОЯНИЕ НА ИГРАТА =====
+
   let ALL_QUESTIONS = [];
   let questions = [];
   let playerId = '';
   let playerName = '';
   let idx = 0;
 
+  // разделяме точки и верни отговори
   let points = 0;
   let correctAnswers = 0;
 
@@ -406,6 +293,8 @@ console.log("PLAYERS:", typeof PLAYERS);
   let gameHistory = [];
   window.alreadyPlayedToday = false;
   window.currentPlayerId = null;
+
+  // ===== ПОМОЩНИ ФУНКЦИИ =====
 
   function normalize(s){ return String(s).trim(); }
 
@@ -489,6 +378,8 @@ console.log("PLAYERS:", typeof PLAYERS);
     alreadyPlayedMsg.textContent = "Вече си играл днес.";
   }
 
+  // ===== ЗАРЕЖДАНЕ НА ДАННИ =====
+
   try {
     const res = await fetch('questions.json');
     ALL_QUESTIONS = await res.json();
@@ -497,6 +388,7 @@ console.log("PLAYERS:", typeof PLAYERS);
     return;
   }
 
+  // Последен резултат (локално, за удобство) – нов формат
   const last = JSON.parse(localStorage.getItem('quiz_cocktail_lastResult'));
   if (last) {
     lastResultDiv.innerHTML =
@@ -505,11 +397,14 @@ console.log("PLAYERS:", typeof PLAYERS);
        <small>${last.date}</small>`;
   }
 
+  // Проверка за локален прогрес (за "Продължи")
   const saved = JSON.parse(localStorage.getItem('quiz_cocktail_progress'));
   if (saved && saved.idx < saved.total && saved.playerId) {
     continueBtn.style.display = "inline-block";
     continueBtn.textContent = `Продължи от въпрос ${saved.idx + 1}`;
   }
+
+  // ===== ИЗБОР НА ВЪПРОСИ ПО ОБЛАСТИ =====
 
   function buildQuestionsForGame() {
     let selected = [];
@@ -532,6 +427,8 @@ console.log("PLAYERS:", typeof PLAYERS);
 
     return selected;
   }
+
+  // ===== РЕНДЕР НА ВЪПРОС =====
 
   function renderQuestion(i) {
     const q = questions[i];
@@ -561,6 +458,7 @@ console.log("PLAYERS:", typeof PLAYERS);
           btn.classList.add("correct");
           status.textContent = "✅ Верен отговор!";
 
+          // ново: броим верни + точки според номера на въпроса
           correctAnswers++;
 
           const questionNumber = i + 1;
@@ -608,6 +506,8 @@ console.log("PLAYERS:", typeof PLAYERS);
 
     startTimer();
   }
+
+  // ===== СТАРТ И ПРОДЪЛЖАВАНЕ =====
 
   continueBtn.onclick = () => {
     if (!saved) return;
@@ -668,6 +568,8 @@ console.log("PLAYERS:", typeof PLAYERS);
     renderQuestion(0);
   };
 
+  // ===== НАВИГАЦИЯ МЕЖДУ ВЪПРОСИТЕ =====
+
   nextBtn.onclick = nextQuestionFromExplanation;
   document.getElementById("next-question-btn").onclick = nextQuestionFromExplanation;
 
@@ -689,7 +591,7 @@ console.log("PLAYERS:", typeof PLAYERS);
       playerName,
       points,
       correctAnswers,
-      total: questions.lengt
+      total: questions.length
     });
 
     qText.innerHTML =
@@ -733,7 +635,132 @@ console.log("PLAYERS:", typeof PLAYERS);
     explanationDiv.style.display = "none";
   };
 
-})(); 
+})();  // край на основния скрипт
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { 
+  getFirestore, doc, setDoc, getDoc,
+  collection, query, orderBy, onSnapshot
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function checkAlreadyPlayedToday(playerId) {
+  const ref = doc(db, "games", "kokteil", "results", todayKey(), "players", playerId);
+  const snap = await getDoc(ref);
+
+  if (snap.exists()) {
+    window.alreadyPlayedToday = true;
+    document.getElementById("already-played-msg").textContent = "Днес вече сте играли.";
+    document.getElementById("start-btn").disabled = true;
+    document.getElementById("continue-btn").style.display = "none";
+    return true;
+  }
+
+  window.alreadyPlayedToday = false;
+  return false;
+}
+
+function loadRanking() {
+  const col = collection(db, "games", "kokteil", "results", todayKey(), "players");
+  const q = query(col, orderBy("points", "desc"));
+
+  onSnapshot(q, (snap) => {
+    let html = `<h2>Куиз Коктейл - Дневна класация - ${todayKey()}</h2><ol>`;
+    const rows = [];
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+      rows.push(d);
+    });
+
+    rows.forEach(d => {
+      html += `<li data-id="${d.playerId}">
+        <b>${d.playerName}</b> — ${d.points} точки (${d.correctAnswers} верни отговора)
+      </li>`;
+    });
+
+    html += "</ol>";
+    const rankingEl = document.getElementById("ranking");
+    rankingEl.innerHTML = html;
+
+    const currentId = window.currentPlayerId;
+    if (currentId) {
+      const li = rankingEl.querySelector(`li[data-id="${currentId}"]`);
+      if (li) {
+        li.classList.add("highlight-player");
+        li.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  });
+}
+
+async function submitResultToFirebase({ playerId, playerName, points, correctAnswers, total }) {
+ console.log("SUBMIT CALLED");
+  // дневен резултат
+  const resultRef = doc(
+    db,
+    "games", "kokteil",
+    "results", todayKey(),
+    "players", playerId
+  );
+
+  await setDoc(resultRef, {
+    playerId,
+    playerName,
+    points,
+    correctAnswers,
+    total,
+    timestamp: Date.now()
+  });
+
+  // архив по дни
+  const archiveRef = doc(
+    db,
+    "games", "kokteil",
+    "archive", todayKey(),
+    "players", playerId
+  );
+
+  await setDoc(archiveRef, {
+    playerId,
+    playerName,
+    points,
+    correctAnswers,
+    total,
+    timestamp: Date.now()
+  }, { merge: true });
+}
+
+
+// правим функциите достъпни за основния скрипт
+window.submitResultToFirebase = submitResultToFirebase;
+window.checkAlreadyPlayedToday = checkAlreadyPlayedToday;
+
+// проверка при натискане на "Старт"
+document.getElementById("start-btn").addEventListener("click", async () => {
+  const id = document.getElementById("player-id").value.trim();
+  if (!id) return;
+  await checkAlreadyPlayedToday(id);
+});
+
+// зареждаме класирането
+loadRanking();
+
 </script>
 
 </body>
