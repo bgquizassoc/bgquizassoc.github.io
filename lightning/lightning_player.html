@@ -83,7 +83,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 10⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 11⚡</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето име:</p>
@@ -115,11 +115,20 @@
 </div>
 
 <script type="module">
+
+/* ⭐ ТУК СА ЛИПСВАЩИТЕ ПРЕМЕНЛИВИ ⭐ */
 const startScreen = document.getElementById("start-screen");
 const waitingScreen = document.getElementById("waiting-screen");
 const quizDiv = document.getElementById("quiz");
 const explanationDiv = document.getElementById("explanation");
 const rankingDiv = document.getElementById("ranking");
+const qText = document.getElementById("question");
+const timeLeftEl = document.getElementById("timeLeft");
+const answersDiv = document.getElementById("answers");
+const explanationText = document.getElementById("explanationText");
+const rankingList = document.getElementById("rankingList");
+
+/* ⭐ Firebase ⭐ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
   getFirestore, doc, onSnapshot, setDoc, collection, getDocs
@@ -141,21 +150,25 @@ let player = "";
 let questions = [];
 let ready = false;
 let timerInterval = null;
-let episodeId = "test"; // fallback
+let episodeId = "test";
 
+/* ⭐ Архив бутон ⭐ */
 document.getElementById("archiveBtn").onclick = () => {
   window.location.href = "archive.html";
 };
 
+/* ⭐ История бутон ⭐ */
 document.getElementById("historyBtn").onclick = () => {
   window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
 
+/* ⭐ Зареждане на въпроси ⭐ */
 async function loadQuestions() {
   const res = await fetch("questions.json");
   questions = await res.json();
 }
 
+/* ⭐ Влизане в играта ⭐ */
 document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
   if (!player) return alert("Въведете име!");
@@ -165,6 +178,7 @@ document.getElementById("enterBtn").onclick = async () => {
   showOnly(waitingScreen);
 };
 
+/* ⭐ Показване само на един екран ⭐ */
 function showOnly(div) {
   startScreen.style.display = "none";
   waitingScreen.style.display = "none";
@@ -174,12 +188,14 @@ function showOnly(div) {
   div.style.display = "block";
 }
 
+/* ⭐ Анимация на точките ⭐ */
 let dotCount = 0;
 setInterval(() => {
   dotCount = (dotCount + 1) % 4;
   document.getElementById("dots").textContent = ".".repeat(dotCount);
 }, 400);
 
+/* ⭐ Таймер ⭐ */
 function updateTimer(startTime, duration) {
   const now = Date.now();
   const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
@@ -189,6 +205,7 @@ function updateTimer(startTime, duration) {
   else document.getElementById("timer").classList.remove("warning");
 }
 
+/* ⭐ Крайно класиране ⭐ */
 async function renderRanking() {
   const playersSnap = await getDocs(
     collection(db, "games", "lightning", "episodes", episodeId, "results")
@@ -236,7 +253,7 @@ async function renderRanking() {
     })
     .join("");
 
-  // Записване на summary за архива
+  /* ⭐ Записване на summary ⭐ */
   await setDoc(
     doc(db, "games", "lightning", "episodes", episodeId, "summary"),
     {
@@ -250,6 +267,7 @@ async function renderRanking() {
   );
 }
 
+/* ⭐ Слушане на фазите ⭐ */
 onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
   if (!snap.exists()) return;
   if (!ready) return;
