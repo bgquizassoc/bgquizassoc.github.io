@@ -66,6 +66,41 @@
     font-weight: bold;
   }
 
+  /* ⭐ Статистика като бутоните */
+  .stat-answer {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 16px;
+    border-radius: 10px;
+    background: #333;
+    color: #fff;
+    font-size: 1.2em;
+    text-align: left;
+    position: relative;
+  }
+
+  .stat-answer.correct {
+    background: #2e7d32;
+    font-weight: bold;
+  }
+
+  .stat-answer .pct {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.9;
+  }
+
+  /* ⭐ По-голямо обяснение */
+  #explanationText {
+    font-size: 1.25em;
+    line-height: 1.5em;
+    margin-top: 20px;
+    text-align: left;
+  }
+
   .rank-item {
     padding: 10px;
     margin: 8px 0;
@@ -82,20 +117,12 @@
     background: #00e5ff;
     color: #003344;
   }
-
-  #statsBlock {
-    margin-top: 20px;
-    text-align: left;
-    font-size: 0.95em;
-  }
-  #statsBlock h4 { margin-bottom: 8px; }
-  #statsBlock .stat-line { margin: 4px 0; }
   </style>
 </head>
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 14⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест ⚡</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето име:</p>
@@ -116,18 +143,22 @@
 </div>
 
 <div id="explanation" style="display:none;">
-  <h3>Обяснение</h3>
-  <div id="explanationText"></div>
+  <h3 id="statsTitle">Статистика</h3>
   <div id="statsBlock"></div>
+
+  <h3 style="margin-top:25px;">Обяснение</h3>
+  <div id="explanationText"></div>
 </div>
 
 <div id="ranking" style="display:none;">
-  <h3>Крайно класиране</h3>
+  <h3 id="rankingTitle">Крайно класиране</h3>
   <div id="rankingList"></div>
   <button id="historyBtn">Виж моята история</button>
 </div>
 
 <script type="module">
+
+/* ⭐ Firebase */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
   getFirestore, doc, onSnapshot, setDoc, collection, getDocs
@@ -138,12 +169,15 @@ const waitingScreen = document.getElementById("waiting-screen");
 const quizDiv = document.getElementById("quiz");
 const explanationDiv = document.getElementById("explanation");
 const rankingDiv = document.getElementById("ranking");
+
 const qText = document.getElementById("question");
 const timeLeftEl = document.getElementById("timeLeft");
 const answersDiv = document.getElementById("answers");
-const explanationText = document.getElementById("explanationText");
 const statsBlock = document.getElementById("statsBlock");
+const explanationText = document.getElementById("explanationText");
 const rankingList = document.getElementById("rankingList");
+const rankingTitle = document.getElementById("rankingTitle");
+const historyBtn = document.getElementById("historyBtn");
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
@@ -163,23 +197,22 @@ let ready = false;
 let timerInterval = null;
 let episodeId = "test";
 
-/* Архив бутон */
+/* ⭐ Архив бутон */
 document.getElementById("archiveBtn").onclick = () => {
   window.location.href = "archive.html";
 };
 
-/* История бутон */
-document.getElementById("historyBtn").onclick = () => {
+/* ⭐ История бутон */
+historyBtn.onclick = () => {
   window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
-
-/* Зареждане на въпроси от questions.json */
+/* ⭐ Зареждане на въпроси */
 async function loadQuestions() {
   const res = await fetch("questions.json");
   questions = await res.json();
 }
 
-/* Влизане в играта */
+/* ⭐ Влизане в играта */
 document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
   if (!player) return alert("Въведете име!");
@@ -189,7 +222,7 @@ document.getElementById("enterBtn").onclick = async () => {
   showOnly(waitingScreen);
 };
 
-/* Показване само на един екран */
+/* ⭐ Показване само на един екран */
 function showOnly(div) {
   startScreen.style.display = "none";
   waitingScreen.style.display = "none";
@@ -199,14 +232,14 @@ function showOnly(div) {
   div.style.display = "block";
 }
 
-/* Анимация на точките */
+/* ⭐ Анимация на точките */
 let dotCount = 0;
 setInterval(() => {
   dotCount = (dotCount + 1) % 4;
   document.getElementById("dots").textContent = ".".repeat(dotCount);
 }, 400);
 
-/* Таймер */
+/* ⭐ Таймер */
 function updateTimer(startTime, duration) {
   const now = Date.now();
   const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
@@ -216,7 +249,26 @@ function updateTimer(startTime, duration) {
   else document.getElementById("timer").classList.remove("warning");
 }
 
-/* Крайно класиране (вариант А – 1/2/3 точки) */
+/* ⭐ Детерминирано разбъркване */
+function seededShuffle(array, seed) {
+  let result = array.slice();
+  let s = seed;
+  for (let i = result.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const j = Math.floor((s / 233280) * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/* ⭐ Временно / крайно класиране */
+function updateRankingTitle(index) {
+  const isLast = index >= questions.length - 1;
+  rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
+  historyBtn.style.display = isLast ? "block" : "none";
+}
+
+/* ⭐ Крайно класиране (вариант А – 1/2/3 точки) */
 async function renderRanking() {
   const playersSnap = await getDocs(
     collection(db, "games", "lightning", "episodes", episodeId, "results")
@@ -264,8 +316,9 @@ async function renderRanking() {
     })
     .join("");
 
+  /* ⭐ Summary документ — поправен път (четен брой сегменти) */
   await setDoc(
-    doc(db, "games", "lightning", "episodes", episodeId, "summary"),
+    doc(db, "games", "lightning", "episodes", episodeId, "meta", "summary"),
     {
       fullName: `${episodeId} — Светкавичен куиз`,
       players: sorted.length,
@@ -277,28 +330,25 @@ async function renderRanking() {
   );
 }
 
-/* Обяснение + статистика */
+/* ⭐ Обяснение + статистика като myQuiz */
 async function renderExplanation(index) {
   showOnly(explanationDiv);
   if (timerInterval) clearInterval(timerInterval);
 
   const q = questions[index];
-  if (!q) {
-    explanationText.textContent = "";
-    statsBlock.innerHTML = "";
-    return;
-  }
+  const correct = q.correct.trim();
 
   explanationText.textContent = q.explanation || "";
 
-  const answersSnapPlayers = await getDocs(
+  /* Събиране на статистика */
+  const playersSnap = await getDocs(
     collection(db, "games", "lightning", "episodes", episodeId, "results")
   );
 
   const counts = {};
-  q.answers.forEach(a => { counts[a.trim()] = 0; });
+  q.answers.forEach(a => counts[a.trim()] = 0);
 
-  for (const playerDoc of answersSnapPlayers.docs) {
+  for (const playerDoc of playersSnap.docs) {
     const ansSnap = await getDocs(
       collection(db, "games", "lightning", "episodes", episodeId, "results", playerDoc.id, "answers")
     );
@@ -311,18 +361,27 @@ async function renderExplanation(index) {
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
-  let html = "<h4>Статистика:</h4>";
+  /* ⭐ Статистика като бутоните */
+  let html = "";
   q.answers.forEach(a => {
     const key = a.trim();
     const c = counts[key] || 0;
     const pct = total ? Math.round((c / total) * 100) : 0;
-    html += `<div class="stat-line">${a} — ${c} души (${pct}%)</div>`;
+    const isCorrect = key === correct;
+
+    html += `
+      <div class="stat-answer ${isCorrect ? "correct" : ""}">
+        ${a}
+        <span class="pct">${pct}%</span>
+        ${isCorrect ? " ✔" : ""}
+      </div>
+    `;
   });
 
   statsBlock.innerHTML = html;
 }
 
-/* Слушане на фазите */
+/* ⭐ Слушане на фазите */
 onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   if (!snap.exists()) return;
   if (!ready) return;
@@ -341,13 +400,19 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   if (phase === "question") {
     showOnly(quizDiv);
     statsBlock.innerHTML = "";
+    explanationText.textContent = "";
+
     const q = questions[index];
     if (!q) return;
 
     qText.textContent = `${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
 
-    q.answers.forEach(ans => {
+    /* ⭐ Детерминирано разбъркване */
+    const seed = episodeId.length * 1000 + index;
+    const shuffled = seededShuffle(q.answers, seed);
+
+    shuffled.forEach(ans => {
       const btn = document.createElement("button");
       btn.textContent = ans;
 
@@ -386,6 +451,7 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   if (phase === "ranking") {
     showOnly(rankingDiv);
     if (timerInterval) clearInterval(timerInterval);
+    updateRankingTitle(index);
     renderRanking();
   }
 });
