@@ -1,342 +1,349 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="bg">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Игри на Знания – Светкавичен Куиз</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>⚡ Игри на Знания - Светкавичен куиз ⚡</title>
 
-<style>
-body {
-  background: #0b1e39;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
-  margin: 0;
-  padding: 0;
-}
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
 
-h1 {
-  background: #ffd54f;
-  color: #000;
-  padding: 15px;
-  margin: 0;
-  font-size: 26px;
-  font-weight: bold;
-}
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 900px; margin: 0 auto; padding: 20px;
+    background: #00264d;
+    color: #ffffff;
+  }
 
-#loginScreen, #waitingScreen, #questionScreen, #explanationScreen, #rankingScreen {
-  display: none;
-  padding: 20px;
-}
+  h1 {
+    text-align: center; color: #ffd100;
+    font-size: clamp(1.5em, 4vw, 2em);
+    margin: 10px auto 15px auto;
+    text-shadow: 0 0 5px #ffb400;
+  }
 
-.answer-btn {
-  width: 90%;
-  max-width: 500px;
-  padding: 15px;
-  margin: 10px auto;
-  background: #1e3a5f;
-  border: 2px solid #fff;
-  border-radius: 8px;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-  transition: 0.2s;
-}
+  #start-screen, #waiting-screen, #quiz, #explanation, #ranking {
+    width: 100%; max-width: 600px; text-align: center;
+    margin-top: 30px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 0 10px rgba(255,209,0,0.2);
+  }
 
-.answer-btn:hover {
-  background: #2a4f7a;
-}
+  input {
+    padding: 10px; font-size: 1.1em; border-radius: 8px;
+    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+  }
 
-.answer-selected {
-  background: #9ecbff !important; /* светлосин фон */
-  border: 3px solid #003366 !important;
-  color: #000 !important;
-  font-weight: 700;
-}
+  button {
+    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    border-radius: 8px; border: none;
+    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background:#ffcc33; transform:scale(1.05); }
 
-.answer-disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
+  #timer {
+    text-align: center; font-weight: 800; margin: 20px 0;
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+  }
+  #timer.warning { color: #ff4c4c; }
 
-#timer {
-  font-size: 32px;
-  margin: 15px 0;
-  font-weight: bold;
-}
+  #question { font-size: 1.6em; margin: 20px 0; font-weight: 600; }
 
-.stat-block {
-  background: #102544;
-  padding: 15px;
-  margin-top: 20px;
-  border-radius: 8px;
-  text-align: left;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-}
+  .answers button {
+    display: block; width: 100%; margin: 10px 0; padding: 16px;
+    border: none; border-radius: 10px; cursor: pointer;
+    font-size: 1.2em; background: #333; color: #fff;
+  }
+  .answers button.correct { background: #2e7d32; }
+  .answers button.wrong { background: #b71c1c; }
 
-.stat-line {
-  margin: 6px 0;
-  font-size: 18px;
-}
+  .rank-item {
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 10px;
+    font-size: 1.2em;
+    text-align: left;
+  }
+  .gold { background: #ffeb3b33; border-left: 6px solid #ffd700; }
+  .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
+  .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
 
-.correct-mark {
-  color: #00ff00;
-  font-weight: bold;
-}
-</style>
+  #historyBtn, #archiveBtn {
+    margin-top: 20px;
+    background: #00e5ff;
+    color: #003344;
+  }
+  </style>
 </head>
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 12⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 13⚡</h1>
 
-<div id="loginScreen">
-  <h2>Въведи име</h2>
-  <input id="playerName" type="text" style="padding:10px;font-size:18px;">
-  <br><br>
-  <button onclick="login()" style="padding:10px 20px;font-size:18px;">Влизане</button>
+<div id="start-screen">
+  <p>Въведете Вашето име:</p>
+  <input type="text" id="playerName" placeholder="Име ..." />
+  <button id="enterBtn">Влез в играта</button>
+  <button id="archiveBtn">Архив класирания</button>
 </div>
 
-<div id="waitingScreen">
-  <h2>Играта още не е започнала…</h2>
+<div id="waiting-screen" style="display:none;">
+  <h2>Играта още не е започнала.</h2>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
 </div>
 
-<div id="questionScreen">
-  <h2 id="questionText"></h2>
-  <div id="answers"></div>
-  <div id="timer"></div>
+<div id="quiz" style="display:none;">
+  <div id="timer"><span id="timeLeft">-</span> сек.</div>
+  <div id="question"></div>
+  <div id="answers" class="answers"></div>
 </div>
 
-<div id="explanationScreen">
-  <div id="explanationContent"></div>
+<div id="explanation" style="display:none;">
+  <h3>Обяснение</h3>
+  <div id="explanationText"></div>
 </div>
 
-<div id="rankingScreen">
-  <h2 id="rankingTitle"></h2>
+<div id="ranking" style="display:none;">
+  <h3>Крайно класиране</h3>
   <div id="rankingList"></div>
-  <button onclick="showHistory()" style="margin-top:20px;padding:10px 20px;font-size:18px;">Виж моята история</button>
+  <button id="historyBtn">Виж моята история</button>
 </div>
 
 <script type="module">
-import {
-  initializeApp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
+/* ⭐ ТУК СА ЛИПСВАЩИТЕ ПРЕМЕНЛИВИ ⭐ */
+const startScreen = document.getElementById("start-screen");
+const waitingScreen = document.getElementById("waiting-screen");
+const quizDiv = document.getElementById("quiz");
+const explanationDiv = document.getElementById("explanation");
+const rankingDiv = document.getElementById("ranking");
+const qText = document.getElementById("question");
+const timeLeftEl = document.getElementById("timeLeft");
+const answersDiv = document.getElementById("answers");
+const explanationText = document.getElementById("explanationText");
+const rankingList = document.getElementById("rankingList");
+
+/* ⭐ Firebase ⭐ */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, setDoc, onSnapshot,
-  collection, getDocs
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  getFirestore, doc, onSnapshot, setDoc, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD-EXAMPLE",
-  authDomain: "cifromania.firebaseapp.com",
-  projectId: "cifromania",
-  storageBucket: "cifromania.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123"
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let player = null;
-let episodeId = null;
+let player = "";
 let questions = [];
-let currentIndex = 0;
-let currentPhase = "waiting";
-let duration = 5000;
-let startTime = 0;
+let ready = false;
+let timerInterval = null;
+let episodeId = "test";
 
-function show(screen) {
-  document.querySelectorAll("#loginScreen,#waitingScreen,#questionScreen,#explanationScreen,#rankingScreen")
-    .forEach(s => s.style.display = "none");
-  document.getElementById(screen).style.display = "block";
-}
-
-window.login = async function () {
-  player = document.getElementById("playerName").value.trim();
-  if (!player) return;
-
-  await setDoc(doc(db, "games", "lightning", "players", player), { joined: Date.now() }, { merge: true });
-
-  show("waitingScreen");
+/* ⭐ Архив бутон ⭐ */
+document.getElementById("archiveBtn").onclick = () => {
+  window.location.href = "archive.html";
 };
-  // слушаме състоянието
-onSnapshot(doc(db, "games", "lightning", "state", "current"), async (snap) => {
-  if (!snap.exists()) return;
 
-  const data = snap.data();
-  episodeId = data.episodeId;
-  currentIndex = data.index;
-  currentPhase = data.phase;
-  duration = data.duration;
-  startTime = data.startTime;
+/* ⭐ История бутон ⭐ */
+document.getElementById("historyBtn").onclick = () => {
+  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+};
 
-  const epSnap = await getDoc(doc(db, "games", "lightning", "episodes", episodeId));
-  if (epSnap.exists()) questions = epSnap.data().questions || [];
-
-  if (currentPhase === "waiting") show("waitingScreen");
-  if (currentPhase === "question") renderQuestion();
-  if (currentPhase === "explanation") renderExplanation();
-  if (currentPhase === "ranking") renderRanking();
-});
-
-// показваме въпрос
-async function renderQuestion() {
-  const q = questions[currentIndex];
-  if (!q) return;
-
-  show("questionScreen");
-  document.getElementById("questionText").textContent = q.question;
-
-  const answersDiv = document.getElementById("answers");
-  answersDiv.innerHTML = "";
-
-  q.answers.forEach(ans => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.textContent = ans;
-
-    btn.onclick = async () => {
-      btn.classList.add("answer-selected");
-
-      Array.from(answersDiv.children).forEach(b => {
-        b.classList.add("answer-disabled");
-        b.disabled = true;
-      });
-
-      await setDoc(
-        doc(db, "games", "lightning", "episodes", episodeId, "results", player),
-        { exists: true },
-        { merge: true }
-      );
-
-      await setDoc(
-        doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(currentIndex)),
-        {
-          answer: ans,
-          correct: q.correct,
-          explanation: q.explanation,
-          timestamp: Date.now()
-        }
-      );
-    };
-
-    answersDiv.appendChild(btn);
-  });
-
-  startTimer();
+/* ⭐ Зареждане на въпроси ⭐ */
+async function loadQuestions() {
+  const res = await fetch("questions.json");
+  questions = await res.json();
 }
 
-// таймер
-function startTimer() {
-  const timerDiv = document.getElementById("timer");
+/* ⭐ Влизане в играта ⭐ */
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете име!");
 
-  function tick() {
-    const now = Date.now();
-    const left = duration - (now - startTime);
+  await loadQuestions();
+  ready = true;
+  showOnly(waitingScreen);
+};
 
-    if (left <= 0) {
-      timerDiv.textContent = "0";
-      return;
-    }
-
-    timerDiv.textContent = Math.ceil(left / 1000);
-    requestAnimationFrame(tick);
-  }
-
-  tick();
+/* ⭐ Показване само на един екран ⭐ */
+function showOnly(div) {
+  startScreen.style.display = "none";
+  waitingScreen.style.display = "none";
+  quizDiv.style.display = "none";
+  explanationDiv.style.display = "none";
+  rankingDiv.style.display = "none";
+  div.style.display = "block";
 }
 
-// обяснение + статистика
-async function renderExplanation() {
-  show("explanationScreen");
+/* ⭐ Анимация на точките ⭐ */
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  document.getElementById("dots").textContent = ".".repeat(dotCount);
+}, 400);
 
-  const q = questions[currentIndex];
-  const correct = q.correct.trim();
+/* ⭐ Таймер ⭐ */
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  timeLeftEl.textContent = remaining;
 
-  const answersSnap = await getDocs(
-    collection(db, "games", "lightning", "episodes", episodeId, "results")
-  );
-
-  let counts = {};
-  q.answers.forEach(a => counts[a.trim()] = 0);
-
-  for (const playerDoc of answersSnap.docs) {
-    const ansSnap = await getDocs(
-      collection(db, "games", "lightning", "episodes", episodeId, "results", playerDoc.id, "answers")
-    );
-
-    const ansDoc = ansSnap.docs.find(d => d.id === String(currentIndex));
-    if (ansDoc) {
-      const chosen = ansDoc.data().answer.trim();
-      if (counts[chosen] !== undefined) counts[chosen]++;
-    }
-  }
-
-  const total = Object.values(counts).reduce((a,b) => a+b, 0);
-
-  let html = `<div class="stat-block">`;
-  html += `<h3>Верният отговор: <span class="correct-mark">${correct} ✔</span></h3>`;
-  html += `<h4>Статистика:</h4>`;
-
-  q.answers.forEach(a => {
-    const c = counts[a.trim()];
-    const pct = total ? Math.round((c / total) * 100) : 0;
-    const mark = a.trim() === correct ? "✔" : "";
-    html += `<div class="stat-line">${a} — ${c} души (${pct}%) ${mark}</div>`;
-  });
-
-  html += `<h4 style="margin-top:15px;">Обяснение:</h4>`;
-  html += `<div>${q.explanation}</div>`;
-  html += `</div>`;
-
-  document.getElementById("explanationContent").innerHTML = html;
+  if (remaining <= 5) document.getElementById("timer").classList.add("warning");
+  else document.getElementById("timer").classList.remove("warning");
 }
 
-// класиране
+/* ⭐ Крайно класиране ⭐ */
 async function renderRanking() {
-  show("rankingScreen");
-
-  const resultsSnap = await getDocs(
+  const playersSnap = await getDocs(
     collection(db, "games", "lightning", "episodes", episodeId, "results")
   );
 
-  let ranking = [];
+  const scores = {};
 
-  for (const playerDoc of resultsSnap.docs) {
+  for (const playerDoc of playersSnap.docs) {
+    const playerName = playerDoc.id;
+
     const answersSnap = await getDocs(
-      collection(db, "games", "lightning", "episodes", episodeId, "results", playerDoc.id, "answers")
+      collection(db, "games", "lightning", "episodes", episodeId, "results", playerName, "answers")
     );
 
-    let score = 0;
-    answersSnap.forEach(a => {
-      if (a.data().answer.trim() === a.data().correct.trim()) score++;
+    let total = 0;
+
+    answersSnap.forEach(ansDoc => {
+      const qIndex = Number(ansDoc.id);
+      const data = ansDoc.data();
+      const q = questions[qIndex];
+      if (!q) return;
+
+      if (data.answer.trim() === q.correct.trim()) {
+        if (qIndex < 10) total += 1;
+        else if (qIndex < 20) total += 2;
+        else total += 3;
+      }
     });
 
-    ranking.push({ name: playerDoc.id, score });
+    scores[playerName] = total;
   }
 
-  ranking.sort((a,b) => b.score - a.score);
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
-  document.getElementById("rankingTitle").textContent =
-    currentIndex >= questions.length - 1 ? "Крайно класиране" : "Временно класиране";
+  rankingList.innerHTML = sorted
+    .map(([name, pts], i) => {
+      let cls = "";
+      let medal = "";
 
-  let html = "";
-  ranking.forEach((r, i) => {
-    html += `<div>${i+1}. ${r.name} — ${r.score} т.</div>`;
-  });
+      if (i === 0) { cls = "gold"; medal = "🥇"; }
+      else if (i === 1) { cls = "silver"; medal = "🥈"; }
+      else if (i === 2) { cls = "bronze"; medal = "🥉"; }
 
-  document.getElementById("rankingList").innerHTML = html;
+      return `<div class="rank-item ${cls}">${i+1}. ${medal} ${name} — ${pts} т.</div>`;
+    })
+    .join("");
+
+  /* ⭐ Записване на summary ⭐ */
+  await setDoc(
+    doc(db, "games", "lightning", "episodes", episodeId, "summary"),
+    {
+      fullName: `${episodeId} — Светкавичен куиз`,
+      players: sorted.length,
+      winner: sorted[0]?.[0] || "",
+      top3: sorted.slice(0, 3).map(x => x[0]),
+      timestamp: Date.now()
+    },
+    { merge: true }
+  );
 }
 
-window.showHistory = function () {
-  alert("Историята ще я довършим след статистиката.");
-};
+/* ⭐ Слушане на фазите ⭐ */
+onSnapshot(doc(db, "games", "lightning", "state", "current"), snap => {
+  if (!snap.exists()) return;
+  if (!ready) return;
 
+  const data = snap.data();
+  episodeId = data.episodeId || "test";
+
+  const { index, phase, startTime, duration } = data;
+
+  if (phase === "waiting") {
+    showOnly(waitingScreen);
+    return;
+  }
+
+  if (phase === "question") {
+    showOnly(quizDiv);
+
+    const q = questions[index];
+    if (!q) return;
+
+    qText.textContent = `${index+1}. ${q.question}`;
+    answersDiv.innerHTML = "";
+
+    q.answers.forEach(ans => {
+      const btn = document.createElement("button");
+      btn.textContent = ans;
+
+      btn.onclick = async () => {
+        const correct = q.correct.trim();
+        const chosen = ans.trim();
+
+        if (chosen === correct) btn.classList.add("correct");
+        else {
+          btn.classList.add("wrong");
+          Array.from(answersDiv.children).forEach(b => {
+            if (b.textContent.trim() === correct) b.classList.add("correct");
+          });
+        }
+
+        await setDoc(
+          doc(db, "games", "lightning", "episodes", episodeId, "results", player),
+          { exists: true },
+          { merge: true }
+        );
+
+        await setDoc(
+          doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(index)),
+          {
+            answer: ans,
+            correct: q.correct,
+            explanation: q.explanation,
+            timestamp: Date.now()
+          }
+        );
+      };
+
+      answersDiv.appendChild(btn);
+    });
+
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+  }
+
+  if (phase === "explanation") {
+    showOnly(explanationDiv);
+    explanationText.textContent = questions[index]?.explanation || "";
+    if (timerInterval) clearInterval(timerInterval);
+  }
+
+  if (phase === "ranking") {
+    showOnly(rankingDiv);
+    renderRanking();
+    if (timerInterval) clearInterval(timerInterval);
+  }
+});
 </script>
+
 </body>
 </html>
-
