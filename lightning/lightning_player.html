@@ -66,7 +66,7 @@
     font-weight: bold;
   }
 
-  /* ⭐ Статистика като бутоните */
+  /* Статистика като бутоните */
   .stat-answer {
     display: block;
     width: 100%;
@@ -93,7 +93,7 @@
     opacity: 0.9;
   }
 
-  /* ⭐ По-голямо обяснение */
+  /* По-голямо обяснение */
   #explanationText {
     font-size: 1.25em;
     line-height: 1.5em;
@@ -122,7 +122,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест ⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 14⚡</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето име:</p>
@@ -143,7 +143,7 @@
 </div>
 
 <div id="explanation" style="display:none;">
-  <h3 id="statsTitle">Статистика</h3>
+  <h3>Статистика</h3>
   <div id="statsBlock"></div>
 
   <h3 style="margin-top:25px;">Обяснение</h3>
@@ -157,8 +157,6 @@
 </div>
 
 <script type="module">
-
-/* ⭐ Firebase */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
   getFirestore, doc, onSnapshot, setDoc, collection, getDocs
@@ -197,22 +195,23 @@ let ready = false;
 let timerInterval = null;
 let episodeId = "test";
 
-/* ⭐ Архив бутон */
+/* Архив бутон */
 document.getElementById("archiveBtn").onclick = () => {
   window.location.href = "archive.html";
 };
 
-/* ⭐ История бутон */
+/* История бутон */
 historyBtn.onclick = () => {
   window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
-/* ⭐ Зареждане на въпроси */
+
+/* Зареждане на въпроси */
 async function loadQuestions() {
   const res = await fetch("questions.json");
   questions = await res.json();
 }
 
-/* ⭐ Влизане в играта */
+/* Влизане в играта */
 document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
   if (!player) return alert("Въведете име!");
@@ -222,7 +221,7 @@ document.getElementById("enterBtn").onclick = async () => {
   showOnly(waitingScreen);
 };
 
-/* ⭐ Показване само на един екран */
+/* Показване само на един екран */
 function showOnly(div) {
   startScreen.style.display = "none";
   waitingScreen.style.display = "none";
@@ -232,14 +231,14 @@ function showOnly(div) {
   div.style.display = "block";
 }
 
-/* ⭐ Анимация на точките */
+/* Анимация на точките */
 let dotCount = 0;
 setInterval(() => {
   dotCount = (dotCount + 1) % 4;
   document.getElementById("dots").textContent = ".".repeat(dotCount);
 }, 400);
 
-/* ⭐ Таймер */
+/* Таймер */
 function updateTimer(startTime, duration) {
   const now = Date.now();
   const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
@@ -249,7 +248,7 @@ function updateTimer(startTime, duration) {
   else document.getElementById("timer").classList.remove("warning");
 }
 
-/* ⭐ Детерминирано разбъркване */
+/* Детерминирано разбъркване */
 function seededShuffle(array, seed) {
   let result = array.slice();
   let s = seed;
@@ -261,14 +260,14 @@ function seededShuffle(array, seed) {
   return result;
 }
 
-/* ⭐ Временно / крайно класиране */
+/* Временно / крайно класиране */
 function updateRankingTitle(index) {
   const isLast = index >= questions.length - 1;
   rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
   historyBtn.style.display = isLast ? "block" : "none";
 }
 
-/* ⭐ Крайно класиране (вариант А – 1/2/3 точки) */
+/* Класиране */
 async function renderRanking() {
   const playersSnap = await getDocs(
     collection(db, "games", "lightning", "episodes", episodeId, "results")
@@ -291,7 +290,7 @@ async function renderRanking() {
       const q = questions[qIndex];
       if (!q) return;
 
-      if (data.answer.trim() === q.correct.trim()) {
+      if ((data.answer || "").trim() === (q.correct || "").trim()) {
         if (qIndex < 10) total += 1;
         else if (qIndex < 20) total += 2;
         else total += 3;
@@ -316,11 +315,11 @@ async function renderRanking() {
     })
     .join("");
 
-  /* ⭐ Summary документ — поправен път (четен брой сегменти) */
+  /* Summary за архива */
   await setDoc(
     doc(db, "games", "lightning", "episodes", episodeId, "meta", "summary"),
     {
-      fullName: `${episodeId} — Светкавичен куиз`,
+      episodeId,
       players: sorted.length,
       winner: sorted[0]?.[0] || "",
       top3: sorted.slice(0, 3).map(x => x[0]),
@@ -330,17 +329,16 @@ async function renderRanking() {
   );
 }
 
-/* ⭐ Обяснение + статистика като myQuiz */
+/* Обяснение + статистика */
 async function renderExplanation(index) {
   showOnly(explanationDiv);
   if (timerInterval) clearInterval(timerInterval);
 
   const q = questions[index];
-  const correct = q.correct.trim();
+  const correct = (q.correct || "").trim();
 
   explanationText.textContent = q.explanation || "";
 
-  /* Събиране на статистика */
   const playersSnap = await getDocs(
     collection(db, "games", "lightning", "episodes", episodeId, "results")
   );
@@ -361,7 +359,6 @@ async function renderExplanation(index) {
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
-  /* ⭐ Статистика като бутоните */
   let html = "";
   q.answers.forEach(a => {
     const key = a.trim();
@@ -381,7 +378,7 @@ async function renderExplanation(index) {
   statsBlock.innerHTML = html;
 }
 
-/* ⭐ Слушане на фазите */
+/* Слушане на фазите */
 onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   if (!snap.exists()) return;
   if (!ready) return;
@@ -408,7 +405,6 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     qText.textContent = `${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
 
-    /* ⭐ Детерминирано разбъркване */
     const seed = episodeId.length * 1000 + index;
     const shuffled = seededShuffle(q.answers, seed);
 
