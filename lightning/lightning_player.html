@@ -122,7 +122,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 14⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 15⚡</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето име:</p>
@@ -267,7 +267,7 @@ function updateRankingTitle(index) {
   historyBtn.style.display = isLast ? "block" : "none";
 }
 
-/* Класиране */
+/* Класиране – по епизод */
 async function renderRanking() {
   const playersSnap = await getDocs(
     collection(db, "games", "lightning", "episodes", episodeId, "results")
@@ -315,7 +315,7 @@ async function renderRanking() {
     })
     .join("");
 
-  /* Summary за архива */
+  /* Summary за архива – по епизод */
   await setDoc(
     doc(db, "games", "lightning", "episodes", episodeId, "meta", "summary"),
     {
@@ -329,7 +329,7 @@ async function renderRanking() {
   );
 }
 
-/* Обяснение + статистика */
+/* Обяснение + статистика – по епизод */
 async function renderExplanation(index) {
   showOnly(explanationDiv);
   if (timerInterval) clearInterval(timerInterval);
@@ -378,7 +378,7 @@ async function renderExplanation(index) {
   statsBlock.innerHTML = html;
 }
 
-/* Слушане на фазите */
+/* Слушане на фазите – state/current */
 onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   if (!snap.exists()) return;
   if (!ready) return;
