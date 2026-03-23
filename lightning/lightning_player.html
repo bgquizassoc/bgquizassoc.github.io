@@ -115,12 +115,30 @@
     background: #00e5ff;
     color: #003344;
   }
+
+  #lobbyTitle {
+    margin-top: 20px;
+    font-weight: 600;
+  }
+
+  #lobbyList {
+    margin-top: 10px;
+    text-align: left;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.95em;
+  }
+
+  #lobbyList div {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
   </style>
 </head>
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 18 ⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 19 ⚡</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето име:</p>
@@ -132,6 +150,9 @@
 <div id="waiting-screen" style="display:none;">
   <h2>Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
+
+  <h3 id="lobbyTitle">Ето ги твоите съперници:</h3>
+  <div id="lobbyList">Още няма други играчи.</div>
 </div>
 
 <div id="quiz" style="display:none;">
@@ -141,6 +162,7 @@
 </div>
 
 <div id="explanation" style="display:none;">
+  <div id="timer"><span id="timeLeft">-</span> сек.</div>
   <h3>Статистика</h3>
   <div id="statsBlock"></div>
 
@@ -148,7 +170,8 @@
   <div id="explanationText"></div>
 </div>
 
-<div id="ranking" style="display:none%;">
+<div id="ranking" style="display:none;">
+  <div id="timer"><span id="timeLeft">-</span> сек.</div>
   <h3 id="rankingTitle">Крайно класиране</h3>
   <div id="rankingList"></div>
   <button id="historyBtn">Виж моята история</button>
@@ -174,6 +197,7 @@ const explanationText = document.getElementById("explanationText");
 const rankingList = document.getElementById("rankingList");
 const rankingTitle = document.getElementById("rankingTitle");
 const historyBtn = document.getElementById("historyBtn");
+const lobbyList = document.getElementById("lobbyList");
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
@@ -193,6 +217,9 @@ let ready = false;
 let timerInterval = null;
 let episodeId = null;
 
+let lobbyUnsub = null;
+let lobbyEpisodeId = null;
+
 /* Архив бутон */
 document.getElementById("archiveBtn").onclick = () => {
   window.location.href = "archive.html";
@@ -200,6 +227,7 @@ document.getElementById("archiveBtn").onclick = () => {
 
 /* История бутон */
 historyBtn.onclick = () => {
+  if (!episodeId) return;
   window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
 
@@ -208,16 +236,6 @@ async function loadQuestions() {
   const res = await fetch("questions.json");
   questions = await res.json();
 }
-
-/* Влизане в играта */
-document.getElementById("enterBtn").onclick = async () => {
-  player = document.getElementById("playerName").value.trim();
-  if (!player) return alert("Въведете име!");
-
-  await loadQuestions();
-  ready = true;
-  showOnly(waitingScreen);
-};
 
 /* Показване само на един екран */
 function showOnly(div) {
@@ -233,7 +251,8 @@ function showOnly(div) {
 let dotCount = 0;
 setInterval(() => {
   dotCount = (dotCount + 1) % 4;
-  document.getElementById("dots").textContent = ".".repeat(dotCount);
+  const dotsEl = document.getElementById("dots");
+  if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
 }, 400);
 
 /* Таймер */
@@ -242,8 +261,11 @@ function updateTimer(startTime, duration) {
   const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
   timeLeftEl.textContent = remaining;
 
-  if (remaining <= 5) document.getElementById("timer").classList.add("warning");
-  else document.getElementById("timer").classList.remove("warning");
+  const timerEl = document.getElementById("timer");
+  if (!timerEl) return;
+
+  if (remaining <= 5) timerEl.classList.add("warning");
+  else timerEl.classList.remove("warning");
 }
 
 /* Детерминирано разбъркване */
@@ -265,8 +287,32 @@ function updateRankingTitle(index) {
   historyBtn.style.display = isLast ? "block" : "none";
 }
 
+/* Влизане в играта */
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете име!");
+
+  await loadQuestions();
+  ready = true;
+  showOnly(waitingScreen);
+
+  if (!episodeId) {
+    // водещият още не е настроил епизода
+    return;
+  }
+
+  // записваме играча в лобито на текущия епизод
+  await setDoc(
+    doc(db, "games", "lightning", "episodes", episodeId, "lobby", player),
+    { joinedAt: Date.now() },
+    { merge: true }
+  );
+};
+
 /* Класиране – по епизод */
 async function renderRanking() {
+  if (!episodeId) return;
+
   const playersSnap = await getDocs(
     collection(db, "games", "lightning", "episodes", episodeId, "results")
   );
@@ -328,12 +374,15 @@ async function renderRanking() {
 
 /* Обяснение + статистика – по епизод */
 async function renderExplanation(index) {
+  if (!episodeId) return;
+
   showOnly(explanationDiv);
   if (timerInterval) clearInterval(timerInterval);
 
   const q = questions[index];
-  const correct = (q.correct || "").trim();
+  if (!q) return;
 
+  const correct = (q.correct || "").trim();
   explanationText.textContent = q.explanation || "";
 
   const playersSnap = await getDocs(
@@ -382,13 +431,36 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   const data = snap.data();
   episodeId = data.episodeId;
 
-  if (!ready) return;
+  if (!episodeId) return;
 
   const { index, phase, startTime, duration } = data;
 
+  // Лоби – списък с играчи
+  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
+    if (lobbyUnsub) lobbyUnsub();
+    lobbyEpisodeId = episodeId;
+    lobbyUnsub = onSnapshot(
+      collection(db, "games", "lightning", "episodes", episodeId, "lobby"),
+      lobbySnap => {
+        const names = lobbySnap.docs.map(d => d.id);
+        if (!names.length) {
+          lobbyList.innerHTML = "Още няма други играчи.";
+        } else {
+          lobbyList.innerHTML = names.map(n => `<div>${n}</div>`).join("");
+        }
+      }
+    );
+  }
+
+  if (!ready) {
+    // играчът още не е натиснал "Влез в играта"
+    return;
+  }
+
+  if (timerInterval) clearInterval(timerInterval);
+
   if (phase === "waiting") {
     showOnly(waitingScreen);
-    if (timerInterval) clearInterval(timerInterval);
     return;
   }
 
@@ -403,8 +475,7 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     qText.textContent = `${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
 
-   if (!episodeId) return; // изчакваме да се зареди от Firestore
-const seed = episodeId.length * 1000 + index;
+    const seed = episodeId.length * 1000 + index;
     const shuffled = seededShuffle(q.answers, seed);
 
     shuffled.forEach(ans => {
@@ -435,19 +506,22 @@ const seed = episodeId.length * 1000 + index;
       answersDiv.appendChild(btn);
     });
 
-    if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
   }
 
   if (phase === "explanation") {
     await renderExplanation(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
   }
 
   if (phase === "ranking") {
     showOnly(rankingDiv);
-    if (timerInterval) clearInterval(timerInterval);
     updateRankingTitle(index);
-    renderRanking();
+    await renderRanking();
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
   }
 });
 </script>
