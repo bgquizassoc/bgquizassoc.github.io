@@ -14,7 +14,7 @@
 <body>
 
 <h1>🎬 Старт на Светкавичен куиз</h1>
-<button id="startBtn">СТАРТ 4</button>
+<button id="startBtn">СТАРТ</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -38,18 +38,23 @@ const db = getFirestore(app);
 let questions = [];
 
 async function loadQuestions() {
-  const res = await fetch("lightning/questions.json");
+  const res = await fetch("lightning/questions.json"); // ако е в друга папка, кажи ми
   questions = await res.json();
 }
 
-// Пишем състояние в Firestore
+// Пишем състояние в Firestore (ВАЖНО: merge: true + episodeId)
 async function setState(index, phase, durationMs) {
-  await setDoc(doc(db, "games", "lightning", "state", "current"), {
-    index,
-    phase,
-    startTime: Date.now(),
-    duration: durationMs
-  });
+  await setDoc(
+    doc(db, "games", "lightning", "state", "current"),
+    {
+      episodeId: "test19",     // НЕ СЕ ТРИЕ ВЕЧЕ
+      index,
+      phase,
+      startTime: Date.now(),
+      duration: durationMs
+    },
+    { merge: true }            // НЕ ПРЕЗАПИСВА ДОКУМЕНТА
+  );
 }
 
 // Главният автоматичен двигател
@@ -58,8 +63,8 @@ async function runGame() {
   const total = questions.length;
 
   // Времетраене
-  const FIRST_Q = 20000; // 60 сек
-  const Q = 20000;       // 20 сек
+  const FIRST_Q = 10000; // 20 сек
+  const Q = 10000;       // 20 сек
   const EXPL = 10000;    // 30 сек
   const RANK = 5000;    // 10 сек
 
@@ -80,14 +85,12 @@ async function runGame() {
     setTimeout(() => setState(i, "ranking", RANK), t);
     t += RANK;
   }
-
-  // Финално класиране (оставяме последното)
 }
 
 document.getElementById("startBtn").onclick = async () => {
 
   // Първо вкарваме всички в чакалня
-  await setState(0, "waiting", 0);
+  await setState(0, "waiting", 999999);
 
   // Стартираме автоматичния цикъл
   runGame();
