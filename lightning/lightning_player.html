@@ -403,7 +403,8 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     qText.textContent = `${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
 
-    const seed = episodeId.length * 1000 + index;
+   if (!episodeId) return; // изчакваме да се зареди от Firestore
+const seed = episodeId.length * 1000 + index;
     const shuffled = seededShuffle(q.answers, seed);
 
     shuffled.forEach(ans => {
