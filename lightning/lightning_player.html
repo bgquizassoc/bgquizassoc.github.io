@@ -486,8 +486,8 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     qText.textContent = `${index+1}. ${q.question}`;
 
     const seed = episodeId.length * 1000 + index;
-    const shuffled = seededShuffle(q.answers, seed
-                                       shuffled.forEach(ans => {
+    const shuffled = seededShuffle(q.answers, seed);
+     shuffled.forEach(ans => {
       const btn = document.createElement("button");
       btn.textContent = ans;
 
