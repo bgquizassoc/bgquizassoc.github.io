@@ -20,7 +20,7 @@
 <h1>🎬 Старт на Светкавичен куиз</h1>
 
 <p>Въведи име на епизод:</p>
-<input id="ep" placeholder="пример: test27">
+<input id="ep" placeholder="пример: test29">
 
 <br><br>
 <button id="startBtn">СТАРТ</button>
@@ -60,7 +60,7 @@ async function setState(ep, index, phase, durationMs) {
       startTime: Date.now(),
       duration: durationMs
     },
-    { merge: false }   // ❗ ПРЕЗАПИСВА ДОКУМЕНТА НАПЪЛНО
+    { merge: false }
   );
 }
 
@@ -68,12 +68,16 @@ async function runGame(ep) {
   await loadQuestions();
   const total = questions.length;
 
-  const FIRST_Q = 10000;
+  const FIRST_Q = 15000;
   const Q = 10000;
   const EXPL = 10000;
   const RANK = 5000;
 
   let t = 0;
+
+  // ПРЕДСТАРТ – 30 секунди
+  setTimeout(() => setState(ep, 0, "prestart", 30000), t);
+  t += 30000;
 
   for (let i = 0; i < total; i++) {
     const qDur = (i === 0) ? FIRST_Q : Q;
@@ -93,7 +97,10 @@ document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
   if (!ep) return alert("Въведи име на епизод!");
 
+  // Първо ОК → waiting
   await setState(ep, 0, "waiting", 999999);
+
+  // Второ ОК → стартира цикъла
   runGame(ep);
 
   alert("Играта стартира!");
