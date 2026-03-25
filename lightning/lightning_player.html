@@ -370,7 +370,7 @@ async function renderExplanation(index) {
 }
 
 /* Класиране */
-async function renderRanking() {
+async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
 
@@ -530,7 +530,7 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   /* RANKING */
   if (phase === "ranking") {
     globalTimer.style.display = "block";
-    await renderRanking();
+    await renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
