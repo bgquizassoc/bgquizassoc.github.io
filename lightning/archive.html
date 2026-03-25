@@ -1,80 +1,63 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="bg">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Архив на Светкавичния куиз</title>
+<meta charset="UTF-8">
+<title>Архив на Светкавичния куиз</title>
 
-  <style>
-    body {
-      background: #00264d;
-      color: #fff;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      padding: 20px;
-      max-width: 900px;
-      margin: auto;
-    }
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #00264d;
+    padding: 20px;
+    color: white;
+  }
 
-    h1 {
-      text-align: center;
-      color: #ffd100;
-      text-shadow: 0 0 5px #ffb400;
-      margin-bottom: 20px;
-    }
+  h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: white;
+  }
 
-    .episode {
-      background: rgba(255,255,255,0.08);
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      border-left: 6px solid #ffd100;
-    }
+  ul {
+    list-style: none;
+    padding: 0;
+    max-width: 400px;
+    margin: 0 auto;
+  }
 
-    .test {
-      border-left: 6px solid #00e5ff;
-    }
+  li {
+    background: white;
+    color: #0033aa;
+    padding: 12px 18px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ccd7ff;
+    transition: 0.2s;
+  }
 
-    .btn {
-      display: inline-block;
-      margin-top: 10px;
-      padding: 10px 16px;
-      background: #ffd100;
-      color: #003344;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      text-decoration: none;
-    }
+  li:hover {
+    background: #e8eeff;
+    transform: translateX(4px);
+  }
 
-    .filterBtn {
-      margin: 5px;
-      padding: 8px 14px;
-      background: #00e5ff;
-      color: #003344;
-      border-radius: 8px;
-      cursor: pointer;
-      border: none;
-      font-weight: bold;
-    }
-  </style>
+  a {
+    font-size: 20px;
+    color: #0033aa;
+    text-decoration: none;
+    display: block;
+  }
+</style>
+
 </head>
-
 <body>
 
 <h1>Архив на Светкавичния куиз</h1>
-
-<div>
-  <button class="filterBtn" onclick="showAll()">Всички</button>
-  <button class="filterBtn" onclick="showReal()">Истински игри</button>
-  <button class="filterBtn" onclick="showTests()">Тестове</button>
-</div>
-
-<div id="episodes"></div>
+<ul id="episodes"></ul>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, collection, getDocs
+  getFirestore, collection, getDocs, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -89,72 +72,38 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const episodesDiv = document.getElementById("episodes");
-let allEpisodes = [];
-
 async function loadEpisodes() {
+  const list = document.getElementById("episodes");
   const snap = await getDocs(collection(db, "games", "lightning", "episodes"));
 
-  const episodes = [];
+  let episodes = [];
 
-  for (const docSnap of snap.docs) {
-    const id = docSnap.id;
+  for (const ep of snap.docs) {
+    const id = ep.id;
 
-    // Четем summary
-    const summarySnap = await getDocs(
-      collection(db, "games", "lightning", "episodes", id)
-    );
+    // Опитваме се да прочетем summary (ако съществува)
+    const summaryRef = doc(db, "games", "lightning", "episodes", id, "summary");
+    const summarySnap = await getDoc(summaryRef);
 
     let fullName = id;
-    let winner = "";
-    let players = 0;
-
-    for (const s of summarySnap.docs) {
-      if (s.id === "summary") {
-        const data = s.data();
-        fullName = data.fullName || id;
-        winner = data.winner || "";
-        players = data.players || 0;
-      }
+    if (summarySnap.exists()) {
+      const data = summarySnap.data();
+      fullName = data.fullName || id;
     }
 
-    episodes.push({
-      id,
-      fullName,
-      winner,
-      players,
-      isTest: id.startsWith("test")
-    });
+    episodes.push(fullName);
   }
 
-  // Подреждаме по дата (низходящо)
-  episodes.sort((a, b) => b.id.localeCompare(a.id));
+  // Най-новите най-отгоре
+  episodes.sort((a, b) => b.localeCompare(a));
 
-  allEpisodes = episodes;
-  renderEpisodes(episodes);
+  let html = "";
+  episodes.forEach(name => {
+    html += `<li><a href="player.html?episodeId=${encodeURIComponent(name)}">${name}</a></li>`;
+  });
+
+  list.innerHTML = html || "<p>Все още няма архивирани игри.</p>";
 }
-
-function renderEpisodes(list) {
-  episodesDiv.innerHTML = list.map(ep => `
-    <div class="episode ${ep.isTest ? 'test' : ''}">
-      <h3>${ep.fullName}</h3>
-      <p><strong>Играч(и):</strong> ${ep.players}</p>
-      <p><strong>Победител:</strong> ${ep.winner || '—'}</p>
-
-      <a class="btn" href="history.html?episodeId=${ep.id}&player=${encodeURIComponent(ep.winner)}">
-        История на победителя
-      </a>
-
-      <a class="btn" href="player.html?episodeId=${ep.id}">
-        Отвори класиране
-      </a>
-    </div>
-  `).join("");
-}
-
-window.showAll = () => renderEpisodes(allEpisodes);
-window.showReal = () => renderEpisodes(allEpisodes.filter(e => !e.isTest));
-window.showTests = () => renderEpisodes(allEpisodes.filter(e => e.isTest));
 
 loadEpisodes();
 </script>
