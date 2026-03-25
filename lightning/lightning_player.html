@@ -139,7 +139,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 32 ⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод тест 33 ⚡</h1>
 
 <!-- 🎵 МУЗИКА -->
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
@@ -181,7 +181,15 @@
   <div id="rankingList"></div>
   <button id="historyBtn">Виж моята история</button>
 </div>
-
+<style>
+.myself {
+  background: #00e5ff55 !important;
+  border-left: 6px solid #00e5ff !important;
+  font-weight: 700;
+  color: #fff !important;
+}
+</style>
+ 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
@@ -410,13 +418,16 @@ async function renderRanking(index) {
   rankingList.innerHTML = sorted
     .map(([name, pts], i) => {
       let cls = "";
+      const isMe = name === player;   // ⭐ СЛАГАШ ТОЗИ РЕД ТУК
       let medal = "";
 
       if (i === 0) { cls = "gold"; medal = "🥇"; }
       else if (i === 1) { cls = "silver"; medal = "🥈"; }
       else if (i === 2) { cls = "bronze"; medal = "🥉"; }
 
-      return `<div class="rank-item ${cls}">${i+1}. ${medal} ${name} — ${pts} т.</div>`;
+     return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
+          ${i+1}. ${medal} ${name} — ${pts} т.
+        </div>`;
     })
     .join("");
 
