@@ -134,12 +134,19 @@
     padding: 4px 0;
     border-bottom: 1px solid rgba(255,255,255,0.1);
   }
+
+  .myself {
+    background: #00e5ff55 !important;
+    border-left: 6px solid #00e5ff !important;
+    font-weight: 700;
+    color: #fff !important;
+  }
   </style>
 </head>
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод, тест 34 ⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод, тест 35 ⚡</h1>
 
 <!-- 🎵 МУЗИКА -->
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
@@ -148,7 +155,7 @@
 <div id="globalTimer" style="display:none;">-</div>
 
 <div id="start-screen">
-  <p>Въведете Вашето име:</p>
+  <p>Въведете Двете си имена:</p>
   <input type="text" id="playerName" placeholder="Име ..." />
   <button id="enterBtn">Влез в играта</button>
   <button id="archiveBtn">Архив класирания</button>
@@ -181,15 +188,7 @@
   <div id="rankingList"></div>
   <button id="historyBtn">Виж моята история</button>
 </div>
-<style>
-.myself {
-  background: #00e5ff55 !important;
-  border-left: 6px solid #00e5ff !important;
-  font-weight: 700;
-  color: #fff !important;
-}
-</style>
- 
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
@@ -377,7 +376,7 @@ async function renderExplanation(index) {
   statsBlock.innerHTML = html;
 }
 
-/* Класиране */
+/* Класиране с тайбрек по време */
 async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
@@ -395,7 +394,8 @@ async function renderRanking(index) {
       collection(db, "games", "lightning", "episodes", episodeId, "results", playerName, "answers")
     );
 
-    let total = 0;
+    let totalPoints = 0;
+    let totalTime = 0;
 
     answersSnap.forEach(ansDoc => {
       const qIndex = Number(ansDoc.id);
@@ -404,32 +404,53 @@ async function renderRanking(index) {
       if (!q) return;
 
       if ((data.answer || "").trim() === (q.correct || "").trim()) {
-        if (qIndex < 10) total += 1;
-        else if (qIndex < 20) total += 2;
-        else total += 3;
+        if (qIndex < 10) totalPoints += 1;
+        else if (qIndex < 20) totalPoints += 2;
+        else totalPoints += 3;
+      }
+
+      if (typeof data.thinkingTime === "number") {
+        totalTime += data.thinkingTime;
       }
     });
 
-    scores[playerName] = total;
+    scores[playerName] = { points: totalPoints, time: totalTime };
   }
 
-  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const sorted = Object.entries(scores).sort((a, b) => {
+    const ap = a[1].points;
+    const bp = b[1].points;
+    if (bp !== ap) return bp - ap;
 
-  rankingList.innerHTML = sorted
-    .map(([name, pts], i) => {
-      let cls = "";
-      const isMe = name === player;   // ⭐ СЛАГАШ ТОЗИ РЕД ТУК
-      let medal = "";
+    const at = a[1].time;
+    const bt = b[1].time;
+    if (at !== bt) return at - bt;
 
-      if (i === 0) { cls = "gold"; medal = "🥇"; }
-      else if (i === 1) { cls = "silver"; medal = "🥈"; }
-      else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+    return a[0].localeCompare(b[0], "bg");
+  });
 
-     return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
-          ${i+1}. ${medal} ${name} — ${pts} т.
-        </div>`;
-    })
-    .join("");
+ rankingList.innerHTML = sorted
+  .map(([name, obj], i) => {
+    const pts = obj.points;
+    const time = (obj.time / 1000).toFixed(1); // време в секунди
+     const isLast = index >= questions.length - 1;
+
+    let cls = "";
+    const isMe = name === player;
+    let medal = "";
+
+    if (i === 0) { cls = "gold"; medal = "🥇"; }
+    else if (i === 1) { cls = "silver"; medal = "🥈"; }
+    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+
+    // 👉 Показваме време САМО в крайното класиране
+    const timeText = isLast ? ` (време: ${time} сек)` : "";
+
+    return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
+        ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
+      </div>`;
+  })
+  .join("");
 
   updateRankingTitle(index);
 }
@@ -445,7 +466,7 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
 
   const { index, phase, startTime, duration } = data;
 
-  /* Лоби */
+  /* Лоби – дълго чакане, без таймер */
   if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
     if (lobbyUnsub) lobbyUnsub();
     lobbyEpisodeId = episodeId;
@@ -464,7 +485,15 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
 
   if (timerInterval) clearInterval(timerInterval);
 
-  /* WAITING */
+  /* LOBBY */
+  if (phase === "lobby") {
+    showOnly(waitingScreen);
+    globalTimer.style.display = "none";
+    waitingTitle.textContent = "Играта още не е започнала.";
+    return;
+  }
+
+  /* WAITING – ако я ползваш като пауза */
   if (phase === "waiting") {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
@@ -472,7 +501,7 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     return;
   }
 
-  /* PRESTART – 30 секунди */
+  /* PRESTART – обратно броене до старт */
   if (phase === "prestart") {
     showOnly(waitingScreen);
     waitingTitle.textContent = "Играта започва след:";
@@ -482,7 +511,7 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     return;
   }
 
-  /* QUESTION */
+  /* QUESTION – единен таймер за всички въпроси */
   if (phase === "question") {
     showOnly(quizDiv);
     globalTimer.style.display = "block";
@@ -498,7 +527,7 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
 
     const seed = episodeId.length * 1000 + index;
     const shuffled = seededShuffle(q.answers, seed);
-     shuffled.forEach(ans => {
+    shuffled.forEach(ans => {
       const btn = document.createElement("button");
       btn.textContent = ans;
 
@@ -512,13 +541,16 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
           { merge: true }
         );
 
+        const thinkingTime = Date.now() - startTime;
+
         await setDoc(
           doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(index)),
           {
             answer: ans,
             correct: q.correct,
             explanation: q.explanation,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            thinkingTime
           }
         );
       };
@@ -530,7 +562,7 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     return;
   }
 
-  /* EXPLANATION */
+  /* EXPLANATION – директно статистика + обяснение */
   if (phase === "explanation") {
     globalTimer.style.display = "block";
     await renderExplanation(index);
@@ -538,7 +570,7 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     return;
   }
 
-  /* RANKING */
+  /* RANKING – без прелупи, директно класиране */
   if (phase === "ranking") {
     globalTimer.style.display = "block";
     await renderRanking(index);
