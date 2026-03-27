@@ -11,20 +11,17 @@
     padding: 20px;
     color: white;
   }
-
   h1 {
     text-align: center;
     margin-bottom: 30px;
     color: white;
   }
-
   ul {
     list-style: none;
     padding: 0;
     max-width: 400px;
     margin: 0 auto;
   }
-
   li {
     background: white;
     color: #0033aa;
@@ -34,12 +31,10 @@
     border: 1px solid #ccd7ff;
     transition: 0.2s;
   }
-
   li:hover {
     background: #e8eeff;
     transform: translateX(4px);
   }
-
   a {
     font-size: 20px;
     color: #0033aa;
@@ -81,7 +76,6 @@ async function loadEpisodes() {
   for (const ep of snap.docs) {
     const id = ep.id;
 
-    // Опитваме се да прочетем summary (ако съществува)
     const summaryRef = doc(db, "games", "lightning", "episodes", id, "summary");
     const summarySnap = await getDoc(summaryRef);
 
@@ -91,15 +85,19 @@ async function loadEpisodes() {
       fullName = data.fullName || id;
     }
 
-    episodes.push(fullName);
+    episodes.push({ id, fullName });
   }
 
-  // Най-новите най-отгоре
-  episodes.sort((a, b) => b.localeCompare(a));
+  episodes.sort((a, b) => b.id.localeCompare(a.id));
 
   let html = "";
-  episodes.forEach(name => {
-    html += `<li><a href="player.html?episodeId=${encodeURIComponent(name)}">${name}</a></li>`;
+  episodes.forEach(ep => {
+    html += `
+      <li>
+        <a href="archive-view.html?episodeId=${encodeURIComponent(ep.id)}">
+          ${ep.fullName}
+        </a>
+      </li>`;
   });
 
   list.innerHTML = html || "<p>Все още няма архивирани игри.</p>";
