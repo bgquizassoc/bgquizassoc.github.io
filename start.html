@@ -28,7 +28,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc
+  getFirestore, doc, setDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -64,6 +64,12 @@ async function setState(ep, index, phase, durationMs) {
   );
 }
 
+async function resetState() {
+  try {
+    await deleteDoc(doc(db, "games", "lightning", "state", "current"));
+  } catch(e) {}
+}
+
 async function runGame(ep) {
   await loadQuestions();
   const total = questions.length;
@@ -97,10 +103,13 @@ document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
   if (!ep) return alert("Въведи име на епизод!");
 
-  // Първо ОК → waiting
-  await setState(ep, 0, "waiting", 999999);
+  // 1) Автоматичен RESET
+  await resetState();
 
-  // Второ ОК → стартира цикъла
+  // 2) Лоби – стои вечно
+  await setState(ep, 0, "lobby", 999999999);
+
+  // 3) Стартираме автоматичната игра
   runGame(ep);
 
   alert("Играта стартира!");
