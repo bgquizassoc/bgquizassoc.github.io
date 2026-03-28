@@ -20,10 +20,10 @@
 <h1>🎬 Старт на Светкавичен куиз</h1>
 
 <p>Въведи име на епизод:</p>
-<input id="ep" placeholder="пример: test29">
+<input id="ep" placeholder="пример: test41">
 
 <br><br>
-<button id="startBtn">СТАРТ 1</button>
+<button id="startBtn">СТАРТ</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -42,6 +42,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА
+const LOBBY_TIME = 10000;          // 10 секунди лоби
+const PRESTART = 15 * 60 * 1000;   // 15 минути престарт
+const Q = 20000;                   // време за въпрос
+const EXPL = 40000;                // време за обяснение
+const RANK = 15000;                // време за класиране
 
 let questions = [];
 
@@ -74,26 +81,24 @@ async function runGame(ep) {
   await loadQuestions();
   const total = questions.length;
 
-  const FIRST_Q = 20000;
-  const Q = 20000;
-  const EXPL = 40000;
-  const RANK = 15000;
-
   let t = 0;
 
-  // ПРЕДСТАРТ – 30 секунди
-  setTimeout(() => setState(ep, 0, "prestart", 30000), t);
-  t += 30000;
+  // ПРЕСТАРТ – 15 минути
+  setTimeout(() => setState(ep, 0, "prestart", PRESTART), t);
+  t += PRESTART;
 
+  // ЦИКЪЛ НА ИГРАТА
   for (let i = 0; i < total; i++) {
-    const qDur = (i === 0) ? FIRST_Q : Q;
 
-    setTimeout(() => setState(ep, i, "question", qDur), t);
-    t += qDur;
+    // ВЪПРОС – еднакво време за всички
+    setTimeout(() => setState(ep, i, "question", Q), t);
+    t += Q;
 
+    // ОБЯСНЕНИЕ
     setTimeout(() => setState(ep, i, "explanation", EXPL), t);
     t += EXPL;
 
+    // КЛАСИРАНЕ
     setTimeout(() => setState(ep, i, "ranking", RANK), t);
     t += RANK;
   }
@@ -103,16 +108,16 @@ document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
   if (!ep) return alert("Въведи име на епизод!");
 
-  // 1) Автоматичен RESET
+  // 1) RESET
   await resetState();
 
-  // 2) Лоби – стои вечно
-  await setState(ep, 0, "lobby", 999999999);
+  // 2) ЛОБИ – 10 секунди
+  await setState(ep, 0, "lobby", LOBBY_TIME);
 
-  // 3) Стартираме автоматичната игра
-  runGame(ep);
+  // 3) След 10 секунди започва ПРЕСТАРТЪТ
+  setTimeout(() => runGame(ep), LOBBY_TIME);
 
-  alert("Играта стартира!");
+  alert("Играта е стартирана! Лоби 10 сек → Престарт 15 мин.");
 };
 </script>
 
