@@ -146,7 +146,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 67⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 67 тест⚡</h1>
 
 <!-- 🎵 МУЗИКА -->
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
@@ -292,7 +292,6 @@ function seededShuffle(array, seed) {
   }
   return result;
 }
-
 /* Временно / крайно класиране */
 function updateRankingTitle(index) {
   const isLast = index >= questions.length - 1;
@@ -323,6 +322,9 @@ document.getElementById("enterBtn").onclick = async () => {
     { joinedAt: Date.now() },
     { merge: true }
   );
+
+  // ⭐ FIX: веднага при влизане прилагаме текущата фаза
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
 /* Обяснение + статистика */
@@ -432,8 +434,8 @@ async function renderRanking(index) {
  rankingList.innerHTML = sorted
   .map(([name, obj], i) => {
     const pts = obj.points;
-    const time = (obj.time / 1000).toFixed(1); // време в секунди
-     const isLast = index >= questions.length - 1;
+    const time = (obj.time / 1000).toFixed(1);
+    const isLast = index >= questions.length - 1;
 
     let cls = "";
     const isMe = name === player;
@@ -443,7 +445,6 @@ async function renderRanking(index) {
     else if (i === 1) { cls = "silver"; medal = "🥈"; }
     else if (i === 2) { cls = "bronze"; medal = "🥉"; }
 
-    // 👉 Показваме време САМО в крайното класиране
     const timeText = isLast ? ` (време: ${time} сек)` : "";
 
     return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
@@ -455,37 +456,15 @@ async function renderRanking(index) {
   updateRankingTitle(index);
 }
 
-/* Слушане на фазите */
-onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
-  if (!snap.exists()) return;
+/* ⭐ FIX: запомняме последната снимка на фазата */
+let lastPhaseSnapshot = null;
 
-  const data = snap.data();
-  episodeId = data.episodeId;
-
-  if (!episodeId) return;
-
+/* ⭐ FIX: функция за прилагане на фазата веднага след влизане */
+function applyPhaseImmediately(data) {
   const { index, phase, startTime, duration } = data;
-
-  /* Лоби – дълго чакане, без таймер */
-  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
-    if (lobbyUnsub) lobbyUnsub();
-    lobbyEpisodeId = episodeId;
-    lobbyUnsub = onSnapshot(
-      collection(db, "games", "lightning", "episodes", episodeId, "lobby"),
-      lobbySnap => {
-        const names = lobbySnap.docs.map(d => d.id);
-        lobbyList.innerHTML = names.length
-          ? names.map(n => `<div>${n}</div>`).join("")
-          : "Още няма други играчи.";
-      }
-    );
-  }
-
-  if (!ready) return;
 
   if (timerInterval) clearInterval(timerInterval);
 
-  /* LOBBY */
   if (phase === "lobby") {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
@@ -493,40 +472,27 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     return;
   }
 
-  /* WAITING – ако я ползваш като пауза */
-  if (phase === "waiting") {
-    showOnly(waitingScreen);
-    globalTimer.style.display = "none";
-    waitingTitle.textContent = "Играта още не е започнала.";
-    return;
-  }
-
-  /* PRESTART – обратно броене до старт */
   if (phase === "prestart") {
     showOnly(waitingScreen);
     waitingTitle.textContent = "Играта започва след:";
     globalTimer.style.display = "block";
-
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
 
-  /* QUESTION – единен таймер за всички въпроси */
   if (phase === "question") {
     showOnly(quizDiv);
     globalTimer.style.display = "block";
-
-    statsBlock.innerHTML = "";
-    explanationText.textContent = "";
-    answersDiv.innerHTML = "";
 
     const q = questions[index];
     if (!q) return;
 
     qText.textContent = `${index+1}. ${q.question}`;
+    answersDiv.innerHTML = "";
 
     const seed = episodeId.length * 1000 + index;
     const shuffled = seededShuffle(q.answers, seed);
+
     shuffled.forEach(ans => {
       const btn = document.createElement("button");
       btn.textContent = ans;
@@ -562,21 +528,50 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
     return;
   }
 
-  /* EXPLANATION – директно статистика + обяснение */
   if (phase === "explanation") {
     globalTimer.style.display = "block";
-    await renderExplanation(index);
+    renderExplanation(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
 
-  /* RANKING – без прелупи, директно класиране */
   if (phase === "ranking") {
     globalTimer.style.display = "block";
-    await renderRanking(index);
+    renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
+}
+
+/* Слушане на фазите */
+onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+  lastPhaseSnapshot = data; // ⭐ FIX
+
+  episodeId = data.episodeId;
+  if (!episodeId) return;
+
+  const { index, phase, startTime, duration } = data;
+
+  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
+    if (lobbyUnsub) lobbyUnsub();
+    lobbyEpisodeId = episodeId;
+    lobbyUnsub = onSnapshot(
+      collection(db, "games", "lightning", "episodes", episodeId, "lobby"),
+      lobbySnap => {
+        const names = lobbySnap.docs.map(d => d.id);
+        lobbyList.innerHTML = names.length
+          ? names.map(n => `<div>${n}</div>`).join("")
+          : "Още няма други играчи.";
+      }
+    );
+  }
+
+  if (!ready) return;
+
+  applyPhaseImmediately(data);
 });
 </script>
 
