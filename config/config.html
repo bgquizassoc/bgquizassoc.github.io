@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<title>Куиз Конфигуратор</title>
+<style>
+  body {
+    background:#001a33;
+    color:white;
+    font-family:Arial, sans-serif;
+    padding:30px;
+    text-align:center;
+  }
+
+  h1 {
+    margin-bottom:10px;
+  }
+
+  h2 {
+    margin-top:30px;
+    margin-bottom:10px;
+  }
+
+  .section {
+    max-width:700px;
+    margin:0 auto 25px auto;
+    padding:20px;
+    background:rgba(0,0,0,0.25);
+    border-radius:12px;
+  }
+
+  .topic-row {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:20px;
+    margin:10px 0;
+    font-size:1.2em;
+  }
+
+  .emoji {
+    width:40px;
+    text-align:center;
+  }
+
+  .topic-name {
+    width:180px;
+    text-align:left;
+  }
+
+  .topic-input {
+    width:80px;
+    padding:6px;
+    font-size:1em;
+    border:none;
+    border-radius:8px;
+    text-align:center;
+  }
+
+  .field-row {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:15px;
+    margin:8px 0;
+    font-size:1.1em;
+  }
+
+  .field-label {
+    width:220px;
+    text-align:right;
+  }
+
+  .field-input, .field-select {
+    width:140px;
+    padding:6px;
+    font-size:1em;
+    border:none;
+    border-radius:8px;
+    text-align:center;
+  }
+
+  button {
+    margin-top:25px;
+    padding:15px 40px;
+    font-size:1.4em;
+    background:#ffd100;
+    color:#111;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+  }
+
+  button:disabled {
+    opacity:0.5;
+    cursor:not-allowed;
+  }
+
+  .error {
+    color:#ff8080;
+    margin-top:10px;
+    min-height:20px;
+  }
+
+  .ok {
+    color:#7CFC00;
+  }
+
+  .note {
+    font-size:0.9em;
+    opacity:0.8;
+    margin-top:5px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🧪 Куиз Конфигуратор</h1>
+<p>Човекът на деня задава параметрите на куиза. Системата сглобява играта.</p>
+
+<div class="section">
+  <h2>Теми и брой въпроси (общо 30)</h2>
+
+  <div class="topic-row">
+    <span class="emoji">🗺️</span>
+    <span class="topic-name">География</span>
+    <input type="number" min="0" max="30" value="0" class="topic-input" id="geo">
+  </div>
+
+  <div class="topic-row">
+    <span class="emoji">📜</span>
+    <span class="topic-name">История</span>
+    <input type="number" min="0" max="30" value="0" class="topic-input" id="history">
+  </div>
+
+  <div class="topic-row">
+    <span class="emoji">🎨</span>
+    <span class="topic-name">Изкуство</span>
+    <input type="number" min="0" max="30" value="0" class="topic-input" id="art">
+  </div>
+
+  <div class="topic-row">
+    <span class="emoji">📚</span>
+    <span class="topic-name">Литература</span>
+    <input type="number" min="0" max="30" value="0" class="topic-input" id="literature">
+  </div>
+
+  <div class="topic-row">
+    <span class="emoji">🎬</span>
+    <span class="topic-name">Кино</span>
+    <input type="number" min="0" max="30" value="0" class="topic-input" id="cinema">
+  </div>
+
+  <div class="topic-row">
+    <span class="emoji">🎵</span>
+    <span class="topic-name">Музика</span>
+    <input type="number" min="0" max="30" value="0" class="topic-input" id="music">
+  </div>
+
+  <div class="topic-row">
+    <span class="emoji">🔬</span>
+    <span class="topic-name">Наука</span>
+    <input type="number" min="0" max="30" value="0" class="topic-input" id="science">
+  </div>
+
+  <div class="topic-row">
+    <span class="emoji">🏅</span>
+    <span class="topic-name">Спорт</span>
+    <input type="number" min="0" max="30" value="0" class="topic-input" id="sport">
+  </div>
+
+  <div class="topic-row">
+    <span class="emoji">⚽</span>
+    <span class="topic-name">Футбол</span>
+    <input type="number" min="0" max="30" value="0" class="topic-input" id="football">
+  </div>
+
+  <div class="note" id="topicsSummary">Общо въпроси: 0 / 30</div>
+</div>
+
+<div class="section">
+  <h2>Време, формат и точки</h2>
+
+  <div class="field-row">
+    <span class="field-label">Време за въпрос (секунди):</span>
+    <input type="number" min="5" max="60" value="20" class="field-input" id="timePerQuestion">
+  </div>
+  <div class="note">Обичайно 15–20 сек. Можеш да затегнеш до 8–10 сек.</div>
+
+  <div class="field-row">
+    <span class="field-label">Формат на въпросите:</span>
+    <select id="format" class="field-select">
+      <option value="">-- избери --</option>
+      <option value="mcq">А, Б, В, Г</option>
+      <option value="open_first_letter">Отворен с първа буква</option>
+      <option value="number">Число (приблизителен отговор)</option>
+    </select>
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Точки за въпросите:</span>
+    <select id="pointsMode" class="field-select">
+      <option value="">-- избери --</option>
+      <option value="equal">Всички въпроси с еднакви точки</option>
+      <option value="by_difficulty">По трудност (лесни/средни/трудни)</option>
+    </select>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Трудност на въпросите</h2>
+
+  <div class="field-row">
+    <span class="field-label">Лесни (76–100% успеваемост):</span>
+    <input type="number" min="0" max="30" value="0" class="field-input" id="easyCount">
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Средни (51–75%):</span>
+    <input type="number" min="0" max="30" value="0" class="field-input" id="mediumCount">
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Трудни (26–50%):</span>
+    <input type="number" min="0" max="30" value="0" class="field-input" id="hardCount">
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Супертрудни (0–25%):</span>
+    <input type="number" min="0" max="30" value="0" class="field-input" id="superHardCount">
+  </div>
+
+  <div class="note" id="difficultySummary">Общо по трудност: 0 / 30</div>
+</div>
+
+<div class="section">
+  <h2>Старт на конфигурирания куиз</h2>
+  <p>Попълни всички полета. Общият брой въпроси по теми и по трудност трябва да е 30.</p>
+  <button id="startBtn">СТАРТ НА КУИЗА</button>
+  <div class="error" id="errorBox"></div>
+</div>
+
+<script>
+  const topicIds = ["geo","history","art","literature","cinema","music","science","sport","football"];
+  const difficultyIds = ["easyCount","mediumCount","hardCount","superHardCount"];
+
+  const topicsSummary = document.getElementById("topicsSummary");
+  const difficultySummary = document.getElementById("difficultySummary");
+  const errorBox = document.getElementById("errorBox");
+  const startBtn = document.getElementById("startBtn");
+
+  function getIntValue(id) {
+    const el = document.getElementById(id);
+    const v = parseInt(el.value, 10);
+    return isNaN(v) ? 0 : v;
+  }
+
+  function updateTopicsSummary() {
+    const sum = topicIds.reduce((acc, id) => acc + getIntValue(id), 0);
+    topicsSummary.textContent = `Общо въпроси: ${sum} / 30`;
+    return sum;
+  }
+
+  function updateDifficultySummary() {
+    const sum = difficultyIds.reduce((acc, id) => acc + getIntValue(id), 0);
+    difficultySummary.textContent = `Общо по трудност: ${sum} / 30`;
+    return sum;
+  }
+
+  topicIds.forEach(id => {
+    document.getElementById(id).addEventListener("input", updateTopicsSummary);
+  });
+
+  difficultyIds.forEach(id => {
+    document.getElementById(id).addEventListener("input", updateDifficultySummary);
+  });
+
+  updateTopicsSummary();
+  updateDifficultySummary();
+
+  startBtn.onclick = () => {
+    errorBox.textContent = "";
+    errorBox.classList.remove("ok");
+
+    const topicsTotal = updateTopicsSummary();
+    const diffTotal = updateDifficultySummary();
+
+    const timePerQuestion = getIntValue("timePerQuestion");
+    const format = document.getElementById("format").value;
+    const pointsMode = document.getElementById("pointsMode").value;
+
+    const errors = [];
+
+    if (topicsTotal !== 30) {
+      errors.push("Общият брой въпроси по теми трябва да е точно 30.");
+    }
+
+    if (diffTotal !== 30) {
+      errors.push("Общият брой въпроси по трудност трябва да е точно 30.");
+    }
+
+    if (!timePerQuestion || timePerQuestion < 5) {
+      errors.push("Въведи валидно време за въпрос (минимум 5 секунди).");
+    }
+
+    if (!format) {
+      errors.push("Избери формат на въпросите.");
+    }
+
+    if (!pointsMode) {
+      errors.push("Избери режим за точките.");
+    }
+
+    if (errors.length > 0) {
+      errorBox.textContent = errors.join(" ");
+      return;
+    }
+
+    const config = {
+      topics: {
+        geo: getIntValue("geo"),
+        history: getIntValue("history"),
+        art: getIntValue("art"),
+        literature: getIntValue("literature"),
+        cinema: getIntValue("cinema"),
+        music: getIntValue("music"),
+        science: getIntValue("science"),
+        sport: getIntValue("sport"),
+        football: getIntValue("football")
+      },
+      difficulty: {
+        easy: getIntValue("easyCount"),
+        medium: getIntValue("mediumCount"),
+        hard: getIntValue("hardCount"),
+        superHard: getIntValue("superHardCount")
+      },
+      timePerQuestion,
+      format,
+      pointsMode
+    };
+
+    console.log("КОНФИГУРАЦИЯ НА КУИЗА:", config);
+    errorBox.textContent = "Конфигурацията е валидна. Следваща стъпка: връзка с базата и генериране на епизод.";
+    errorBox.classList.add("ok");
+  };
+</script>
+
+</body>
+</html>
