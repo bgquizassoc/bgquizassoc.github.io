@@ -23,12 +23,12 @@
 <input id="ep" placeholder="пример: test41">
 
 <br><br>
-<button id="startBtn">СТАРТ 2</button>
+<button id="startBtn">СТАРТ 4</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, deleteDoc
+  getFirestore, doc, setDoc, deleteDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -103,6 +103,42 @@ async function runGame(ep) {
     t += RANK;
   }
 }
+
+/* ⭐ WATCHDOG – предотвратява прескачане на фази при загуба на интернет */
+let lastAck = Date.now();
+let watchdogActive = true;
+
+// слушаме дали Firestore приема update-и
+onSnapshot(doc(db, "games", "lightning", "state", "current"), () => {
+  lastAck = Date.now();
+});
+
+// проверяваме на всеки 2 секунди дали има връзка
+setInterval(() => {
+  const now = Date.now();
+  const offlineFor = now - lastAck;
+
+  // ако сме offline повече от 3000 ms → стопираме играта
+  if (offlineFor > 3000 && watchdogActive) {
+    console.warn("⚠ WATCHDOG: връзката е прекъсната → стопирам таймерите");
+    watchdogActive = false;
+  }
+
+  // ако връзката се е върнала → продължаваме
+  if (offlineFor < 1000 && !watchdogActive) {
+    console.warn("✅ WATCHDOG: връзката е възстановена → продължавам играта");
+    watchdogActive = true;
+  }
+}, 2000);
+
+// override на setTimeout → изпълнява се само ако watchdogActive = true
+const originalSetTimeout = window.setTimeout;
+window.setTimeout = function (fn, delay) {
+  return originalSetTimeout(() => {
+    if (watchdogActive) fn();
+    else console.warn("⏸ WATCHDOG: блокирах фаза заради offline");
+  }, delay);
+};
 
 document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
