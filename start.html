@@ -23,12 +23,12 @@
 <input id="ep" placeholder="пример: test41">
 
 <br><br>
-<button id="startBtn">СТАРТ 6</button>
+<button id="startBtn">СТАРТ 3</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, deleteDoc, onSnapshot
+  getFirestore, doc, setDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -45,10 +45,10 @@ const db = getFirestore(app);
 
 // РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА
 const LOBBY_TIME = 10000;          // 10 секунди лоби
-const PRESTART = 15 * 60 * 1000;   // 15 минути престарт
-const Q = 20000;                   // време за въпрос
-const EXPL = 30000;                // време за обяснение
-const RANK = 15000;                // време за класиране
+const PRESTART = 1 * 60 * 1000;   // 15 минути престарт
+const Q = 5000;                   // време за въпрос
+const EXPL = 10000;                // време за обяснение
+const RANK = 5000;                // време за класиране
 
 let questions = [];
 
@@ -72,18 +72,10 @@ async function setState(ep, index, phase, durationMs) {
 }
 
 async function resetState() {
-  await setDoc(
-    doc(db, "games", "lightning", "state", "current"),
-    {
-      episodeId: "",
-      index: -1,
-      phase: "idle",
-      startTime: Date.now(),
-      duration: 0
-    }
-  );
+  try {
+    await deleteDoc(doc(db, "games", "lightning", "state", "current"));
+  } catch(e) {}
 }
-
 
 async function runGame(ep) {
   await loadQuestions();
@@ -112,42 +104,9 @@ async function runGame(ep) {
   }
 }
 
-/* ⭐ WATCHDOG – предотвратява прескачане на фази при загуба на интернет */
-let lastAck = Date.now();
-let watchdogActive = true;
 
-// слушаме дали Firestore приема update-и
-onSnapshot(doc(db, "games", "lightning", "state", "current"), () => {
-  lastAck = Date.now();
-});
 
-// проверяваме на всеки 2 секунди дали има връзка
-setInterval(() => {
-  const now = Date.now();
-  const offlineFor = now - lastAck;
-
-  // ако сме offline повече от 3000 ms → стопираме играта
-  if (offlineFor > 3000 && watchdogActive) {
-    console.warn("⚠ WATCHDOG: връзката е прекъсната → стопирам таймерите");
-    watchdogActive = false;
-  }
-
-  // ако връзката се е върнала → продължаваме
-  if (offlineFor < 1000 && !watchdogActive) {
-    console.warn("✅ WATCHDOG: връзката е възстановена → продължавам играта");
-    watchdogActive = true;
-  }
-}, 2000);
-
-// override на setTimeout → изпълнява се само ако watchdogActive = true
-const originalSetTimeout = window.setTimeout;
-window.setTimeout = function (fn, delay) {
-  return originalSetTimeout(() => {
-    if (watchdogActive) fn();
-    else console.warn("⏸ WATCHDOG: блокирах фаза заради offline");
-  }, delay);
-};
-
+  
 document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
   if (!ep) return alert("Въведи име на епизод!");
