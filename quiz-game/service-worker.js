@@ -1,13 +1,11 @@
-const CACHE_NAME = 'quiz-cache-v67';
+const CACHE_NAME = 'quiz-cache-v1';
 
+// Кешираме само статични ресурси, НЕ HTML
 const urlsToCache = [
-  '/quiz-game/',
-  '/quiz-game/index.html',
-  '/quiz-game/questions.json',
-  '/quiz-game/manifest.json',
   '/quiz-game/icon-192.png',
   '/quiz-game/icon-512.png',
-  '/quiz-game/music.mp3'
+  '/quiz-game/music.mp3',
+  '/quiz-game/questions.json'
 ];
 
 self.addEventListener('install', event => {
@@ -27,8 +25,15 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Кешира само файловете на Спокойната игра
-  if (event.request.url.includes('/quiz-game/')) {
+  const url = new URL(event.request.url);
+
+  // НЕ кешираме HTML файлове
+  if (url.pathname.endsWith('.html')) {
+    return; // позволяваме нормален fetch
+  }
+
+  // Кешираме само статичните ресурси
+  if (url.pathname.startsWith('/quiz-game/')) {
     event.respondWith(
       caches.match(event.request).then(response => {
         return response || fetch(event.request);
