@@ -72,10 +72,18 @@ async function setState(ep, index, phase, durationMs) {
 }
 
 async function resetState() {
-  try {
-    await deleteDoc(doc(db, "games", "lightning", "state", "current"));
-  } catch(e) {}
+  await setDoc(
+    doc(db, "games", "lightning", "state", "current"),
+    {
+      episodeId: "",
+      index: -1,
+      phase: "idle",
+      startTime: Date.now(),
+      duration: 0
+    }
+  );
 }
+
 
 async function runGame(ep) {
   await loadQuestions();
