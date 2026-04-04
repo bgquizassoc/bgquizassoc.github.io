@@ -23,7 +23,7 @@
 <input id="ep" placeholder="пример: test41">
 
 <br><br>
-<button id="startBtn">СТАРТ 4</button>
+<button id="startBtn">СТАРТ 5</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -45,10 +45,10 @@ const db = getFirestore(app);
 
 // РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА
 const LOBBY_TIME = 10000;          // 10 секунди лоби
-const PRESTART = 15 * 60 * 1000;   // 15 минути престарт
-const Q = 20000;                   // време за въпрос
+const PRESTART = 18 * 60 * 1000;   // 15 минути престарт
+const Q = 22000;                   // време за въпрос
 const EXPL = 30000;                // време за обяснение
-const RANK = 15000;                // време за класиране
+const RANK = 20000;                // време за класиране
 
 let questions = [];
 
