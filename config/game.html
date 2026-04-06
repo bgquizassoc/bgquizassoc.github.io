@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Игри на Знания – Куиз</title>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: #0b1e39;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+    }
+
+    h1, h2, h3 {
+        margin: 10px 0;
+    }
+
+    .yellow {
+        color: #ffd700;
+        font-weight: bold;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    #enter-name, #lobby, #game, #results {
+        padding: 20px;
+    }
+
+    input[type="text"] {
+        padding: 12px;
+        width: 260px;
+        font-size: 18px;
+        border-radius: 6px;
+        border: none;
+        margin-top: 10px;
+    }
+
+    button {
+        padding: 12px 20px;
+        font-size: 18px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-top: 15px;
+    }
+
+    #enter-btn {
+        background: #ffd700;
+        color: black;
+        font-weight: bold;
+    }
+
+    #players-list {
+        margin-top: 20px;
+        font-size: 20px;
+        line-height: 1.6;
+    }
+
+    #timer {
+        font-size: 48px;
+        margin-top: 20px;
+        color: #ffd700;
+        font-weight: bold;
+    }
+
+    #question-box {
+        margin-top: 30px;
+        font-size: 26px;
+    }
+
+    .answer-btn {
+        display: block;
+        width: 80%;
+        margin: 10px auto;
+        padding: 15px;
+        background: #12345a;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 20px;
+    }
+
+    .answer-btn:hover {
+        background: #1a4c7a;
+    }
+</style>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+    apiKey: "YOUR_KEY",
+    authDomain: "YOUR_DOMAIN",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_BUCKET",
+    messagingSenderId: "YOUR_SENDER",
+    appId: "YOUR_APP"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// GLOBAL STATE
+let playerName = "";
+let questions = [];
+let currentQuestion = 0;
+let score = 0;
+let gameStarted = false;
+let startTimestamp = null;
+</script>
+</head>
+
+<body>
+
+<!-- РЕЖИМ 1: ВХОД ЗА ИМЕ -->
+<section id="enter-name">
+    <h1 class="yellow">Игри на Знания</h1>
+    <h2>⚡ Конфигуриран куиз ⚡</h2>
+    <h3>Въведете двете си имена:</h3>
+
+    <input type="text" id="name-input" placeholder="Име ...">
+    <br>
+    <button id="enter-btn">Влез в играта</button>
+</section>
+
+<!-- РЕЖИМ 2: ЛОБИ -->
+<section id="lobby" class="hidden">
+    <h1 class="yellow">Играта още не е започнала</h1>
+    <h3>Моля, изчакайте.</h3>
+
+    <div id="config-box"></div>
+
+    <h2 class="yellow">Старт след:</h2>
+    <div id="timer">--:--</div>
+
+    <h2>Стартов списък на играчите</h2>
+    <div id="players-list"></div>
+</section>
+
+<!-- РЕЖИМ 3: ИГРА -->
+<section id="game" class="hidden">
+    <h1 id="question-title" class="yellow">Въпрос</h1>
+    <div id="question-box"></div>
+    <div id="answers-box"></div>
+    <div id="question-timer" class="yellow" style="font-size:40px;margin-top:20px;"></div>
+</section>
+
+<!-- РЕЖИМ 4: КЛАСИРАНЕ -->
+<section id="results" class="hidden">
+    <h1 class="yellow">Крайно класиране</h1>
+    <div id="results-list"></div>
+</section>
+<script>
+// Преминаване между режими
+function showSection(id) {
+    document.getElementById("enter-name").classList.add("hidden");
+    document.getElementById("lobby").classList.add("hidden");
+    document.getElementById("game").classList.add("hidden");
+    document.getElementById("results").classList.add("hidden");
+
+    document.getElementById(id).classList.remove("hidden");
+}
+
+// ВХОД ЗА ИМЕ
+document.getElementById("enter-btn").addEventListener("click", async () => {
+    const name = document.getElementById("name-input").value.trim();
+    if (!name) return;
+
+    playerName = name;
+
+    // Записване на играча в Firestore
+    await db.collection("games").doc("config").collection("current").doc("players")
+        .collection("list").add({
+            name: playerName,
+            joinedAt: Date.now()
+        });
+
+    showSection("lobby");
+});
+
+// СЛУШАНЕ НА СПИСЪКА С ИГРАЧИ
+db.collection("games").doc("config").collection("current").doc("players")
+  .collection("list")
+  .orderBy("joinedAt")
+  .onSnapshot(snapshot => {
+      let html = "";
+      snapshot.forEach(doc => {
+          html += `<div>${doc.data().name}</div>`;
+      });
+      document.getElementById("players-list").innerHTML = html;
+  });
+
+// СЛУШАНЕ НА КОНФИГУРАЦИЯТА
+db.collection("games").doc("config").collection("current").doc("config")
+  .onSnapshot(doc => {
+      if (!doc.exists) return;
+
+      const cfg = doc.data();
+      let html = `
+          <h2 class="yellow">Конфигурация на епизода</h2>
+          <div>Формат: ${cfg.format}</div>
+          <div>Време за въпрос: ${cfg.timePerQuestion} сек</div>
+          <h3>Теми:</h3>
+      `;
+
+      for (const t of cfg.topics) {
+          html += `<div>- ${t.name} (${t.count})</div>`;
+      }
+
+      document.getElementById("config-box").innerHTML = html;
+  });
+
+// СЛУШАНЕ НА META (таймер + старт)
+db.collection("games").doc("config").collection("current").doc("meta")
+  .onSnapshot(doc => {
+      if (!doc.exists) return;
+
+      const meta = doc.data();
+      startTimestamp = meta.startAt;
+
+      if (meta.status === "started" && !gameStarted) {
+          gameStarted = true;
+          startGame();
+      }
+  });
+
+// ТАЙМЕР ЗА ЛОБИТО
+setInterval(() => {
+    if (!startTimestamp) return;
+
+    const now = Date.now();
+    let diff = Math.floor((startTimestamp - now) / 1000);
+
+    if (diff <= 0) {
+        document.getElementById("timer").innerHTML = "00:00";
+        return;
+    }
+
+    const m = String(Math.floor(diff / 60)).padStart(2, "0");
+    const s = String(diff % 60).padStart(2, "0");
+
+    document.getElementById("timer").innerHTML = `${m}:${s}`;
+}, 500);
+
+// СТАРТ НА ИГРАТА
+async function startGame() {
+    showSection("game");
+
+    // Зареждане на въпросите
+    const qSnap = await db.collection("games").doc("config")
+        .collection("current").doc("questions").get();
+
+    questions = qSnap.data().list;
+    currentQuestion = 0;
+    score = 0;
+
+    showQuestion();
+}
+</script>
+<script>
+// ПОКАЗВАНЕ НА ВЪПРОС
+function showQuestion() {
+    if (currentQuestion >= questions.length) {
+        finishGame();
+        return;
+    }
+
+    const q = questions[currentQuestion];
+
+    document.getElementById("question-title").innerText =
+        `Въпрос ${currentQuestion + 1} от ${questions.length}`;
+
+    document.getElementById("question-box").innerHTML = q.question;
+
+    // Генериране на отговори
+    let answersHTML = "";
+    q.answers.forEach((ans, index) => {
+        answersHTML += `
+            <div class="answer-btn" onclick="chooseAnswer(${index})">
+                ${ans}
+            </div>
+        `;
+    });
+
+    document.getElementById("answers-box").innerHTML = answersHTML;
+
+    startQuestionTimer(q.time || 20);
+}
+
+// ТАЙМЕР ЗА ВЪПРОС
+let questionTimeLeft = 0;
+let questionTimerInterval = null;
+
+function startQuestionTimer(seconds) {
+    questionTimeLeft = seconds;
+
+    if (questionTimerInterval) clearInterval(questionTimerInterval);
+
+    questionTimerInterval = setInterval(() => {
+        document.getElementById("question-timer").innerText =
+            questionTimeLeft + " сек";
+
+        if (questionTimeLeft <= 0) {
+            clearInterval(questionTimerInterval);
+            currentQuestion++;
+            showQuestion();
+        }
+
+        questionTimeLeft--;
+    }, 1000);
+}
+
+// ИЗБОР НА ОТГОВОР
+function chooseAnswer(index) {
+    const q = questions[currentQuestion];
+
+    if (index === q.correct) {
+        score++;
+    }
+
+    clearInterval(questionTimerInterval);
+
+    currentQuestion++;
+    showQuestion();
+}
+
+// КРАЙ НА ИГРАТА
+async function finishGame() {
+    showSection("results");
+
+    // Записване на резултата
+    await db.collection("games").doc("config").collection("current")
+        .doc("players").collection("list")
+        .add({
+            name: playerName,
+            score: score,
+            finishedAt: Date.now()
+        });
+
+    // Зареждане на всички резултати
+    db.collection("games").doc("config").collection("current")
+      .doc("players").collection("list")
+      .orderBy("score", "desc")
+      .onSnapshot(snapshot => {
+          let html = "";
+          snapshot.forEach(doc => {
+              const p = doc.data();
+              if (p.score !== undefined) {
+                  html += `<div>${p.name}: <span class="yellow">${p.score}</span></div>`;
+              }
+          });
+          document.getElementById("results-list").innerHTML = html;
+      });
+}
+</script>
