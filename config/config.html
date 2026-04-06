@@ -196,105 +196,346 @@
   <button id="startBtn">СТАРТ НА КУИЗА</button>
   <div class="error" id="errorBox"></div>
 </div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-<script>
-  const VALID_ID = "12345"; // временно, после го изнасяме в config.js
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
 
-  const topicIds = ["geo","history","art","literature","cinema","music","science","sport","football"];
-  const difficultyIds = ["easyCount","mediumCount","hardCount","superHardCount"];
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  const topicsSummary = document.getElementById("topicsSummary");
-  const difficultySummary = document.getElementById("difficultySummary");
-  const errorBox = document.getElementById("errorBox");
-  const startBtn = document.getElementById("startBtn");
+/* ------------------------- Константи за фазите ------------------------- */
 
-  function getIntValue(id) {
-    const el = document.getElementById(id);
-    const v = parseInt(el.value, 10);
-    return isNaN(v) ? 0 : v;
+const VALID_ID = "12345";          // сменяш си го
+const TOTAL_QUESTIONS = 30;
+
+// тук си пипаш, ако искаш други времена
+const PRESTART_DURATION   = 15 * 60 * 1000;   // 15 минути, както беше
+const EXPLANATION_DURATION = 12 * 1000;       // 12 сек за обяснение
+const RANKING_DURATION     = 8 * 1000;        // 8 сек за класиране
+
+/* ------------------------- UI помощни функции ------------------------- */
+
+const topicIds = ["geo","history","art","literature","cinema","music","science","sport","football"];
+const difficultyIds = ["easyCount","mediumCount","hardCount","superHardCount"];
+
+const topicsSummary = document.getElementById("topicsSummary");
+const difficultySummary = document.getElementById("difficultySummary");
+const errorBox = document.getElementById("errorBox");
+const startBtn = document.getElementById("startBtn");
+
+function getIntValue(id) {
+  const el = document.getElementById(id);
+  const v = parseInt(el.value, 10);
+  return isNaN(v) ? 0 : v;
+}
+
+function updateTopicsSummary() {
+  const sum = topicIds.reduce((acc, id) => acc + getIntValue(id), 0);
+  topicsSummary.textContent = `Общо въпроси: ${sum} / ${TOTAL_QUESTIONS}`;
+  return sum;
+}
+
+function updateDifficultySummary() {
+  const sum = difficultyIds.reduce((acc, id) => acc + getIntValue(id), 0);
+  difficultySummary.textContent = `Общо по трудност: ${sum} / ${TOTAL_QUESTIONS}`;
+  return sum;
+}
+
+topicIds.forEach(id => {
+  document.getElementById(id).addEventListener("input", updateTopicsSummary);
+});
+difficultyIds.forEach(id => {
+  document.getElementById(id).addEventListener("input", updateDifficultySummary);
+});
+
+updateTopicsSummary();
+updateDifficultySummary();
+
+/* ------------------------- Зареждане на JSON файловете ------------------------- */
+
+async function loadJSON(name) {
+  const res = await fetch(name);
+  if (!res.ok) throw new Error("Не мога да заредя " + name);
+  return res.json();
+}
+
+async function loadAllQuestions() {
+  const abwg  = await loadJSON("abwg.json");
+  const open  = await loadJSON("open.json");
+  const cifro = await loadJSON("cifromania.json");
+  return [...abwg, ...open, ...cifro];
+}
+
+/* ------------------------- Shuffle ------------------------- */
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+}
 
-  function updateTopicsSummary() {
-    const sum = topicIds.reduce((acc, id) => acc + getIntValue(id), 0);
-    topicsSummary.textContent = `Общо въпроси: ${sum} / 30`;
-    return sum;
-  }
+/* ------------------------- Филтриране по теми ------------------------- */
 
-  function updateDifficultySummary() {
-    const sum = difficultyIds.reduce((acc, id) => acc + getIntValue(id), 0);
-    difficultySummary.textContent = `Общо по трудност: ${sum} / 30`;
-    return sum;
-  }
+function filterByTopics(all, config) {
+  const result = [];
 
-  topicIds.forEach(id => {
-    document.getElementById(id).addEventListener("input", updateTopicsSummary);
-  });
-
-  difficultyIds.forEach(id => {
-    document.getElementById(id).addEventListener("input", updateDifficultySummary);
-  });
-
-  updateTopicsSummary();
-  updateDifficultySummary();
-
-  startBtn.onclick = () => {
-    errorBox.textContent = "";
-    errorBox.classList.remove("ok");
-
-    const id = document.getElementById("configId").value.trim();
-    if (id !== VALID_ID) {
-      errorBox.textContent = "Невалиден ID код.";
-      return;
-    }
-
-    const topicsTotal = updateTopicsSummary();
-    const diffTotal = updateDifficultySummary();
-
-    const timePerQuestion = getIntValue("timePerQuestion");
-    const format = document.getElementById("format").value;
-    const pointsMode = document.getElementById("pointsMode").value;
-
-    const errors = [];
-
-    if (topicsTotal !== 30) errors.push("Общият брой въпроси по теми трябва да е точно 30.");
-    if (diffTotal !== 30) errors.push("Общият брой въпроси по трудност трябва да е точно 30.");
-    if (!timePerQuestion || timePerQuestion < 5) errors.push("Въведи валидно време за въпрос (минимум 5 секунди).");
-    if (!format) errors.push("Избери формат на въпросите.");
-    if (!pointsMode) errors.push("Избери режим за точките.");
-
-    if (errors.length > 0) {
-      errorBox.textContent = errors.join(" ");
-      return;
-    }
-
-    const config = {
-      topics: {
-        geo: getIntValue("geo"),
-        history: getIntValue("history"),
-        art: getIntValue("art"),
-        literature: getIntValue("literature"),
-        cinema: getIntValue("cinema"),
-        music: getIntValue("music"),
-        science: getIntValue("science"),
-        sport: getIntValue("sport"),
-        football: getIntValue("football")
-      },
-      difficulty: {
-        easy: getIntValue("easyCount"),
-        medium: getIntValue("mediumCount"),
-        hard: getIntValue("hardCount"),
-        superHard: getIntValue("superHardCount")
-      },
-      timePerQuestion,
-      format,
-      pointsMode
-    };
-
-    console.log("КОНФИГУРАЦИЯ НА КУИЗА:", config);
-    errorBox.textContent = "Конфигурацията е валидна. Следваща стъпка: връзка с базата и генериране на епизод.";
-    errorBox.classList.add("ok");
+  const topicMap = {
+    geo: "География",
+    history: "История",
+    art: "Изкуство",
+    literature: "Литература",
+    cinema: "Кино",
+    music: "Музика",
+    science: "Наука",
+    sport: "Спорт",
+    football: "Футбол"
   };
-</script>
 
+  for (const key of Object.keys(config.topics)) {
+    const count = config.topics[key];
+    if (count === 0) continue;
+
+    const topicName = topicMap[key];
+    const pool = all.filter(q => q.topic === topicName);
+    shuffle(pool);
+    result.push(...pool.slice(0, count));
+  }
+
+  return result;
+}
+
+/* ------------------------- Филтриране по трудност ------------------------- */
+
+function filterByDifficulty(questions, config) {
+  const easy      = questions.filter(q => q.difficulty >= 76);
+  const medium    = questions.filter(q => q.difficulty >= 51 && q.difficulty <= 75);
+  const hard      = questions.filter(q => q.difficulty >= 26 && q.difficulty <= 50);
+  const superHard = questions.filter(q => q.difficulty <= 25);
+
+  shuffle(easy);
+  shuffle(medium);
+  shuffle(hard);
+  shuffle(superHard);
+
+  return [
+    ...easy.slice(0, config.difficulty.easy),
+    ...medium.slice(0, config.difficulty.medium),
+    ...hard.slice(0, config.difficulty.hard),
+    ...superHard.slice(0, config.difficulty.superHard)
+  ];
+}
+
+/* ------------------------- Филтриране по формат ------------------------- */
+
+function filterByFormat(questions, format) {
+  if (format === "mcq") {
+    return questions.filter(q => q.type === "mcq");
+  }
+  if (format === "open_first_letter") {
+    return questions.filter(q => q.type === "open");
+  }
+  if (format === "number") {
+    return questions.filter(q => q.type === "number");
+  }
+  return questions;
+}
+
+/* ------------------------- Генериране на коктейл ------------------------- */
+
+async function generateCocktail(config) {
+  const all = await loadAllQuestions();
+
+  let selected = filterByTopics(all, config);
+  selected = filterByFormat(selected, config.format);
+  selected = filterByDifficulty(selected, config);
+
+  shuffle(selected);
+
+  return selected.slice(0, TOTAL_QUESTIONS);
+}
+
+/* ------------------------- Запис във Firestore ------------------------- */
+
+async function saveToFirestore(episodeId, cocktail, config) {
+  await setDoc(
+    doc(db, "games", "lightning", "episodes", episodeId, "questions"),
+    { list: cocktail }
+  );
+
+  await setDoc(
+    doc(db, "games", "lightning", "episodes", episodeId, "config"),
+    config
+  );
+}
+
+/* ------------------------- Автоматичен фазов двигател ------------------------- */
+
+async function scheduleEpisode(episodeId, cocktail, config) {
+  const questionDuration = config.timePerQuestion * 1000;
+
+  const base = Date.now();
+  let offset = 0;
+
+  // Глобален PRESTART
+  await setDoc(
+    doc(db, "games", "lightning", "state", "current"),
+    {
+      episodeId,
+      phase: "prestart",
+      index: 0,
+      startTime: base,
+      duration: PRESTART_DURATION
+    }
+  );
+
+  offset += PRESTART_DURATION;
+
+  // За всеки въпрос: question → explanation → ranking
+  for (let i = 0; i < cocktail.length; i++) {
+    const qIndex = i;
+
+    // QUESTION
+    setTimeout(async () => {
+      await setDoc(
+        doc(db, "games", "lightning", "state", "current"),
+        {
+          episodeId,
+          phase: "question",
+          index: qIndex,
+          startTime: Date.now(),
+          duration: questionDuration
+        }
+      );
+    }, offset);
+    offset += questionDuration;
+
+    // EXPLANATION
+    setTimeout(async () => {
+      await setDoc(
+        doc(db, "games", "lightning", "state", "current"),
+        {
+          episodeId,
+          phase: "explanation",
+          index: qIndex,
+          startTime: Date.now(),
+          duration: EXPLANATION_DURATION
+        }
+      );
+    }, offset);
+    offset += EXPLANATION_DURATION;
+
+    // RANKING
+    setTimeout(async () => {
+      await setDoc(
+        doc(db, "games", "lightning", "state", "current"),
+        {
+          episodeId,
+          phase: "ranking",
+          index: qIndex,
+          startTime: Date.now(),
+          duration: RANKING_DURATION
+        }
+      );
+    }, offset);
+    offset += RANKING_DURATION;
+  }
+}
+
+/* ------------------------- Старт бутон – всичко в едно ------------------------- */
+
+startBtn.onclick = async () => {
+  errorBox.textContent = "";
+  errorBox.classList.remove("ok");
+
+  const id = document.getElementById("configId").value.trim();
+  if (id !== VALID_ID) {
+    errorBox.textContent = "Невалиден ID код.";
+    return;
+  }
+
+  const topicsTotal = updateTopicsSummary();
+  const diffTotal   = updateDifficultySummary();
+
+  const timePerQuestion = getIntValue("timePerQuestion");
+  const format      = document.getElementById("format").value;
+  const pointsMode  = document.getElementById("pointsMode").value;
+
+  const errors = [];
+
+  if (topicsTotal !== TOTAL_QUESTIONS) errors.push(`Общият брой въпроси по теми трябва да е точно ${TOTAL_QUESTIONS}.`);
+  if (diffTotal   !== TOTAL_QUESTIONS) errors.push(`Общият брой въпроси по трудност трябва да е точно ${TOTAL_QUESTIONS}.`);
+  if (!timePerQuestion || timePerQuestion < 5) errors.push("Въведи валидно време за въпрос (минимум 5 секунди).");
+  if (!format)     errors.push("Избери формат на въпросите.");
+  if (!pointsMode) errors.push("Избери режим за точките.");
+
+  if (errors.length > 0) {
+    errorBox.textContent = errors.join(" ");
+    return;
+  }
+
+  const config = {
+    topics: {
+      geo: getIntValue("geo"),
+      history: getIntValue("history"),
+      art: getIntValue("art"),
+      literature: getIntValue("literature"),
+      cinema: getIntValue("cinema"),
+      music: getIntValue("music"),
+      science: getIntValue("science"),
+      sport: getIntValue("sport"),
+      football: getIntValue("football")
+    },
+    difficulty: {
+      easy: getIntValue("easyCount"),
+      medium: getIntValue("mediumCount"),
+      hard: getIntValue("hardCount"),
+      superHard: getIntValue("superHardCount")
+    },
+    timePerQuestion,
+    format,
+    pointsMode
+  };
+
+  try {
+    errorBox.textContent = "Генерирам коктейл...";
+    errorBox.classList.add("ok");
+
+    const cocktail = await generateCocktail(config);
+
+    if (cocktail.length < TOTAL_QUESTIONS) {
+      errorBox.textContent = "❌ Няма достатъчно въпроси за избраните параметри.";
+      errorBox.classList.remove("ok");
+      return;
+    }
+
+    const episodeId = "ep" + Date.now();
+
+    errorBox.textContent = "Качвам във Firestore...";
+    await saveToFirestore(episodeId, cocktail, config);
+
+    errorBox.textContent = "Планирам автоматичните фази...";
+    await scheduleEpisode(episodeId, cocktail, config);
+
+    errorBox.textContent = `✔ Готово! Епизодът е стартиран: ${episodeId}`;
+    errorBox.classList.add("ok");
+  } catch (e) {
+    console.error(e);
+    errorBox.textContent = "❌ Грешка при генериране или запис. Виж конзолата.";
+    errorBox.classList.remove("ok");
+  }
+};
+</script>
 </body>
 </html>
