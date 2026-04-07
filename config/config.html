@@ -120,7 +120,7 @@
 </head>
 <body>
 
-<h1>🛠 Куиз Конфигуратор 2 🛠</h1>
+<h1>🛠 Куиз Конфигуратор 3 🛠</h1>
 
 <h2>Човекът на деня задава параметрите на куиза</h2>
 
@@ -178,7 +178,62 @@
 
   <div class="note" id="topicsSummary">Общо въпроси: 0 / 30</div>
 </div>
-<script type="module">
+<div class="section">
+  <h2>Трудност на въпросите (общо 30)</h2>
+
+  <div class="field-row">
+    <span class="field-label">Лесни (76–100):</span>
+    <input type="number" id="easyCount" min="0" max="30" value="0" class="field-input">
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Средни (51–75):</span>
+    <input type="number" id="mediumCount" min="0" max="30" value="0" class="field-input">
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Трудни (26–50):</span>
+    <input type="number" id="hardCount" min="0" max="30" value="0" class="field-input">
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Супертрудни (0–25):</span>
+    <input type="number" id="superHardCount" min="0" max="30" value="0" class="field-input">
+  </div>
+
+  <div class="note" id="difficultySummary">Общо по трудност: 0 / 30</div>
+</div>
+
+<div class="section">
+  <h2>Допълнителни настройки</h2>
+
+  <div class="field-row">
+    <span class="field-label">Време за въпрос (сек):</span>
+    <input type="number" id="timePerQuestion" min="5" max="120" value="20" class="field-input">
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Формат:</span>
+    <select id="format" class="field-select">
+      <option value="all">Всички</option>
+      <option value="closed">Затворени</option>
+      <option value="open">Отворени</option>
+    </select>
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Режим на точките:</span>
+    <select id="pointsMode" class="field-select">
+      <option value="classic">Класически</option>
+      <option value="speed">Скоростен</option>
+    </select>
+  </div>
+
+  <button id="startBtn">СТАРТ</button>
+
+  <div class="error" id="errorBox"></div>
+</div>
+  <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
   getFirestore, doc, setDoc
