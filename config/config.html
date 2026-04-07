@@ -196,6 +196,7 @@
   <button id="startBtn">СТАРТ НА КУИЗА</button>
   <div class="error" id="errorBox"></div>
 </div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
@@ -214,17 +215,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* ------------------------- Константи за фазите ------------------------- */
-
-const VALID_ID = "77777OK";          // сменяш си го
+const VALID_ID = "77777OK";
 const TOTAL_QUESTIONS = 30;
 
-// тук си пипаш, ако искаш други времена
-const PRESTART_DURATION   = 2 * 60 * 1000;   // 15 минути, както беше
-const EXPLANATION_DURATION = 10 * 1000;       // 12 сек за обяснение
-const RANKING_DURATION     = 10 * 1000;        // 8 сек за класиране
-
-/* ------------------------- UI помощни функции ------------------------- */
+const PRESTART_DURATION   = 2 * 60 * 1000;
+const EXPLANATION_DURATION = 10 * 1000;
+const RANKING_DURATION     = 10 * 1000;
 
 const topicIds = ["geo","history","art","literature","cinema","music","science","sport","football"];
 const difficultyIds = ["easyCount","mediumCount","hardCount","superHardCount"];
@@ -261,7 +257,6 @@ difficultyIds.forEach(id => {
 
 updateTopicsSummary();
 updateDifficultySummary();
-
 /* ------------------------- Зареждане на JSON файловете ------------------------- */
 
 async function loadJSON(name) {
@@ -286,7 +281,7 @@ function shuffle(arr) {
   }
 }
 
-/* ------------------------- Филтриране по теми ------------------------- */
+/* ------------------------- Филтриране по теми — area ------------------------- */
 
 function filterByTopics(all, config) {
   const result = [];
@@ -308,7 +303,10 @@ function filterByTopics(all, config) {
     if (count === 0) continue;
 
     const topicName = topicMap[key];
-    const pool = all.filter(q => q.topic === topicName);
+
+    // поправено: area вместо topic
+    const pool = all.filter(q => q.area === topicName);
+
     shuffle(pool);
     result.push(...pool.slice(0, count));
   }
@@ -316,13 +314,13 @@ function filterByTopics(all, config) {
   return result;
 }
 
-/* ------------------------- Филтриране по трудност ------------------------- */
+/* ------------------------- Филтриране по трудност — hard ------------------------- */
 
 function filterByDifficulty(questions, config) {
-  const easy      = questions.filter(q => q.difficulty >= 76);
-  const medium    = questions.filter(q => q.difficulty >= 51 && q.difficulty <= 75);
-  const hard      = questions.filter(q => q.difficulty >= 26 && q.difficulty <= 50);
-  const superHard = questions.filter(q => q.difficulty <= 25);
+  const easy      = questions.filter(q => q.hard >= 76);
+  const medium    = questions.filter(q => q.hard >= 51 && q.hard <= 75);
+  const hard      = questions.filter(q => q.hard >= 26 && q.hard <= 50);
+  const superHard = questions.filter(q => q.hard <= 25);
 
   shuffle(easy);
   shuffle(medium);
@@ -337,19 +335,10 @@ function filterByDifficulty(questions, config) {
   ];
 }
 
-/* ------------------------- Филтриране по формат ------------------------- */
+/* ------------------------- Филтриране по формат — изключено ------------------------- */
 
 function filterByFormat(questions, format) {
-  if (format === "mcq") {
-    return questions.filter(q => q.type === "mcq");
-  }
-  if (format === "open_first_letter") {
-    return questions.filter(q => q.type === "open");
-  }
-  if (format === "number") {
-    return questions.filter(q => q.type === "number");
-  }
-  return questions;
+  return questions; // твоите JSON-и нямат type
 }
 
 /* ------------------------- Генериране на коктейл ------------------------- */
@@ -388,7 +377,7 @@ async function scheduleEpisode(episodeId, cocktail, config) {
   const base = Date.now();
   let offset = 0;
 
-  // Глобален PRESTART
+  // PRESTART
   await setDoc(
     doc(db, "games", "lightning", "state", "current"),
     {
@@ -402,7 +391,6 @@ async function scheduleEpisode(episodeId, cocktail, config) {
 
   offset += PRESTART_DURATION;
 
-  // За всеки въпрос: question → explanation → ranking
   for (let i = 0; i < cocktail.length; i++) {
     const qIndex = i;
 
@@ -453,7 +441,7 @@ async function scheduleEpisode(episodeId, cocktail, config) {
   }
 }
 
-/* ------------------------- Старт бутон – всичко в едно ------------------------- */
+/* ------------------------- Старт ------------------------- */
 
 startBtn.onclick = async () => {
   errorBox.textContent = "";
@@ -537,5 +525,6 @@ startBtn.onclick = async () => {
   }
 };
 </script>
+
 </body>
 </html>
