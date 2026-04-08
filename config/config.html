@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Куиз Конфигуратор</title>
-
 <style>
   body {
     background:#001a33;
@@ -97,6 +96,11 @@
     font-weight:bold;
   }
 
+  button:disabled {
+    opacity:0.5;
+    cursor:not-allowed;
+  }
+
   .error {
     color:#ff8080;
     margin-top:10px;
@@ -114,10 +118,9 @@
   }
 </style>
 </head>
-
 <body>
 
-<h1>🛠 Куиз Конфигуратор 4 🛠</h1>
+<h1>🛠 Куиз Конфигуратор 3 🛠</h1>
 
 <h2>Човекът на деня задава параметрите на куиза</h2>
 
@@ -135,29 +138,29 @@
 <div class="section">
   <h2>Теми и брой въпроси (общо 30)</h2>
 
-  <div class="topic-row"><span class="emoji">🏛️</span><span class="topic-name">Архитектура</span><input type="number" id="arhitektura" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🌌</span><span class="topic-name">Астрономия</span><input type="number" id="astronomia" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🧬</span><span class="topic-name">Биология</span><input type="number" id="biologia" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🗺️</span><span class="topic-name">География</span><input type="number" id="geografia" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🎨</span><span class="topic-name">Изкуство</span><input type="number" id="izkustvo" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">📜</span><span class="topic-name">История</span><input type="number" id="istoria" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🎬</span><span class="topic-name">Кино</span><input type="number" id="kino" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🍲</span><span class="topic-name">Кулинария</span><input type="number" id="kulinaria" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">📚</span><span class="topic-name">Литература</span><input type="number" id="literatura" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🐉</span><span class="topic-name">Митология</span><input type="number" id="mitologia" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🎵</span><span class="topic-name">Музика</span><input type="number" id="muzika" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🔬</span><span class="topic-name">Наука</span><input type="number" id="nauka" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">✝️</span><span class="topic-name">Религия</span><input type="number" id="religia" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🏅</span><span class="topic-name">Спорт</span><input type="number" id="sport" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">🧠</span><span class="topic-name">Философия</span><input type="number" id="filosofia" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">⚛️</span><span class="topic-name">Физика</span><input type="number" id="fizika" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">⚽</span><span class="topic-name">Футбол</span><input type="number" id="futbol" min="0" max="30" value="0" class="topic-input"></div>
-  <div class="topic-row"><span class="emoji">⚗️</span><span class="topic-name">Химия</span><input type="number" id="himia" min="0" max="30" value="0" class="topic-input"></div>
+  <div class="topic-row"><span class="emoji">🏛️</span><span class="topic-name">Архитектура</span><input type="number" min="0" max="30" value="0" class="topic-input" id="arhitektura"></div>
+  <div class="topic-row"><span class="emoji">🌌</span><span class="topic-name">Астрономия</span><input type="number" min="0" max="30" value="0" class="topic-input" id="astronomia"></div>
+  <div class="topic-row"><span class="emoji">🧬</span><span class="topic-name">Биология</span><input type="number" min="0" max="30" value="0" class="topic-input" id="biologia"></div>
+  <div class="topic-row"><span class="emoji">🗺️</span><span class="topic-name">География</span><input type="number" min="0" max="30" value="0" class="topic-input" id="geografia"></div>
+  <div class="topic-row"><span class="emoji">🎨</span><span class="topic-name">Изкуство</span><input type="number" min="0" max="30" value="0" class="topic-input" id="izkustvo"></div>
+  <div class="topic-row"><span class="emoji">📜</span><span class="topic-name">История</span><input type="number" min="0" max="30" value="0" class="topic-input" id="istoria"></div>
+  <div class="topic-row"><span class="emoji">🎬</span><span class="topic-name">Кино</span><input type="number" min="0" max="30" value="0" class="topic-input" id="kino"></div>
+  <div class="topic-row"><span class="emoji">🍲</span><span class="topic-name">Кулинария</span><input type="number" min="0" max="30" value="0" class="topic-input" id="kulinaria"></div>
+  <div class="topic-row"><span class="emoji">📚</span><span class="topic-name">Литература</span><input type="number" min="0" max="30" value="0" class="topic-input" id="literatura"></div>
+  <div class="topic-row"><span class="emoji">➗</span><span class="topic-name">Математика</span><input type="number" min="0" max="30" value="0" class="topic-input" id="matematika"></div>
+  <div class="topic-row"><span class="emoji">🐉</span><span class="topic-name">Митология</span><input type="number" min="0" max="30" value="0" class="topic-input" id="mitologia"></div>
+  <div class="topic-row"><span class="emoji">🎵</span><span class="topic-name">Музика</span><input type="number" min="0" max="30" value="0" class="topic-input" id="muzika"></div>
+  <div class="topic-row"><span class="emoji">🔬</span><span class="topic-name">Наука</span><input type="number" min="0" max="30" value="0" class="topic-input" id="nauka"></div>
+  <div class="topic-row"><span class="emoji">✝️</span><span class="topic-name">Религия</span><input type="number" min="0" max="30" value="0" class="topic-input" id="religia"></div>
+  <div class="topic-row"><span class="emoji">🏅</span><span class="topic-name">Спорт</span><input type="number" min="0" max="30" value="0" class="topic-input" id="sport"></div>
+  <div class="topic-row"><span class="emoji">🧠</span><span class="topic-name">Философия</span><input type="number" min="0" max="30" value="0" class="topic-input" id="filosofia"></div>
+  <div class="topic-row"><span class="emoji">⚛️</span><span class="topic-name">Физика</span><input type="number" min="0" max="30" value="0" class="topic-input" id="fizika"></div>
+  <div class="topic-row"><span class="emoji">⚽</span><span class="topic-name">Футбол</span><input type="number" min="0" max="30" value="0" class="topic-input" id="futbol"></div>
+  <div class="topic-row"><span class="emoji">⚗️</span><span class="topic-name">Химия</span><input type="number" min="0" max="30" value="0" class="topic-input" id="himia"></div>
 
   <div class="note" id="topicsSummary">Общо въпроси: 0 / 30</div>
 </div>
 
-<!-- ТВОЯТ ОРИГИНАЛЕН БЛОК — БЕЗ ПРОМЕНИ -->
 <div class="section">
   <h2>Време, формат и точки</h2>
 
@@ -203,12 +206,13 @@
   <button id="startBtn">СТАРТ НА КУИЗА</button>
   <div class="error" id="errorBox"></div>
 </div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
   getFirestore, doc, setDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+/* ------------------------- Firebase ------------------------- */
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
@@ -222,6 +226,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+/* ------------------------- Константи ------------------------- */
+
 const VALID_ID = "77777OK";
 const TOTAL_QUESTIONS = 30;
 
@@ -229,18 +235,46 @@ const PRESTART_DURATION   = 2 * 60 * 1000;
 const EXPLANATION_DURATION = 10 * 1000;
 const RANKING_DURATION     = 10 * 1000;
 
+/* ------------------------- Теми (19 теми) ------------------------- */
+
 const topicIds = [
   "arhitektura","astronomia","biologia","geografia","izkustvo","istoria",
-  "kino","kulinaria","literatura","mitologia","muzika","nauka",
-  "religia","sport","filosofia","fizika","futbol","himia"
+  "kino","kulinaria","literatura","matematika","mitologia","muzika",
+  "nauka","religia","sport","filosofia","fizika","futbol","himia"
 ];
 
+const topicMap = {
+  arhitektura:"Архитектура",
+  astronomia:"Астрономия",
+  biologia:"Биология",
+  geografia:"География",
+  izkustvo:"Изкуство",
+  istoria:"История",
+  kino:"Кино",
+  kulinaria:"Кулинария",
+  literatura:"Литература",
+  matematika:"Математика",
+  mitologia:"Митология",
+  muzika:"Музика",
+  nauka:"Наука",
+  religia:"Религия",
+  sport:"Спорт",
+  filosofia:"Философия",
+  fizika:"Физика",
+  futbol:"Футбол",
+  himia:"Химия"
+};
+
 const difficultyIds = ["easyCount","mediumCount","hardCount","superHardCount"];
+
+/* ------------------------- DOM елементи ------------------------- */
 
 const topicsSummary = document.getElementById("topicsSummary");
 const difficultySummary = document.getElementById("difficultySummary");
 const errorBox = document.getElementById("errorBox");
 const startBtn = document.getElementById("startBtn");
+
+/* ------------------------- Помощни функции ------------------------- */
 
 function getIntValue(id) {
   const el = document.getElementById(id);
@@ -270,6 +304,8 @@ difficultyIds.forEach(id => {
 updateTopicsSummary();
 updateDifficultySummary();
 
+/* ------------------------- Зареждане на JSON ------------------------- */
+
 async function loadJSON(name) {
   const res = await fetch(name);
   if (!res.ok) throw new Error("Не мога да заредя " + name);
@@ -283,6 +319,8 @@ async function loadAllQuestions() {
   return [...abwg, ...open, ...cifro];
 }
 
+/* ------------------------- Shuffle ------------------------- */
+
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -290,23 +328,50 @@ function shuffle(arr) {
   }
 }
 
+/* ------------------------- Филтър по теми ------------------------- */
+
+function filterByTopics(all, config) {
+  const result = [];
+
+  for (const key of Object.keys(config.topics)) {
+    const count = config.topics[key];
+    if (count === 0) continue;
+
+    const topicName = topicMap[key];
+    const pool = all.filter(q => q.area === topicName);
+
+    shuffle(pool);
+    result.push(...pool.slice(0, count));
+  }
+
+  return result;
+}
+
+/* ------------------------- Филтър по формат ------------------------- */
+/* Автоматично разпознаване:
+   - MCQ → има answers[]
+   - Open → има answer: "ф"
+   - Number → няма в JSON, но не пречи */
+
 function filterByFormat(questions, format) {
   if (!format) return questions;
 
   if (format === "mcq") {
-    return questions.filter(q => q.answers && q.answers.length === 4);
+    return questions.filter(q => Array.isArray(q.answers));
   }
 
   if (format === "open_first_letter") {
-    return questions.filter(q => q.type === "open");
+    return questions.filter(q => typeof q.answer === "string");
   }
 
   if (format === "number") {
-    return questions.filter(q => q.type === "number");
+    return questions.filter(q => typeof q.answer === "number");
   }
 
   return questions;
 }
+
+/* ------------------------- Филтър по трудност ------------------------- */
 
 function filterByDifficulty(questions, config) {
   const easy      = questions.filter(q => q.hard >= 76);
@@ -327,6 +392,8 @@ function filterByDifficulty(questions, config) {
   ];
 }
 
+/* ------------------------- Генериране на коктейл ------------------------- */
+
 async function generateCocktail(config) {
   const all = await loadAllQuestions();
 
@@ -336,54 +403,11 @@ async function generateCocktail(config) {
 
   shuffle(selected);
 
-  if (config.pointsMode === "equal") {
-    selected = selected.map(q => ({ ...q, points: 1 }));
-  }
-
-  if (config.pointsMode === "by_difficulty") {
-    selected = selected.map(q => ({
-      ...q,
-      points:
-        q.hard >= 76 ? 1 :
-        q.hard >= 51 ? 2 :
-        q.hard >= 26 ? 3 : 4
-    }));
-  }
-
   return selected.slice(0, TOTAL_QUESTIONS);
 }
 
-function filterByTopics(all, config) {
-  const result = [];
+/* ------------------------- Firestore запис ------------------------- */
 
-  for (const key of Object.keys(config.topics)) {
-    const count = config.topics[key];
-    if (count === 0) continue;
-
-    const topicName = topicMap[key];
-    const pool = all.filter(q => q.area === topicName);
-
-    shuffle(pool);
-    result.push(...pool.slice(0, count));
-  }
-
-  return result;
-}
-
-const topicMap = {
-  arhitektura:"Архитектура",astronomia:"Астрономия",biologia:"Биология",
-  geografia:"География",izkustvo:"Изкуство",istoria:"История",
-  kino:"Кино",kulinaria:"Кулинария",literatura:"Литература",
-  mitologia:"Митология",
-  muzika:"Музика",
-  nauka:"Наука",
-  religia:"Религия",
-  sport:"Спорт",
-  filosofia:"Философия",
-  fizika:"Физика",
-  futbol:"Футбол",
-  himia:"Химия"
-};
 async function saveToFirestore(episodeId, cocktail, config) {
   await setDoc(
     doc(db, "games", "lightning", "episodes", episodeId, "questions"),
@@ -395,6 +419,8 @@ async function saveToFirestore(episodeId, cocktail, config) {
     config
   );
 }
+
+/* ------------------------- Фазов двигател ------------------------- */
 
 async function scheduleEpisode(episodeId, cocktail, config) {
   const questionDuration = config.timePerQuestion * 1000;
@@ -465,6 +491,8 @@ async function scheduleEpisode(episodeId, cocktail, config) {
     offset += RANKING_DURATION;
   }
 }
+
+/* ------------------------- Старт ------------------------- */
 
 startBtn.onclick = async () => {
   errorBox.textContent = "";
