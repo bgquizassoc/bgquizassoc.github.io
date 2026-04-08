@@ -120,7 +120,7 @@
 </head>
 <body>
 
-<h1>🛠 Куиз Конфигуратор 3 🛠</h1>
+<h1>🛠 Куиз Конфигуратор 5 🛠</h1>
 
 <h2>Човекът на деня задава параметрите на куиза</h2>
 
@@ -397,14 +397,62 @@ function filterByDifficulty(questions, config) {
 async function generateCocktail(config) {
   const all = await loadAllQuestions();
 
-  let selected = filterByTopics(all, config);
-  selected = filterByFormat(selected, config.format);
-  selected = filterByDifficulty(selected, config);
+  // 1) Взимаме всички въпроси от избраните теми
+  const pool = all.filter(q => {
+    return Object.keys(config.topics).some(topicId => {
+      return config.topics[topicId] > 0 && q.area === topicMap[topicId];
+    });
+  });
 
-  shuffle(selected);
+  shuffle(pool);
 
-  return selected.slice(0, TOTAL_QUESTIONS);
+  let final = [];
+
+  // 2) За всяка тема – запълваме нужния брой въпроси
+  for (const topicId of Object.keys(config.topics)) {
+    const need = config.topics[topicId];
+    if (need === 0) continue;
+
+    const topicName = topicMap[topicId];
+    const topicPool = pool.filter(q => q.area === topicName);
+
+    // 2.1) Опитваме да вземем по трудност
+    const easy      = topicPool.filter(q => q.hard >= 76);
+    const medium    = topicPool.filter(q => q.hard >= 51 && q.hard <= 75);
+    const hard      = topicPool.filter(q => q.hard >= 26 && q.hard <= 50);
+    const superHard = topicPool.filter(q => q.hard <= 25);
+
+    shuffle(easy);
+    shuffle(medium);
+    shuffle(hard);
+    shuffle(superHard);
+
+    let chosen = [];
+
+    // Взимаме колкото можем от желаните трудности
+    chosen.push(...easy.slice(0, config.difficulty.easy));
+    chosen.push(...medium.slice(0, config.difficulty.medium));
+    chosen.push(...hard.slice(0, config.difficulty.hard));
+    chosen.push(...superHard.slice(0, config.difficulty.superHard));
+
+    // 2.2) Ако не стигат → допълваме от темата, без значение трудност
+    if (chosen.length < need) {
+      const remaining = topicPool.filter(q => !chosen.includes(q));
+      shuffle(remaining);
+      chosen.push(...remaining.slice(0, need - chosen.length));
+    }
+
+    // 2.3) Режем точно до нужния брой
+    final.push(...chosen.slice(0, need));
+  }
+
+  // 3) Финално разбъркване
+  shuffle(final);
+
+  // 4) Гарантирано 30 въпроса
+  return final.slice(0, TOTAL_QUESTIONS);
 }
+
 
 /* ------------------------- Firestore запис ------------------------- */
 
