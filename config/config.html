@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Куиз Конфигуратор</title>
+
 <style>
   body {
     background:#001a33;
@@ -96,11 +97,6 @@
     font-weight:bold;
   }
 
-  button:disabled {
-    opacity:0.5;
-    cursor:not-allowed;
-  }
-
   .error {
     color:#ff8080;
     margin-top:10px;
@@ -118,9 +114,10 @@
   }
 </style>
 </head>
+
 <body>
 
-<h1>🛠 Куиз Конфигуратор 3 🛠</h1>
+<h1>🛠 Куиз Конфигуратор 1 🛠</h1>
 
 <h2>Човекът на деня задава параметрите на куиза</h2>
 
@@ -138,102 +135,76 @@
 <div class="section">
   <h2>Теми и брой въпроси (общо 30)</h2>
 
-  <!-- 18 теми, азбучен ред, латиница за ID -->
-
   <div class="topic-row"><span class="emoji">🏛️</span><span class="topic-name">Архитектура</span><input type="number" id="arhitektura" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🌌</span><span class="topic-name">Астрономия</span><input type="number" id="astronomia" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🧬</span><span class="topic-name">Биология</span><input type="number" id="biologia" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🗺️</span><span class="topic-name">География</span><input type="number" id="geografia" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🎨</span><span class="topic-name">Изкуство</span><input type="number" id="izkustvo" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">📜</span><span class="topic-name">История</span><input type="number" id="istoria" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🎬</span><span class="topic-name">Кино</span><input type="number" id="kino" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🍲</span><span class="topic-name">Кулинария</span><input type="number" id="kulinaria" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">📚</span><span class="topic-name">Литература</span><input type="number" id="literatura" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🐉</span><span class="topic-name">Митология</span><input type="number" id="mitologia" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🎵</span><span class="topic-name">Музика</span><input type="number" id="muzika" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🔬</span><span class="topic-name">Наука</span><input type="number" id="nauka" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">✝️</span><span class="topic-name">Религия</span><input type="number" id="religia" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🏅</span><span class="topic-name">Спорт</span><input type="number" id="sport" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">🧠</span><span class="topic-name">Философия</span><input type="number" id="filosofia" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">⚛️</span><span class="topic-name">Физика</span><input type="number" id="fizika" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">⚽</span><span class="topic-name">Футбол</span><input type="number" id="futbol" min="0" max="30" value="0" class="topic-input"></div>
-
   <div class="topic-row"><span class="emoji">⚗️</span><span class="topic-name">Химия</span><input type="number" id="himia" min="0" max="30" value="0" class="topic-input"></div>
 
   <div class="note" id="topicsSummary">Общо въпроси: 0 / 30</div>
 </div>
+
+<!-- ТВОЯТ ОРИГИНАЛЕН БЛОК — БЕЗ ПРОМЕНИ -->
 <div class="section">
-  <h2>Трудност на въпросите (общо 30)</h2>
+  <h2>Време, формат и точки</h2>
 
   <div class="field-row">
-    <span class="field-label">Лесни (76–100):</span>
-    <input type="number" id="easyCount" min="0" max="30" value="0" class="field-input">
+    <span class="field-label">Време за въпрос (секунди):</span>
+    <input type="number" min="5" max="60" value="20" class="field-input" id="timePerQuestion">
   </div>
 
   <div class="field-row">
-    <span class="field-label">Средни (51–75):</span>
-    <input type="number" id="mediumCount" min="0" max="30" value="0" class="field-input">
+    <span class="field-label">Формат на въпросите:</span>
+    <select id="format" class="field-select">
+      <option value="">-- избери --</option>
+      <option value="mcq">А, Б, В, Г</option>
+      <option value="open_first_letter">Отворен с първа буква</option>
+      <option value="number">Число (приблизителен)</option>
+    </select>
   </div>
 
   <div class="field-row">
-    <span class="field-label">Трудни (26–50):</span>
-    <input type="number" id="hardCount" min="0" max="30" value="0" class="field-input">
+    <span class="field-label">Точки за въпросите:</span>
+    <select id="pointsMode" class="field-select">
+      <option value="">-- избери --</option>
+      <option value="equal">Еднакви точки</option>
+      <option value="by_difficulty">По трудност</option>
+    </select>
   </div>
+</div>
 
-  <div class="field-row">
-    <span class="field-label">Супертрудни (0–25):</span>
-    <input type="number" id="superHardCount" min="0" max="30" value="0" class="field-input">
-  </div>
+<div class="section">
+  <h2>Трудност на въпросите</h2>
+
+  <div class="field-row"><span class="field-label">Лесни (76–100%):</span><input type="number" min="0" max="30" value="0" class="field-input" id="easyCount"></div>
+  <div class="field-row"><span class="field-label">Средни (51–75%):</span><input type="number" min="0" max="30" value="0" class="field-input" id="mediumCount"></div>
+  <div class="field-row"><span class="field-label">Трудни (26–50%):</span><input type="number" min="0" max="30" value="0" class="field-input" id="hardCount"></div>
+  <div class="field-row"><span class="field-label">Супертрудни (0–25%):</span><input type="number" min="0" max="30" value="0" class="field-input" id="superHardCount"></div>
 
   <div class="note" id="difficultySummary">Общо по трудност: 0 / 30</div>
 </div>
 
 <div class="section">
-  <h2>Допълнителни настройки</h2>
-
-  <div class="field-row">
-    <span class="field-label">Време за въпрос (сек):</span>
-    <input type="number" id="timePerQuestion" min="5" max="120" value="20" class="field-input">
-  </div>
-
-  <div class="field-row">
-    <span class="field-label">Формат:</span>
-    <select id="format" class="field-select">
-      <option value="all">Всички</option>
-      <option value="closed">Затворени</option>
-      <option value="open">Отворени</option>
-    </select>
-  </div>
-
-  <div class="field-row">
-    <span class="field-label">Режим на точките:</span>
-    <select id="pointsMode" class="field-select">
-      <option value="classic">Класически</option>
-      <option value="speed">Скоростен</option>
-    </select>
-  </div>
-
-  <button id="startBtn">СТАРТ</button>
-
+  <h2>Старт на конфигурирания куиз</h2>
+  <p>Попълни всички полета. Общият брой въпроси по теми и по трудност трябва да е 30.</p>
+  <button id="startBtn">СТАРТ НА КУИЗА</button>
   <div class="error" id="errorBox"></div>
 </div>
-  <script type="module">
+
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
   getFirestore, doc, setDoc
@@ -258,29 +229,12 @@ const PRESTART_DURATION   = 2 * 60 * 1000;
 const EXPLANATION_DURATION = 10 * 1000;
 const RANKING_DURATION     = 10 * 1000;
 
-/* 18 теми — латиница, азбучен ред */
 const topicIds = [
-  "arhitektura",
-  "astronomia",
-  "biologia",
-  "geografia",
-  "izkustvo",
-  "istoria",
-  "kino",
-  "kulinaria",
-  "literatura",
-  "mitologia",
-  "muzika",
-  "nauka",
-  "religia",
-  "sport",
-  "filosofia",
-  "fizika",
-  "futbol",
-  "himia"
+  "arhitektura","astronomia","biologia","geografia","izkustvo","istoria",
+  "kino","kulinaria","literatura","mitologia","muzika","nauka",
+  "religia","sport","filosofia","fizika","futbol","himia"
 ];
 
-/* Трудности */
 const difficultyIds = ["easyCount","mediumCount","hardCount","superHardCount"];
 
 const topicsSummary = document.getElementById("topicsSummary");
@@ -316,8 +270,6 @@ difficultyIds.forEach(id => {
 updateTopicsSummary();
 updateDifficultySummary();
 
-/* ------------------------- Зареждане на JSON файловете ------------------------- */
-
 async function loadJSON(name) {
   const res = await fetch(name);
   if (!res.ok) throw new Error("Не мога да заредя " + name);
@@ -331,8 +283,6 @@ async function loadAllQuestions() {
   return [...abwg, ...open, ...cifro];
 }
 
-/* ------------------------- Shuffle ------------------------- */
-
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -340,49 +290,23 @@ function shuffle(arr) {
   }
 }
 
-/* ------------------------- topicMap — 18 теми ------------------------- */
+function filterByFormat(questions, format) {
+  if (!format) return questions;
 
-const topicMap = {
-  arhitektura: "Архитектура",
-  astronomia: "Астрономия",
-  biologia: "Биология",
-  geografia: "География",
-  izkustvo: "Изкуство",
-  istoria: "История",
-  kino: "Кино",
-  kulinaria: "Кулинария",
-  literatura: "Литература",
-  mitologia: "Митология",
-  muzika: "Музика",
-  nauka: "Наука",
-  religia: "Религия",
-  sport: "Спорт",
-  filosofia: "Философия",
-  fizika: "Физика",
-  futbol: "Футбол",
-  himia: "Химия"
-};
-
-/* ------------------------- Филтриране по теми ------------------------- */
-
-function filterByTopics(all, config) {
-  const result = [];
-
-  for (const key of Object.keys(config.topics)) {
-    const count = config.topics[key];
-    if (count === 0) continue;
-
-    const topicName = topicMap[key];
-    const pool = all.filter(q => q.area === topicName);
-
-    shuffle(pool);
-    result.push(...pool.slice(0, count));
+  if (format === "mcq") {
+    return questions.filter(q => q.answers && q.answers.length === 4);
   }
 
-  return result;
-}
+  if (format === "open_first_letter") {
+    return questions.filter(q => q.type === "open");
+  }
 
-/* ------------------------- Филтриране по трудност ------------------------- */
+  if (format === "number") {
+    return questions.filter(q => q.type === "number");
+  }
+
+  return questions;
+}
 
 function filterByDifficulty(questions, config) {
   const easy      = questions.filter(q => q.hard >= 76);
@@ -403,14 +327,6 @@ function filterByDifficulty(questions, config) {
   ];
 }
 
-/* ------------------------- Формат — изключен ------------------------- */
-
-function filterByFormat(questions, format) {
-  return questions;
-}
-
-/* ------------------------- Генериране на коктейл ------------------------- */
-
 async function generateCocktail(config) {
   const all = await loadAllQuestions();
 
@@ -420,11 +336,54 @@ async function generateCocktail(config) {
 
   shuffle(selected);
 
+  if (config.pointsMode === "equal") {
+    selected = selected.map(q => ({ ...q, points: 1 }));
+  }
+
+  if (config.pointsMode === "by_difficulty") {
+    selected = selected.map(q => ({
+      ...q,
+      points:
+        q.hard >= 76 ? 1 :
+        q.hard >= 51 ? 2 :
+        q.hard >= 26 ? 3 : 4
+    }));
+  }
+
   return selected.slice(0, TOTAL_QUESTIONS);
 }
 
-/* ------------------------- Запис във Firestore ------------------------- */
+function filterByTopics(all, config) {
+  const result = [];
 
+  for (const key of Object.keys(config.topics)) {
+    const count = config.topics[key];
+    if (count === 0) continue;
+
+    const topicName = topicMap[key];
+    const pool = all.filter(q => q.area === topicName);
+
+    shuffle(pool);
+    result.push(...pool.slice(0, count));
+  }
+
+  return result;
+}
+
+const topicMap = {
+  arhitektura:"Архитектура",astronomia:"Астрономия",biologia:"Биология",
+  geografia:"География",izkustvo:"Изкуство",istoria:"История",
+  kino:"Кино",kulinaria:"Кулинария",literatura:"Литература",
+  mitologia:"Митология",
+  muzika:"Музика",
+  nauka:"Наука",
+  religia:"Религия",
+  sport:"Спорт",
+  filosofia:"Философия",
+  fizika:"Физика",
+  futbol:"Футбол",
+  himia:"Химия"
+};
 async function saveToFirestore(episodeId, cocktail, config) {
   await setDoc(
     doc(db, "games", "lightning", "episodes", episodeId, "questions"),
@@ -436,8 +395,6 @@ async function saveToFirestore(episodeId, cocktail, config) {
     config
   );
 }
-
-/* ------------------------- Автоматичен фазов двигател ------------------------- */
 
 async function scheduleEpisode(episodeId, cocktail, config) {
   const questionDuration = config.timePerQuestion * 1000;
@@ -508,8 +465,6 @@ async function scheduleEpisode(episodeId, cocktail, config) {
     offset += RANKING_DURATION;
   }
 }
-
-/* ------------------------- Старт ------------------------- */
 
 startBtn.onclick = async () => {
   errorBox.textContent = "";
