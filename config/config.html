@@ -458,12 +458,12 @@ async function generateCocktail(config) {
 
 async function saveToFirestore(episodeId, cocktail, config) {
   await setDoc(
-    doc(db, "games", "lightning", "episodes", episodeId, "questions"),
+    doc(db, "games", "configurator", "episodes", episodeId, "questions"),
     { list: cocktail }
   );
 
   await setDoc(
-    doc(db, "games", "lightning", "episodes", episodeId, "config"),
+    doc(db, "games", "configurator", "episodes", episodeId, "config"),
     config
   );
 }
@@ -478,7 +478,7 @@ async function scheduleEpisode(episodeId, cocktail, config) {
 
   // PRESTART
   await setDoc(
-    doc(db, "games", "lightning", "state", "current"),
+ doc(db, "games", "configurator", "state", "current"),
     {
       episodeId,
       phase: "prestart",
@@ -490,55 +490,56 @@ async function scheduleEpisode(episodeId, cocktail, config) {
 
   offset += PRESTART_DURATION;
 
-  for (let i = 0; i < cocktail.length; i++) {
+ for (let i = 0; i < cocktail.length; i++) {
     const qIndex = i;
 
     // QUESTION
     setTimeout(async () => {
-      await setDoc(
-        doc(db, "games", "lightning", "state", "current"),
-        {
-          episodeId,
-          phase: "question",
-          index: qIndex,
-          startTime: Date.now(),
-          duration: questionDuration
-        }
-      );
+        await setDoc(
+            doc(db, "games", "configurator", "state", "current"),
+            {
+                episodeId,
+                phase: "question",
+                index: qIndex,
+                startTime: Date.now(),
+                duration: questionDuration
+            },
+            { merge: true }
+        );
     }, offset);
     offset += questionDuration;
 
     // EXPLANATION
     setTimeout(async () => {
-      await setDoc(
-        doc(db, "games", "lightning", "state", "current"),
-        {
-          episodeId,
-          phase: "explanation",
-          index: qIndex,
-          startTime: Date.now(),
-          duration: EXPLANATION_DURATION
-        }
-      );
+        await setDoc(
+            doc(db, "games", "configurator", "state", "current"),
+            {
+                episodeId,
+                phase: "explanation",
+                index: qIndex,
+                startTime: Date.now(),
+                duration: EXPLANATION_DURATION
+            },
+            { merge: true }
+        );
     }, offset);
     offset += EXPLANATION_DURATION;
-
-    // RANKING
-    setTimeout(async () => {
-      await setDoc(
-        doc(db, "games", "lightning", "state", "current"),
-        {
-          episodeId,
-          phase: "ranking",
-          index: qIndex,
-          startTime: Date.now(),
-          duration: RANKING_DURATION
-        }
-      );
-    }, offset);
-    offset += RANKING_DURATION;
-  }
 }
+
+// RANKING
+setTimeout(async () => {
+  await setDoc(
+    doc(db, "games", "configurator", "state", "current"),
+    {
+      episodeId,
+      phase: "ranking",
+      index: qIndex,
+      startTime: Date.now(),
+      duration: RANKING_DURATION
+    }
+  );
+}, offset);
+offset += RANKING_DURATION;
 
 /* ------------------------- Старт ------------------------- */
 
