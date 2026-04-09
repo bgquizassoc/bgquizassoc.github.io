@@ -235,7 +235,7 @@ const PRESTART_DURATION   = 2 * 60 * 1000;
 const EXPLANATION_DURATION = 10 * 1000;
 const RANKING_DURATION     = 10 * 1000;
 
-/* ------------------------- Теми (19 теми) ------------------------- */
+/* ------------------------- Теми ------------------------- */
 
 const topicIds = [
   "arhitektura","astronomia","biologia","geografia","izkustvo","istoria",
@@ -267,7 +267,7 @@ const topicMap = {
 
 const difficultyIds = ["easyCount","mediumCount","hardCount","superHardCount"];
 
-/* ------------------------- DOM елементи ------------------------- */
+/* ------------------------- DOM ------------------------- */
 
 const topicsSummary = document.getElementById("topicsSummary");
 const difficultySummary = document.getElementById("difficultySummary");
@@ -299,8 +299,8 @@ topicIds.forEach(id => {
 });
 difficultyIds.forEach(id => {
   document.getElementById(id).addEventListener("input", updateDifficultySummary);
-});
 
+});
 updateTopicsSummary();
 updateDifficultySummary();
 
@@ -328,87 +328,21 @@ function shuffle(arr) {
   }
 }
 
-/* ------------------------- Филтър по теми ------------------------- */
-
-function filterByTopics(all, config) {
-  const result = [];
-
-  for (const key of Object.keys(config.topics)) {
-    const count = config.topics[key];
-    if (count === 0) continue;
-
-    const topicName = topicMap[key];
-    const pool = all.filter(q => q.area === topicName);
-
-    shuffle(pool);
-    result.push(...pool.slice(0, count));
-  }
-
-  return result;
-}
-
-/* ------------------------- Филтър по формат ------------------------- */
-/* Автоматично разпознаване:
-   - MCQ → има answers[]
-   - Open → има answer: "ф"
-   - Number → няма в JSON, но не пречи */
-
-function filterByFormat(questions, format) {
-  if (!format) return questions;
-
-  if (format === "mcq") {
-    return questions.filter(q => Array.isArray(q.answers));
-  }
-
-  if (format === "open_first_letter") {
-    return questions.filter(q => typeof q.answer === "string");
-  }
-
-  if (format === "number") {
-    return questions.filter(q => typeof q.answer === "number");
-  }
-
-  return questions;
-}
-
-/* ------------------------- Филтър по трудност ------------------------- */
-
-function filterByDifficulty(questions, config) {
-  const easy      = questions.filter(q => q.hard >= 76);
-  const medium    = questions.filter(q => q.hard >= 51 && q.hard <= 75);
-  const hard      = questions.filter(q => q.hard >= 26 && q.hard <= 50);
-  const superHard = questions.filter(q => q.hard <= 25);
-
-  shuffle(easy);
-  shuffle(medium);
-  shuffle(hard);
-  shuffle(superHard);
-
-  return [
-    ...easy.slice(0, config.difficulty.easy),
-    ...medium.slice(0, config.difficulty.medium),
-    ...hard.slice(0, config.difficulty.hard),
-    ...superHard.slice(0, config.difficulty.superHard)
-  ];
-}
-
 /* ------------------------- Генериране на коктейл ------------------------- */
 
 async function generateCocktail(config) {
   const all = await loadAllQuestions();
 
-  // 1) Взимаме всички въпроси от избраните теми
-  const pool = all.filter(q => {
-    return Object.keys(config.topics).some(topicId => {
-      return config.topics[topicId] > 0 && q.area === topicMap[topicId];
-    });
-  });
+  const pool = all.filter(q =>
+    Object.keys(config.topics).some(topicId =>
+      config.topics[topicId] > 0 && q.area === topicMap[topicId]
+    )
+  );
 
   shuffle(pool);
 
   let final = [];
 
-  // 2) За всяка тема – запълваме нужния брой въпроси
   for (const topicId of Object.keys(config.topics)) {
     const need = config.topics[topicId];
     if (need === 0) continue;
@@ -416,7 +350,6 @@ async function generateCocktail(config) {
     const topicName = topicMap[topicId];
     const topicPool = pool.filter(q => q.area === topicName);
 
-    // 2.1) Опитваме да вземем по трудност
     const easy      = topicPool.filter(q => q.hard >= 76);
     const medium    = topicPool.filter(q => q.hard >= 51 && q.hard <= 75);
     const hard      = topicPool.filter(q => q.hard >= 26 && q.hard <= 50);
@@ -429,30 +362,23 @@ async function generateCocktail(config) {
 
     let chosen = [];
 
-    // Взимаме колкото можем от желаните трудности
     chosen.push(...easy.slice(0, config.difficulty.easy));
     chosen.push(...medium.slice(0, config.difficulty.medium));
     chosen.push(...hard.slice(0, config.difficulty.hard));
     chosen.push(...superHard.slice(0, config.difficulty.superHard));
 
-    // 2.2) Ако не стигат → допълваме от темата, без значение трудност
     if (chosen.length < need) {
       const remaining = topicPool.filter(q => !chosen.includes(q));
       shuffle(remaining);
       chosen.push(...remaining.slice(0, need - chosen.length));
     }
 
-    // 2.3) Режем точно до нужния брой
     final.push(...chosen.slice(0, need));
   }
 
-  // 3) Финално разбъркване
   shuffle(final);
-
-  // 4) Гарантирано 30 въпроса
   return final.slice(0, TOTAL_QUESTIONS);
 }
-
 
 /* ------------------------- Firestore запис ------------------------- */
 
@@ -478,7 +404,7 @@ async function scheduleEpisode(episodeId, cocktail, config) {
 
   // PRESTART
   await setDoc(
- doc(db, "games", "configurator", "state", "current"),
+    doc(db, "games", "configurator", "state", "current"),
     {
       episodeId,
       phase: "prestart",
@@ -490,56 +416,56 @@ async function scheduleEpisode(episodeId, cocktail, config) {
 
   offset += PRESTART_DURATION;
 
- for (let i = 0; i < cocktail.length; i++) {
+  for (let i = 0; i < cocktail.length; i++) {
     const qIndex = i;
 
     // QUESTION
     setTimeout(async () => {
-        await setDoc(
-            doc(db, "games", "configurator", "state", "current"),
-            {
-                episodeId,
-                phase: "question",
-                index: qIndex,
-                startTime: Date.now(),
-                duration: questionDuration
-            },
-            { merge: true }
-        );
+      await setDoc(
+        doc(db, "games", "configurator", "state", "current"),
+        {
+          episodeId,
+          phase: "question",
+          index: qIndex,
+          startTime: Date.now(),
+          duration: questionDuration
+        },
+        { merge: true }
+      );
     }, offset);
     offset += questionDuration;
 
     // EXPLANATION
     setTimeout(async () => {
-        await setDoc(
-            doc(db, "games", "configurator", "state", "current"),
-            {
-                episodeId,
-                phase: "explanation",
-                index: qIndex,
-                startTime: Date.now(),
-                duration: EXPLANATION_DURATION
-            },
-            { merge: true }
-        );
+      await setDoc(
+        doc(db, "games", "configurator", "state", "current"),
+        {
+          episodeId,
+          phase: "explanation",
+          index: qIndex,
+          startTime: Date.now(),
+          duration: EXPLANATION_DURATION
+        },
+        { merge: true }
+      );
     }, offset);
     offset += EXPLANATION_DURATION;
-}
+  }
 
-// RANKING
-setTimeout(async () => {
-  await setDoc(
-    doc(db, "games", "configurator", "state", "current"),
-    {
-      episodeId,
-      phase: "ranking",
-      index: qIndex,
-      startTime: Date.now(),
-      duration: RANKING_DURATION
-    }
-  );
-}, offset);
-offset += RANKING_DURATION;
+  // RANKING
+  setTimeout(async () => {
+    await setDoc(
+      doc(db, "games", "configurator", "state", "current"),
+      {
+        episodeId,
+        phase: "ranking",
+        index: -1,
+        startTime: Date.now(),
+        duration: RANKING_DURATION
+      }
+    );
+  }, offset);
+}
 
 /* ------------------------- Старт ------------------------- */
 
