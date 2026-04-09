@@ -381,18 +381,17 @@ async function generateCocktail(config) {
 }
 
 /* ------------------------- Firestore запис ------------------------- */
-
 async function saveToFirestore(episodeId, cocktail, config) {
   await setDoc(
-    doc(db, "games", "configurator", "episodes", episodeId, "questions"),
-    { list: cocktail }
-  );
-
-  await setDoc(
-    doc(db, "games", "configurator", "episodes", episodeId, "config"),
-    config
+    doc(db, "games", "configurator", "episodes", episodeId),
+    {
+      questions: cocktail,
+      config: config
+    },
+    { merge: true }
   );
 }
+
 
 /* ------------------------- Фазов двигател ------------------------- */
 
