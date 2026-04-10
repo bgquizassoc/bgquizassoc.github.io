@@ -145,7 +145,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 1 ⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 2 ⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -185,6 +185,7 @@
   <div id="rankingList"></div>
   <button id="historyBtn">Виж моята история</button>
 </div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
@@ -270,25 +271,28 @@ function updateTimer(startTime, duration) {
 function seededShuffle(array, seed) {
   let result = array.slice();
   let s = seed;
-  for (let i = result.length - i > 0; i--) {
+
+  for (let i = result.length - 1; i > 0; i--) {
     s = (s * 9301 + 49297) % 233280;
     const j = Math.floor((s / 233280) * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
+
   return result;
 }
-
 function updateRankingTitle(index) {
   const isLast = index >= questions.length - 1;
   rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
   historyBtn.style.display = isLast ? "block" : "none";
 }
 
+/* ------------------------- Зареждане на въпросите ------------------------- */
+
 async function loadQuestionsFromFirestore() {
   if (!episodeId || questionsLoaded) return;
 
   const qDoc = await getDoc(
-    doc(db, "games", "lightning", "episodes", episodeId, "questions")
+    doc(db, "games", "configurator", "episodes", episodeId)
   );
 
   if (!qDoc.exists()) {
@@ -297,13 +301,16 @@ async function loadQuestionsFromFirestore() {
   }
 
   const data = qDoc.data();
-  questions = data.list || [];
+  questions = data.questions || [];
   questionsLoaded = true;
 
   if (ready && lastPhaseSnapshot) {
     applyPhaseImmediately(lastPhaseSnapshot);
   }
 }
+
+/* ------------------------- Влизане в играта ------------------------- */
+
 document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
   if (!player) return alert("Въведете име!");
@@ -321,7 +328,7 @@ document.getElementById("enterBtn").onclick = async () => {
   if (!episodeId) return;
 
   await setDoc(
-    doc(db, "games", "lightning", "episodes", episodeId, "lobby", player),
+    doc(db, "games", "configurator", "episodes", episodeId, "lobby", player),
     { joinedAt: Date.now() },
     { merge: true }
   );
@@ -330,6 +337,8 @@ document.getElementById("enterBtn").onclick = async () => {
 
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
+
+/* ------------------------- Експланация ------------------------- */
 
 async function renderExplanation(index) {
   showOnly(explanationDiv);
@@ -343,7 +352,7 @@ async function renderExplanation(index) {
   explanationText.textContent = q.explanation || "";
 
   const playersSnap = await getDocs(
-    collection(db, "games", "lightning", "episodes", episodeId, "results")
+    collection(db, "games", "configurator", "episodes", episodeId, "results")
   );
 
   const counts = {};
@@ -351,7 +360,7 @@ async function renderExplanation(index) {
 
   for (const playerDoc of playersSnap.docs) {
     const ansSnap = await getDocs(
-      collection(db, "games", "lightning", "episodes", episodeId, "results", playerDoc.id, "answers")
+      collection(db, "games", "configurator", "episodes", episodeId, "results", playerDoc.id, "answers")
     );
     const ansDoc = ansSnap.docs.find(d => d.id === String(index));
     if (ansDoc) {
@@ -381,12 +390,14 @@ async function renderExplanation(index) {
   statsBlock.innerHTML = html;
 }
 
+/* ------------------------- Класиране ------------------------- */
+
 async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
 
   const playersSnap = await getDocs(
-    collection(db, "games", "lightning", "episodes", episodeId, "results")
+    collection(db, "games", "configurator", "episodes", episodeId, "results")
   );
 
   const scores = {};
@@ -395,7 +406,7 @@ async function renderRanking(index) {
     const playerName = playerDoc.id;
 
     const answersSnap = await getDocs(
-      collection(db, "games", "lightning", "episodes", episodeId, "results", playerName, "answers")
+      collection(db, "games", "configurator", "episodes", episodeId, "results", playerName, "answers")
     );
 
     let totalPoints = 0;
@@ -433,30 +444,33 @@ async function renderRanking(index) {
     return a[0].localeCompare(b[0], "bg");
   });
 
- rankingList.innerHTML = sorted
-  .map(([name, obj], i) => {
-    const pts = obj.points;
-    const time = (obj.time / 1000).toFixed(1);
-    const isLast = index >= questions.length - 1;
+  rankingList.innerHTML = sorted
+    .map(([name, obj], i) => {
+      const pts = obj.points;
+      const time = (obj.time / 1000).toFixed(1);
+      const isLast = index >= questions.length - 1;
 
-    let cls = "";
-    const isMe = name === player;
-    let medal = "";
+      let cls = "";
+      const isMe = name === player;
+      let medal = "";
 
-    if (i === 0) { cls = "gold"; medal = "🥇"; }
-    else if (i === 1) { cls = "silver"; medal = "🥈"; }
-    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+      if (i === 0) { cls = "gold"; medal = "🥇"; }
+      else if (i === 1) { cls = "silver"; medal = "🥈"; }
+      else if (i === 2) { cls = "bronze"; medal = "🥉"; }
 
-    const timeText = isLast ? ` (време: ${time} сек)` : "";
+      const timeText = isLast ? ` (време: ${time} сек)` : "";
 
-    return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
+      return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
         ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
       </div>`;
-  })
-  .join("");
+    })
+    .join("");
 
   updateRankingTitle(index);
 }
+
+/* ------------------------- Прилагане на фаза ------------------------- */
+
 let lastPhaseSnapshot = null;
 
 function applyPhaseImmediately(data) {
@@ -501,7 +515,7 @@ function applyPhaseImmediately(data) {
         Array.from(answersDiv.children).forEach(b => b.disabled = true);
 
         await setDoc(
-          doc(db, "games", "lightning", "episodes", episodeId, "results", player),
+          doc(db, "games", "configurator", "episodes", episodeId, "results", player),
           { exists: true },
           { merge: true }
         );
@@ -509,7 +523,7 @@ function applyPhaseImmediately(data) {
         const thinkingTime = Date.now() - startTime;
 
         await setDoc(
-          doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(index)),
+          doc(db, "games", "configurator", "episodes", episodeId, "results", player, "answers", String(index)),
           {
             answer: ans,
             correct: q.correct,
@@ -542,8 +556,9 @@ function applyPhaseImmediately(data) {
   }
 }
 
-/* Слушане на фазите */
-onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
+/* ------------------------- Слушане на фазите ------------------------- */
+
+onSnapshot(doc(db, "games", "configurator", "state", "current"), async snap => {
   if (!snap.exists()) return;
 
   const data = snap.data();
@@ -552,13 +567,12 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   episodeId = data.episodeId;
   if (!episodeId) return;
 
-  const { index, phase, startTime, duration } = data;
-
   if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
     if (lobbyUnsub) lobbyUnsub();
     lobbyEpisodeId = episodeId;
+
     lobbyUnsub = onSnapshot(
-      collection(db, "games", "lightning", "episodes", episodeId, "lobby"),
+      collection(db, "games", "configurator", "episodes", episodeId, "lobby"),
       lobbySnap => {
         const names = lobbySnap.docs.map(d => d.id);
         lobbyList.innerHTML = names.length
