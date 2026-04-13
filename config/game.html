@@ -66,6 +66,25 @@
     font-weight: bold;
   }
 
+  /* LIVE "Отговорили:" списък */
+  #answeredList {
+    margin-top: 20px;
+    text-align: left;
+    font-size: 1.1em;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  #answeredList div {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  #answeredList div:last-child {
+    border-bottom: none;
+  }
+
   .stat-answer {
     display: block;
     width: 100%;
@@ -145,7 +164,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 2 ⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 3⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -170,6 +189,12 @@
 <div id="quiz" style="display:none;">
   <div id="question"></div>
   <div id="answers" class="answers"></div>
+
+  <!-- ⭐ LIVE СПИСЪК КОЙ Е ОТГОВОРИЛ -->
+  <div id="answeredList" style="display:none;">
+    <strong>Отговорили:</strong>
+    <div id="answeredNames"></div>
+  </div>
 </div>
 
 <div id="explanation" style="display:none;">
@@ -209,6 +234,9 @@ const lobbyList = document.getElementById("lobbyList");
 
 const globalTimer = document.getElementById("globalTimer");
 const waitingTitle = document.getElementById("waitingTitle");
+
+const answeredList = document.getElementById("answeredList");
+const answeredNames = document.getElementById("answeredNames");
 
 const bgMusic = document.getElementById("bg-music");
 
@@ -252,6 +280,7 @@ function showOnly(div) {
   div.style.display = "block";
 }
 
+/* Точки за зареждане */
 let dotCount = 0;
 setInterval(() => {
   dotCount = (dotCount + 1) % 4;
@@ -259,6 +288,7 @@ setInterval(() => {
   if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
 }, 400);
 
+/* Таймер */
 function updateTimer(startTime, duration) {
   const now = Date.now();
   const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
@@ -268,6 +298,7 @@ function updateTimer(startTime, duration) {
   else globalTimer.classList.remove("warning");
 }
 
+/* Детеминирано разбъркване */
 function seededShuffle(array, seed) {
   let result = array.slice();
   let s = seed;
@@ -280,14 +311,21 @@ function seededShuffle(array, seed) {
 
   return result;
 }
+
+/* Поправено заглавие на класиране */
 function updateRankingTitle(index) {
+  if (!questions || questions.length === 0) {
+    rankingTitle.textContent = "Временно класиране";
+    historyBtn.style.display = "none";
+    return;
+  }
+
   const isLast = index >= questions.length - 1;
   rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
   historyBtn.style.display = isLast ? "block" : "none";
 }
 
-/* ------------------------- Зареждане на въпросите ------------------------- */
-
+/* Зареждане на въпросите */
 async function loadQuestionsFromFirestore() {
   if (!episodeId || questionsLoaded) return;
 
@@ -309,8 +347,7 @@ async function loadQuestionsFromFirestore() {
   }
 }
 
-/* ------------------------- Влизане в играта ------------------------- */
-
+/* Влизане в играта */
 document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
   if (!player) return alert("Въведете име!");
@@ -338,12 +375,14 @@ document.getElementById("enterBtn").onclick = async () => {
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
-/* ------------------------- Експланация ------------------------- */
-
+/* Обяснение */
 async function renderExplanation(index) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = "";
   explanationText.textContent = "";
+
+  answeredList.style.display = "none";
+  answeredNames.innerHTML = "";
 
   const q = questions[index];
   if (!q) return;
@@ -390,8 +429,7 @@ async function renderExplanation(index) {
   statsBlock.innerHTML = html;
 }
 
-/* ------------------------- Класиране ------------------------- */
-
+/* Класиране */
 async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
@@ -469,8 +507,37 @@ async function renderRanking(index) {
   updateRankingTitle(index);
 }
 
-/* ------------------------- Прилагане на фаза ------------------------- */
+/* LIVE "кой е отговорил" */
+let answersUnsub = null;
 
+function startAnswerListener(index) {
+  if (answersUnsub) answersUnsub();
+
+  answeredNames.innerHTML = "";
+  answeredList.style.display = "block";
+
+  answersUnsub = onSnapshot(
+    collection(db, "games", "configurator", "episodes", episodeId, "results"),
+    async resultsSnap => {
+      const answered = [];
+
+      for (const playerDoc of resultsSnap.docs) {
+        const answersSnap = await getDocs(
+          collection(db, "games", "configurator", "episodes", episodeId, "results", playerDoc.id, "answers")
+        );
+
+        const ansDoc = answersSnap.docs.find(d => d.id === String(index));
+        if (ansDoc) answered.push(playerDoc.id);
+      }
+
+      answeredNames.innerHTML = answered
+        .map(name => `<div>${name} отговори</div>`)
+        .join("");
+    }
+  );
+}
+
+/* Прилагане на фаза */
 let lastPhaseSnapshot = null;
 
 function applyPhaseImmediately(data) {
@@ -481,7 +548,7 @@ function applyPhaseImmediately(data) {
   if (phase === "lobby") {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
-    waitingTitle.textContent = "Играта още не е започнала.";
+    answeredList.style.display = "none";
     return;
   }
 
@@ -489,6 +556,7 @@ function applyPhaseImmediately(data) {
     showOnly(waitingScreen);
     waitingTitle.textContent = "Играта започва след:";
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
@@ -502,6 +570,10 @@ function applyPhaseImmediately(data) {
 
     qText.textContent = `${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
+    answeredNames.innerHTML = "";
+    answeredList.style.display = "block";
+
+    startAnswerListener(index);
 
     const seed = episodeId.length * 1000 + index;
     const shuffled = seededShuffle(q.answers, seed);
@@ -543,6 +615,7 @@ function applyPhaseImmediately(data) {
 
   if (phase === "explanation") {
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     renderExplanation(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -550,14 +623,14 @@ function applyPhaseImmediately(data) {
 
   if (phase === "ranking") {
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
 }
 
-/* ------------------------- Слушане на фазите ------------------------- */
-
+/* Слушане на фазите */
 onSnapshot(doc(db, "games", "configurator", "state", "current"), async snap => {
   if (!snap.exists()) return;
 
