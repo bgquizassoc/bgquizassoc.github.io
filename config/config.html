@@ -120,7 +120,7 @@
 </head>
 <body>
 
-<h1>🛠 Куиз Конфигуратор 8 🛠</h1>
+<h1>🛠 Куиз Конфигуратор 9 🛠</h1>
 
 <h2>Човекът на деня задава параметрите на куиза</h2>
 
@@ -394,7 +394,6 @@ async function saveToFirestore(episodeId, cocktail, config) {
 
 
 /* ------------------------- Фазов двигател ------------------------- */
-
 async function scheduleEpisode(episodeId, cocktail, config) {
   const questionDuration = config.timePerQuestion * 1000;
 
@@ -449,23 +448,38 @@ async function scheduleEpisode(episodeId, cocktail, config) {
       );
     }, offset);
     offset += EXPLANATION_DURATION;
+
+    // ⭐ RANKING след всеки въпрос
+    setTimeout(async () => {
+      await setDoc(
+        doc(db, "games", "configurator", "state", "current"),
+        {
+          episodeId,
+          phase: "ranking",
+          index: qIndex,
+          startTime: Date.now(),
+          duration: RANKING_DURATION
+        },
+        { merge: true }
+      );
+    }, offset);
+    offset += RANKING_DURATION;
   }
 
-  // RANKING
+  // ⭐ Финално класиране (index = последния въпрос)
   setTimeout(async () => {
     await setDoc(
       doc(db, "games", "configurator", "state", "current"),
       {
         episodeId,
         phase: "ranking",
-        index: -1,
+        index: cocktail.length - 1,
         startTime: Date.now(),
         duration: RANKING_DURATION
       }
     );
   }, offset);
 }
-
 /* ------------------------- Старт ------------------------- */
 
 startBtn.onclick = async () => {
