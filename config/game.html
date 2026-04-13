@@ -164,7 +164,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 3⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 4⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -516,23 +516,32 @@ function startAnswerListener(index) {
   answeredNames.innerHTML = "";
   answeredList.style.display = "block";
 
+  // Слушаме списъка с играчи
   answersUnsub = onSnapshot(
     collection(db, "games", "configurator", "episodes", episodeId, "results"),
-    async resultsSnap => {
+    resultsSnap => {
+
       const answered = [];
 
-      for (const playerDoc of resultsSnap.docs) {
-        const answersSnap = await getDocs(
-          collection(db, "games", "configurator", "episodes", episodeId, "results", playerDoc.id, "answers")
+      resultsSnap.forEach(playerDoc => {
+        const playerName = playerDoc.id;
+
+        // Слушаме конкретния въпрос за конкретния играч
+        onSnapshot(
+          doc(db, "games", "configurator", "episodes", episodeId, "results", playerName, "answers", String(index)),
+          ansDoc => {
+            if (ansDoc.exists()) {
+              if (!answered.includes(playerName)) {
+                answered.push(playerName);
+
+                answeredNames.innerHTML = answered
+                  .map(n => `<div>${n} отговори</div>`)
+                  .join("");
+              }
+            }
+          }
         );
-
-        const ansDoc = answersSnap.docs.find(d => d.id === String(index));
-        if (ansDoc) answered.push(playerDoc.id);
-      }
-
-      answeredNames.innerHTML = answered
-        .map(name => `<div>${name} отговори</div>`)
-        .join("");
+      });
     }
   );
 }
