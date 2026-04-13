@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>⚡ Игри на Знания - Светкавичен куиз ⚡</title>
+  <title>⚡ Игри на Знания - Куиз Конфигуратор ⚡</title>
 
   <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -45,7 +45,6 @@
   }
   button:hover { background:#ffcc33; transform:scale(1.05); }
 
-  /* ЕДИНЕН ТАЙМЕР */
   #globalTimer {
     text-align: center; font-weight: 800; margin: 20px 0;
     font-size: clamp(1.8em, 5vw, 2.6em);
@@ -65,6 +64,25 @@
     background: #00e5ff;
     color: #003344;
     font-weight: bold;
+  }
+
+  /* LIVE "Отговорили:" списък */
+  #answeredList {
+    margin-top: 20px;
+    text-align: left;
+    font-size: 1.1em;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  #answeredList div {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  #answeredList div:last-child {
+    border-bottom: none;
   }
 
   .stat-answer {
@@ -146,12 +164,10 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 72⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест ⚡</h1>
 
-<!-- 🎵 МУЗИКА -->
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<!-- ЕДИНЕН ТАЙМЕР -->
 <div id="globalTimer" style="display:none;">-</div>
 
 <div id="start-screen">
@@ -173,6 +189,12 @@
 <div id="quiz" style="display:none;">
   <div id="question"></div>
   <div id="answers" class="answers"></div>
+
+  <!-- ⭐ LIVE СПИСЪК КОЙ Е ОТГОВОРИЛ -->
+  <div id="answeredList" style="display:none;">
+    <strong>Отговорили:</strong>
+    <div id="answeredNames"></div>
+  </div>
 </div>
 
 <div id="explanation" style="display:none;">
@@ -192,7 +214,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, onSnapshot, setDoc, collection, getDocs
+  getFirestore, doc, onSnapshot, setDoc, collection, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const startScreen = document.getElementById("start-screen");
@@ -212,6 +234,9 @@ const lobbyList = document.getElementById("lobbyList");
 
 const globalTimer = document.getElementById("globalTimer");
 const waitingTitle = document.getElementById("waitingTitle");
+
+const answeredList = document.getElementById("answeredList");
+const answeredNames = document.getElementById("answeredNames");
 
 const bgMusic = document.getElementById("bg-music");
 
@@ -235,25 +260,17 @@ let episodeId = null;
 
 let lobbyUnsub = null;
 let lobbyEpisodeId = null;
+let questionsLoaded = false;
 
-/* Архив бутон */
 document.getElementById("archiveBtn").onclick = () => {
   window.location.href = "archive.html";
 };
 
-/* История бутон */
 historyBtn.onclick = () => {
   if (!episodeId) return;
   window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
 
-/* Зареждане на въпроси */
-async function loadQuestions() {
-  const res = await fetch("questions.json");
-  questions = await res.json();
-}
-
-/* Показване само на един екран */
 function showOnly(div) {
   startScreen.style.display = "none";
   waitingScreen.style.display = "none";
@@ -263,7 +280,7 @@ function showOnly(div) {
   div.style.display = "block";
 }
 
-/* Анимация на точките */
+/* Точки за зареждане */
 let dotCount = 0;
 setInterval(() => {
   dotCount = (dotCount + 1) % 4;
@@ -281,22 +298,53 @@ function updateTimer(startTime, duration) {
   else globalTimer.classList.remove("warning");
 }
 
-/* Детерминирано разбъркване */
+/* Детеминирано разбъркване */
 function seededShuffle(array, seed) {
   let result = array.slice();
   let s = seed;
+
   for (let i = result.length - 1; i > 0; i--) {
     s = (s * 9301 + 49297) % 233280;
     const j = Math.floor((s / 233280) * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
+
   return result;
 }
-/* Временно / крайно класиране */
+
+/* Поправено заглавие на класиране */
 function updateRankingTitle(index) {
+  if (!questions || questions.length === 0) {
+    rankingTitle.textContent = "Временно класиране";
+    historyBtn.style.display = "none";
+    return;
+  }
+
   const isLast = index >= questions.length - 1;
   rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
   historyBtn.style.display = isLast ? "block" : "none";
+}
+
+/* Зареждане на въпросите */
+async function loadQuestionsFromFirestore() {
+  if (!episodeId || questionsLoaded) return;
+
+  const qDoc = await getDoc(
+    doc(db, "games", "configurator", "episodes", episodeId)
+  );
+
+  if (!qDoc.exists()) {
+    console.warn("Няма questions за епизод:", episodeId);
+    return;
+  }
+
+  const data = qDoc.data();
+  questions = data.questions || [];
+  questionsLoaded = true;
+
+  if (ready && lastPhaseSnapshot) {
+    applyPhaseImmediately(lastPhaseSnapshot);
+  }
 }
 
 /* Влизане в играта */
@@ -304,7 +352,6 @@ document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
   if (!player) return alert("Въведете име!");
 
-  await loadQuestions();
   ready = true;
   showOnly(waitingScreen);
 
@@ -318,20 +365,24 @@ document.getElementById("enterBtn").onclick = async () => {
   if (!episodeId) return;
 
   await setDoc(
-    doc(db, "games", "lightning", "episodes", episodeId, "lobby", player),
+    doc(db, "games", "configurator", "episodes", episodeId, "lobby", player),
     { joinedAt: Date.now() },
     { merge: true }
   );
 
-  // ⭐ FIX: веднага при влизане прилагаме текущата фаза
+  await loadQuestionsFromFirestore();
+
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
-/* Обяснение + статистика */
+/* Обяснение */
 async function renderExplanation(index) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = "";
   explanationText.textContent = "";
+
+  answeredList.style.display = "none";
+  answeredNames.innerHTML = "";
 
   const q = questions[index];
   if (!q) return;
@@ -340,7 +391,7 @@ async function renderExplanation(index) {
   explanationText.textContent = q.explanation || "";
 
   const playersSnap = await getDocs(
-    collection(db, "games", "lightning", "episodes", episodeId, "results")
+    collection(db, "games", "configurator", "episodes", episodeId, "results")
   );
 
   const counts = {};
@@ -348,7 +399,7 @@ async function renderExplanation(index) {
 
   for (const playerDoc of playersSnap.docs) {
     const ansSnap = await getDocs(
-      collection(db, "games", "lightning", "episodes", episodeId, "results", playerDoc.id, "answers")
+      collection(db, "games", "configurator", "episodes", episodeId, "results", playerDoc.id, "answers")
     );
     const ansDoc = ansSnap.docs.find(d => d.id === String(index));
     if (ansDoc) {
@@ -378,13 +429,13 @@ async function renderExplanation(index) {
   statsBlock.innerHTML = html;
 }
 
-/* Класиране с тайбрек по време */
+/* Класиране */
 async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
 
   const playersSnap = await getDocs(
-    collection(db, "games", "lightning", "episodes", episodeId, "results")
+    collection(db, "games", "configurator", "episodes", episodeId, "results")
   );
 
   const scores = {};
@@ -393,7 +444,7 @@ async function renderRanking(index) {
     const playerName = playerDoc.id;
 
     const answersSnap = await getDocs(
-      collection(db, "games", "lightning", "episodes", episodeId, "results", playerName, "answers")
+      collection(db, "games", "configurator", "episodes", episodeId, "results", playerName, "answers")
     );
 
     let totalPoints = 0;
@@ -431,35 +482,64 @@ async function renderRanking(index) {
     return a[0].localeCompare(b[0], "bg");
   });
 
- rankingList.innerHTML = sorted
-  .map(([name, obj], i) => {
-    const pts = obj.points;
-    const time = (obj.time / 1000).toFixed(1);
-    const isLast = index >= questions.length - 1;
+  rankingList.innerHTML = sorted
+    .map(([name, obj], i) => {
+      const pts = obj.points;
+      const time = (obj.time / 1000).toFixed(1);
+      const isLast = index >= questions.length - 1;
 
-    let cls = "";
-    const isMe = name === player;
-    let medal = "";
+      let cls = "";
+      const isMe = name === player;
+      let medal = "";
 
-    if (i === 0) { cls = "gold"; medal = "🥇"; }
-    else if (i === 1) { cls = "silver"; medal = "🥈"; }
-    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+      if (i === 0) { cls = "gold"; medal = "🥇"; }
+      else if (i === 1) { cls = "silver"; medal = "🥈"; }
+      else if (i === 2) { cls = "bronze"; medal = "🥉"; }
 
-    const timeText = isLast ? ` (време: ${time} сек)` : "";
+      const timeText = isLast ? ` (време: ${time} сек)` : "";
 
-    return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
+      return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
         ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
       </div>`;
-  })
-  .join("");
+    })
+    .join("");
 
   updateRankingTitle(index);
 }
 
-/* ⭐ FIX: запомняме последната снимка на фазата */
+/* LIVE "кой е отговорил" */
+let answersUnsub = null;
+
+function startAnswerListener(index) {
+  if (answersUnsub) answersUnsub();
+
+  answeredNames.innerHTML = "";
+  answeredList.style.display = "block";
+
+  answersUnsub = onSnapshot(
+    collection(db, "games", "configurator", "episodes", episodeId, "results"),
+    async resultsSnap => {
+      const answered = [];
+
+      for (const playerDoc of resultsSnap.docs) {
+        const answersSnap = await getDocs(
+          collection(db, "games", "configurator", "episodes", episodeId, "results", playerDoc.id, "answers")
+        );
+
+        const ansDoc = answersSnap.docs.find(d => d.id === String(index));
+        if (ansDoc) answered.push(playerDoc.id);
+      }
+
+      answeredNames.innerHTML = answered
+        .map(name => `<div>${name} отговори</div>`)
+        .join("");
+    }
+  );
+}
+
+/* Прилагане на фаза */
 let lastPhaseSnapshot = null;
 
-/* ⭐ FIX: функция за прилагане на фазата веднага след влизане */
 function applyPhaseImmediately(data) {
   const { index, phase, startTime, duration } = data;
 
@@ -468,7 +548,7 @@ function applyPhaseImmediately(data) {
   if (phase === "lobby") {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
-    waitingTitle.textContent = "Играта още не е започнала.";
+    answeredList.style.display = "none";
     return;
   }
 
@@ -476,6 +556,7 @@ function applyPhaseImmediately(data) {
     showOnly(waitingScreen);
     waitingTitle.textContent = "Играта започва след:";
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
@@ -489,6 +570,10 @@ function applyPhaseImmediately(data) {
 
     qText.textContent = `${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
+    answeredNames.innerHTML = "";
+    answeredList.style.display = "block";
+
+    startAnswerListener(index);
 
     const seed = episodeId.length * 1000 + index;
     const shuffled = seededShuffle(q.answers, seed);
@@ -502,7 +587,7 @@ function applyPhaseImmediately(data) {
         Array.from(answersDiv.children).forEach(b => b.disabled = true);
 
         await setDoc(
-          doc(db, "games", "lightning", "episodes", episodeId, "results", player),
+          doc(db, "games", "configurator", "episodes", episodeId, "results", player),
           { exists: true },
           { merge: true }
         );
@@ -510,7 +595,7 @@ function applyPhaseImmediately(data) {
         const thinkingTime = Date.now() - startTime;
 
         await setDoc(
-          doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(index)),
+          doc(db, "games", "configurator", "episodes", episodeId, "results", player, "answers", String(index)),
           {
             answer: ans,
             correct: q.correct,
@@ -530,6 +615,7 @@ function applyPhaseImmediately(data) {
 
   if (phase === "explanation") {
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     renderExplanation(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -537,6 +623,7 @@ function applyPhaseImmediately(data) {
 
   if (phase === "ranking") {
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -544,22 +631,21 @@ function applyPhaseImmediately(data) {
 }
 
 /* Слушане на фазите */
-onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
+onSnapshot(doc(db, "games", "configurator", "state", "current"), async snap => {
   if (!snap.exists()) return;
 
   const data = snap.data();
-  lastPhaseSnapshot = data; // ⭐ FIX
+  lastPhaseSnapshot = data;
 
   episodeId = data.episodeId;
   if (!episodeId) return;
 
-  const { index, phase, startTime, duration } = data;
-
   if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
     if (lobbyUnsub) lobbyUnsub();
     lobbyEpisodeId = episodeId;
+
     lobbyUnsub = onSnapshot(
-      collection(db, "games", "lightning", "episodes", episodeId, "lobby"),
+      collection(db, "games", "configurator", "episodes", episodeId, "lobby"),
       lobbySnap => {
         const names = lobbySnap.docs.map(d => d.id);
         lobbyList.innerHTML = names.length
@@ -568,6 +654,8 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
       }
     );
   }
+
+  await loadQuestionsFromFirestore();
 
   if (!ready) return;
 
