@@ -120,7 +120,7 @@
 </head>
 <body>
 
-<h1>🛠 Куиз Конфигуратор 9 🛠</h1>
+<h1>🛠 Куиз Конфигуратор 10 🛠</h1>
 
 <h2>Човекът на деня задава параметрите на куиза</h2>
 
@@ -402,8 +402,11 @@ const pool = filtered.filter(q =>
     final.push(...chosen.slice(0, need));
   }
 
-  shuffle(final);
-  return final.slice(0, TOTAL_QUESTIONS);
+ // ⭐ Подреждаме въпросите по трудност (от лесни към трудни)
+final.sort((a, b) => b.hard - a.hard);
+
+// Вземаме първите 30
+return final.slice(0, TOTAL_QUESTIONS);
 }
 
 /* ------------------------- Firestore запис ------------------------- */
