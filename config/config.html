@@ -120,7 +120,9 @@
 </head>
 <body>
 
-<h1>🛠 Куиз Конфигуратор 10 🛠</h1>
+<body>
+
+<h1>🛠 Куиз Конфигуратор 11 🛠</h1>
 
 <h2>Човекът на деня задава параметрите на куиза</h2>
 
@@ -187,6 +189,12 @@
       <option value="by_difficulty">По трудност</option>
     </select>
   </div>
+
+  <!-- ⭐ НОВО: избор на час -->
+  <div class="field-row">
+    <span class="field-label">Старт на играта (час):</span>
+    <input type="time" id="startTime" class="field-input">
+  </div>
 </div>
 
 <div class="section">
@@ -206,6 +214,7 @@
   <button id="startBtn">СТАРТ НА КУИЗА</button>
   <div class="error" id="errorBox"></div>
 </div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
@@ -299,7 +308,6 @@ topicIds.forEach(id => {
 });
 difficultyIds.forEach(id => {
   document.getElementById(id).addEventListener("input", updateDifficultySummary);
-
 });
 updateTopicsSummary();
 updateDifficultySummary();
@@ -333,33 +341,29 @@ function shuffle(arr) {
 async function generateCocktail(config) {
   const all = await loadAllQuestions();
 
-// ⭐ Филтриране по формат
-let filtered = all;
+  let filtered = all;
 
-if (config.format === "mcq") {
-  // А/Б/В/Г — трябва да има answers[] и correct
-  filtered = all.filter(q =>
-    Array.isArray(q.answers) &&
-    typeof q.correct === "string"
-  );
-}
+  if (config.format === "mcq") {
+    filtered = all.filter(q =>
+      Array.isArray(q.answers) &&
+      typeof q.correct === "string"
+    );
+  }
 
-if (config.format === "open_first_letter") {
-  // Буквомания — трябва да има letter
-  filtered = all.filter(q =>
-    typeof q.letter === "string" &&
-    q.letter.length === 1
-  );
-}
+  if (config.format === "open_first_letter") {
+    filtered = all.filter(q =>
+      typeof q.letter === "string" &&
+      q.letter.length === 1
+    );
+  }
 
-if (config.format === "number") {
-  // Цифромания — трябва да има number
-  filtered = all.filter(q =>
-    typeof q.number === "number"
-  );
-}
+  if (config.format === "number") {
+    filtered = all.filter(q =>
+      typeof q.number === "number"
+    );
+  }
 
-const pool = filtered.filter(q =>
+  const pool = filtered.filter(q =>
     Object.keys(config.topics).some(topicId =>
       config.topics[topicId] > 0 && q.area === topicMap[topicId]
     )
@@ -402,11 +406,9 @@ const pool = filtered.filter(q =>
     final.push(...chosen.slice(0, need));
   }
 
- // ⭐ Подреждаме въпросите по трудност (от лесни към трудни)
-final.sort((a, b) => b.hard - a.hard);
+  final.sort((a, b) => b.hard - a.hard);
 
-// Вземаме първите 30
-return final.slice(0, TOTAL_QUESTIONS);
+  return final.slice(0, TOTAL_QUESTIONS);
 }
 
 /* ------------------------- Firestore запис ------------------------- */
@@ -421,15 +423,16 @@ async function saveToFirestore(episodeId, cocktail, config) {
   );
 }
 
-
 /* ------------------------- Фазов двигател ------------------------- */
 async function scheduleEpisode(episodeId, cocktail, config) {
+
   const questionDuration = config.timePerQuestion * 1000;
 
-  const base = Date.now();
+  // ⭐ Вече използваме зададения час
+  const base = config.startAt;
+
   let offset = 0;
 
-  // PRESTART
   await setDoc(
     doc(db, "games", "configurator", "state", "current"),
     {
@@ -478,7 +481,7 @@ async function scheduleEpisode(episodeId, cocktail, config) {
     }, offset);
     offset += EXPLANATION_DURATION;
 
-    // ⭐ RANKING след всеки въпрос
+    // RANKING
     setTimeout(async () => {
       await setDoc(
         doc(db, "games", "configurator", "state", "current"),
@@ -495,7 +498,7 @@ async function scheduleEpisode(episodeId, cocktail, config) {
     offset += RANKING_DURATION;
   }
 
-  // ⭐ Финално класиране (index = последния въпрос)
+  // Финално класиране
   setTimeout(async () => {
     await setDoc(
       doc(db, "games", "configurator", "state", "current"),
@@ -509,6 +512,7 @@ async function scheduleEpisode(episodeId, cocktail, config) {
     );
   }, offset);
 }
+
 /* ------------------------- Старт ------------------------- */
 
 startBtn.onclick = async () => {
@@ -527,6 +531,7 @@ startBtn.onclick = async () => {
   const timePerQuestion = getIntValue("timePerQuestion");
   const format      = document.getElementById("format").value;
   const pointsMode  = document.getElementById("pointsMode").value;
+  const startTimeRaw = document.getElementById("startTime").value;
 
   const errors = [];
 
@@ -535,11 +540,24 @@ startBtn.onclick = async () => {
   if (!timePerQuestion || timePerQuestion < 5) errors.push("Въведи валидно време за въпрос (минимум 5 секунди).");
   if (!format)     errors.push("Избери формат на въпросите.");
   if (!pointsMode) errors.push("Избери режим за точките.");
+  if (!startTimeRaw) errors.push("Избери час за старта на играта.");
 
   if (errors.length > 0) {
     errorBox.textContent = errors.join(" ");
     return;
   }
+
+  // Превръщаме часа в локален timestamp
+  const [hh, mm] = startTimeRaw.split(":").map(Number);
+  const now = new Date();
+  const startAt = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    hh,
+    mm,
+    0
+  ).getTime();
 
   const config = {
     topics: Object.fromEntries(topicIds.map(id => [id, getIntValue(id)])),
@@ -551,7 +569,8 @@ startBtn.onclick = async () => {
     },
     timePerQuestion,
     format,
-    pointsMode
+    pointsMode,
+    startAt
   };
 
   try {
@@ -586,3 +605,4 @@ startBtn.onclick = async () => {
 
 </body>
 </html>
+
