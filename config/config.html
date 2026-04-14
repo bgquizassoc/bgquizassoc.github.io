@@ -333,7 +333,33 @@ function shuffle(arr) {
 async function generateCocktail(config) {
   const all = await loadAllQuestions();
 
-  const pool = all.filter(q =>
+// ⭐ Филтриране по формат
+let filtered = all;
+
+if (config.format === "mcq") {
+  // А/Б/В/Г — трябва да има answers[] и correct
+  filtered = all.filter(q =>
+    Array.isArray(q.answers) &&
+    typeof q.correct === "string"
+  );
+}
+
+if (config.format === "open_first_letter") {
+  // Буквомания — трябва да има letter
+  filtered = all.filter(q =>
+    typeof q.letter === "string" &&
+    q.letter.length === 1
+  );
+}
+
+if (config.format === "number") {
+  // Цифромания — трябва да има number
+  filtered = all.filter(q =>
+    typeof q.number === "number"
+  );
+}
+
+const pool = filtered.filter(q =>
     Object.keys(config.topics).some(topicId =>
       config.topics[topicId] > 0 && q.area === topicMap[topicId]
     )
