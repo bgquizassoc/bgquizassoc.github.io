@@ -6,140 +6,132 @@
   <title>⚡ Игри на Знания - Светкавичен куиз ⚡</title>
 
   <link rel="manifest" href="manifest.json">
-<!-- bump -->
- <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js');
-}
-</script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-PK66NTHPN8');
-</script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js');
+    }
+  </script>
+
+  <!-- Google tag -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PK66NTHPN8');
+  </script>
+
   <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
 
-  body {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: flex-start;
-    font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
-    max-width: 900px; margin: 0 auto; padding: 20px;
-     background: #00264d;   /* ← ТУК */
-     color: #ffffff;   
-  }
+    body {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-start;
+      font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
+      max-width: 900px; margin: 0 auto; padding: 20px;
+      background: #00264d;
+      color: #ffffff;
+    }
 
-  h1 {
-    text-align: center; color: #ffd100;
-    font-size: clamp(1.5em, 4vw, 2em);
-    margin: 10px auto 15px auto;
-    text-shadow: 0 0 5px #ffb400;
-  }
+    h1 {
+      text-align: center; color: #ffd100;
+      font-size: clamp(1.5em, 4vw, 2em);
+      margin: 10px auto 15px auto;
+      text-shadow: 0 0 5px #ffb400;
+    }
 
-  #quiz, #start-screen {
-    width: 100%; max-width: 600px; text-align: center;
-    margin-top: 30px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 16px; padding: 20px;
-    box-shadow: 0 0 10px rgba(255,209,0,0.2);
-  }
+    #quiz, #start-screen {
+      width: 100%; max-width: 600px; text-align: center;
+      margin-top: 30px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px; padding: 20px;
+      box-shadow: 0 0 10px rgba(255,209,0,0.2);
+    }
 
-  #question { font-size: 1.6em; margin: 20px 0; font-weight: 600; }
+    #question { font-size: 1.6em; margin: 20px 0; font-weight: 600; }
 
-  .answers button {
-    display: block; width: 100%; margin: 10px 0; padding: 16px;
-    border: none; border-radius: 10px; cursor: pointer;
-    font-size: 1.2em; background: #333; color: #fff;
-    transition: 0.2s;
-  }
+    .answers button {
+      display: block; width: 100%; margin: 10px 0; padding: 16px;
+      border: none; border-radius: 10px; cursor: pointer;
+      font-size: 1.2em; background: #333; color: #fff;
+      transition: 0.2s;
+    }
 
-  .answers button:hover { background: #444; transform: scale(1.02); }
-  .answers button.correct { background: #2e7d32; }
-  .answers button.wrong { background: #b71c1c; }
+    .answers button:hover { background: #444; transform: scale(1.02); }
+    .answers button.correct { background: #2e7d32; }
+    .answers button.wrong { background: #b71c1c; }
 
-  #timer {
-    text-align: center; font-weight: 800; margin: 20px 0;
-    font-size: clamp(1.8em, 5vw, 2.6em);
-    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
-  }
-  #timer.warning { color: #ff4c4c; }
-
-  #status { margin-top: 10px; font-weight: bold; min-height: 30px; }
-
-  #next-btn {
-    margin-top: 25px; padding: 12px 18px; font-size: 1.1em;
-    border: none; border-radius: 8px;
-    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
-  }
-  #next-btn:hover { background:#ffcc33; transform:scale(1.05); }
-
-  input {
-    padding: 10px; font-size: 1.1em; border-radius: 8px;
-    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
-  }
-
-  button.start, button.continue-btn {
-    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
-    border-radius: 8px; border: none;
-    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
-  }
-  button.start:hover, button.continue-btn:hover {
-    background:#ffcc33; transform:scale(1.05);
-  }
-
-  #current-score {
-    margin: 15px 0; font-size: 1.3em;
-    color: #ffd100; font-weight: bold; display: none;
-  }
-
-  #explanation {
-    display:none; background:rgba(255,255,255,0.08);
-    padding:20px; margin-top:20px;
-    border-radius:12px; max-width:600px; text-align:center;
-  }
-
-  #explanation .button-row {
-    display:flex; justify-content:center; gap:12px; margin-top:20px;
-  }
-
-  .yellow-btn {
-    background:#ffd100; color:#111;
-    padding:14px 22px; font-size:1.1em;
-    border-radius:10px; border:none; font-weight:bold; cursor:pointer;
-  }
-  .yellow-btn:hover { background:#ffcc33; transform:scale(1.05); }
     #timer {
-  text-align: center;
-  font-weight: 800;
-  color: #ffeb3b;
-  margin: 20px 0;
-  font-size: clamp(1.8em, 5vw, 2.6em);
-  text-shadow: 0 0 12px #ffcc00, 0 0 20px #ffcc00;
-  letter-spacing: 1px;
-}
+      text-align: center; font-weight: 800; margin: 20px 0;
+      font-size: clamp(1.8em, 5vw, 2.6em);
+      color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+    }
+    #timer.warning { color: #ff4c4c; }
 
-#seconds {
-  display: inline-block;
-  min-width: 70px; /* гарантира, че 9 сек. и 20 сек. заемат еднакво място */
-  text-align: center;
-}
+    #status { margin-top: 10px; font-weight: bold; min-height: 30px; }
+
+    #next-btn {
+      margin-top: 25px; padding: 12px 18px; font-size: 1.1em;
+      border: none; border-radius: 8px;
+      background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+    }
+    #next-btn:hover { background:#ffcc33; transform:scale(1.05); }
+
+    input {
+      padding: 10px; font-size: 1.1em; border-radius: 8px;
+      border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+    }
+
+    button.start, button.continue-btn {
+      margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+      border-radius: 8px; border: none;
+      background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+    }
+    button.start:hover, button.continue-btn:hover {
+      background:#ffcc33; transform:scale(1.05);
+    }
+
+    #current-score {
+      margin: 15px 0; font-size: 1.3em;
+      color: #ffd100; font-weight: bold; display: none;
+    }
+
+    #explanation {
+      display:none; background:rgba(255,255,255,0.08);
+      padding:20px; margin-top:20px;
+      border-radius:12px; max-width:600px; text-align:center;
+    }
+
+    #explanation .button-row {
+      display:flex; justify-content:center; gap:12px; margin-top:20px;
+    }
+
+    .yellow-btn {
+      background:#ffd100; color:#111;
+      padding:14px 22px; font-size:1.1em;
+      border-radius:10px; border:none; font-weight:bold; cursor:pointer;
+    }
+    .yellow-btn:hover { background:#ffcc33; transform:scale(1.05); }
+
+    #seconds {
+      display: inline-block;
+      min-width: 70px;
+      text-align: center;
+    }
   </style>
 </head>
 
 <body>
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 73⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 73 ⚡</h1>
 
 <div id="start-screen">
-  <p>Въведете Вашето име:</p>
+  <p>Въведете Вашето ID:</p>
 
-  <input type="text" id="player-name" placeholder="Име ..." /><br>
+  <input type="text" id="player-id" placeholder="ID ..." /><br>
 
   <button class="start" id="start-btn">Започни!</button><br>
 
@@ -151,10 +143,11 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <div id="quiz" style="display:none;">
- <div id="timer">
-  <span class="label">Оставащо време:</span>
-  <span id="seconds">20 сек.</span>
-</div>
+  <div id="timer">
+    <span class="label">Оставащо време:</span>
+    <span id="seconds">20 сек.</span>
+  </div>
+
   <div id="question"></div>
   <div id="answers" class="answers"></div>
   <div id="status"></div>
@@ -171,11 +164,40 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
-<script>
-(async function(){
+<script src="players.js"></script>
 
+<script type="module">
+
+// ===============================
+// НАСТРОЙКИ
+// ===============================
+const EPISODE_ID = "episodeId73";
+
+// ===============================
+// FIREBASE
+// ===============================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { 
+  getFirestore, doc, setDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ===============================
+// DOM ЕЛЕМЕНТИ
+// ===============================
 const startScreen = document.getElementById('start-screen');
-const playerInput = document.getElementById('player-name');
+const playerIdInput = document.getElementById('player-id');
 const startBtn = document.getElementById('start-btn');
 const continueBtn = document.getElementById('continue-btn');
 const lastResultDiv = document.getElementById('last-result');
@@ -192,70 +214,30 @@ const explanationDiv = document.getElementById('explanation');
 const explanationText = document.getElementById('explanation-text');
 const bgMusic = document.getElementById("bg-music");
 
-let playerName = '';
+// ===============================
+// СЪСТОЯНИЕ
+// ===============================
+let playerId = "";
+let playerName = "";
 let questions = [];
 let idx = 0;
 let score = 0;
 let timeLeft = 20;
 let timer;
-
-// История
 let gameHistory = [];
-
-function showHistoryScreen() {
-  quizDiv.style.display = "none";
-  explanationDiv.style.display = "none";
-  startScreen.style.display = "none";
-
-  let historyDiv = document.getElementById("history-screen");
-  if (!historyDiv) {
-    historyDiv = document.createElement("div");
-    historyDiv.id = "history-screen";
-    historyDiv.style.padding = "20px";
-    historyDiv.style.maxWidth = "600px";
-    historyDiv.style.marginTop = "20px";
-    historyDiv.style.background = "rgba(255,255,255,0.08)";
-    historyDiv.style.borderRadius = "12px";
-    historyDiv.style.textAlign = "left";
-
-    document.body.appendChild(historyDiv);
-  }
-
-  historyDiv.innerHTML = "<h2>📘 История на играта</h2><br>";
-
-  gameHistory.forEach((h, i) => {
-    historyDiv.innerHTML += `
-      <div style="margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid #444;">
-        <b>${i+1}. ${h.question}</b><br><br>
-        Твоят отговор: <span style="color:${h.correct?'#2ecc71':'#e74c3c'}">${h.yourAnswer}</span><br>
-        Верен отговор: <b style="color:#2ecc71">${h.correctAnswer}</b><br>
-        <div style="margin-top:10px;color:#ddd"><i>${h.explanation}</i></div>
-      </div>
-    `;
-  });
-
-  historyDiv.innerHTML += `
-    <button id="retry2-btn" class="yellow-btn" style="margin-top:20px;">Опитай пак</button>
-  `;
-
-  document.getElementById("retry2-btn").onclick = restartGame;
-}
-
-function restartGame() {
-  localStorage.removeItem("progress");
-  location.reload();
-}
-
-// Зареждане на въпроси
+// ===============================
+// ЗАРЕЖДАНЕ НА ВЪПРОСИ
+// ===============================
 try {
   const res = await fetch('questions.json');
   questions = await res.json();
 } catch(e) {
   qText.textContent = "Грешка при зареждане на въпросите.";
-  return;
 }
 
-// Последен резултат
+// ===============================
+// ПОСЛЕДЕН РЕЗУЛТАТ
+// ===============================
 const last = JSON.parse(localStorage.getItem('lastResult'));
 if (last) {
   lastResultDiv.innerHTML =
@@ -263,25 +245,85 @@ if (last) {
      <small>${last.date}</small>`;
 }
 
-// Продължаване на игра
+// ===============================
+// ПРОДЪЛЖАВАНЕ
+// ===============================
 const saved = JSON.parse(localStorage.getItem('progress'));
 if (saved && saved.idx < questions.length) {
   continueBtn.style.display = "inline-block";
   continueBtn.textContent = `Продължи от въпрос ${saved.idx + 1}`;
 }
 
-function normalize(s){ return String(s).trim(); }
+continueBtn.onclick = () => {
+  try { bgMusic.play(); } catch(e){}
+  playerId = saved.playerId;
+  playerName = saved.name;
+  idx = saved.idx;
+  score = saved.score;
 
-// Таймер
+  startScreen.style.display = "none";
+  quizDiv.style.display = "block";
+  renderQuestion(idx);
+};
+
+// ===============================
+// FIRESTORE ЗАПИС
+// ===============================
+async function registerPlayerInFirestore() {
+  await setDoc(
+    doc(db, "games", "relaxed", "episodes", EPISODE_ID, "players", playerId),
+    {
+      playerId,
+      playerName,
+      joinedAt: Date.now()
+    }
+  );
+}
+
+// ===============================
+// СТАРТ
+// ===============================
+startBtn.onclick = async () => {
+  try { bgMusic.play(); } catch(e){}
+
+  const id = playerIdInput.value.trim();
+  if (!id) return alert("Въведете ID!");
+
+  if (!PLAYERS[id]) {
+    alert("Невалидно ID!");
+    return;
+  }
+
+  playerId = id;
+  playerName = PLAYERS[id];
+
+  await registerPlayerInFirestore();
+
+  localStorage.removeItem("progress");
+
+  startScreen.style.display = "none";
+  quizDiv.style.display = "block";
+
+  idx = 0;
+  score = 0;
+
+  renderQuestion(0);
+};
+
+// ===============================
+// ТАЙМЕР
+// ===============================
 function startTimer() {
   clearInterval(timer);
   timeLeft = 20;
+
   document.getElementById("seconds").textContent = `${timeLeft} сек.`;
   timerDisplay.classList.remove("warning");
 
   timer = setInterval(() => {
     timeLeft--;
     document.getElementById("seconds").textContent = `${timeLeft} сек.`;
+
     if (timeLeft <= 5) timerDisplay.classList.add("warning");
 
     if (timeLeft <= 0) {
@@ -293,17 +335,21 @@ function startTimer() {
   }, 1000);
 }
 
-function lockAnswers() {
-  Array.from(answersDiv.children).forEach(b => b.disabled = true);
-}
+// ===============================
+// РЕНДЕР НА ВЪПРОС
+// ===============================
+function normalize(s){ return String(s).trim(); }
 
-// Рендер на въпрос
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+function lockAnswers() {
+  Array.from(answersDiv.children).forEach(b => b.disabled = true);
 }
 
 function renderQuestion(i) {
@@ -317,10 +363,9 @@ function renderQuestion(i) {
 
   currentScoreDiv.style.display = "none";
 
-// 🔥 Разбъркваме отговорите
-const shuffledAnswers = shuffleArray([...q.answers]);
+  const shuffledAnswers = shuffleArray([...q.answers]);
 
- shuffledAnswers.forEach(ans => {
+  shuffledAnswers.forEach(ans => {
     const btn = document.createElement("button");
     btn.textContent = ans;
 
@@ -360,6 +405,7 @@ const shuffledAnswers = shuffleArray([...q.answers]);
       nextBtn.disabled = false;
 
       localStorage.setItem("progress", JSON.stringify({
+        playerId,
         name: playerName,
         idx: i,
         score
@@ -372,36 +418,9 @@ const shuffledAnswers = shuffleArray([...q.answers]);
   startTimer();
 }
 
-// Продължи игра
-continueBtn.onclick = () => {
-  try { bgMusic.play(); } catch(e){}
-  playerName = saved.name;
-  idx = saved.idx;
-  score = saved.score;
-
-  startScreen.style.display = "none";
-  quizDiv.style.display = "block";
-  renderQuestion(idx);
-};
-
-// Старт
-startBtn.onclick = () => {
-  try { bgMusic.play(); } catch(e){}
-  playerName = playerInput.value.trim();
-  if (!playerName) return alert("Въведете име!");
-
-  localStorage.removeItem("progress");
-
-  startScreen.style.display = "none";
-  quizDiv.style.display = "block";
-  
-  idx = 0;
-  score = 0;
-
-  renderQuestion(0);
-};
-
-// Следващ въпрос от бутон
+// ===============================
+// НАВИГАЦИЯ
+// ===============================
 nextBtn.onclick = nextQuestionFromExplanation;
 document.getElementById("next-question-btn").onclick = nextQuestionFromExplanation;
 
@@ -413,7 +432,9 @@ function nextQuestionFromExplanation() {
 
   renderQuestion(idx);
 }
-
+// ===============================
+// КРАЙ НА ИГРАТА
+// ===============================
 function finishGame() {
   clearInterval(timer);
 
@@ -449,11 +470,62 @@ function finishGame() {
   document.getElementById("retry-btn").onclick = restartGame;
 }
 
+// ===============================
+// ИСТОРИЯ
+// ===============================
+function showHistoryScreen() {
+  quizDiv.style.display = "none";
+  explanationDiv.style.display = "none";
+  startScreen.style.display = "none";
+
+  let historyDiv = document.getElementById("history-screen");
+  if (!historyDiv) {
+    historyDiv = document.createElement("div");
+    historyDiv.id = "history-screen";
+    historyDiv.style.padding = "20px";
+    historyDiv.style.maxWidth = "600px";
+    historyDiv.style.marginTop = "20px";
+    historyDiv.style.background = "rgba(255,255,255,0.08)";
+    historyDiv.style.borderRadius = "12px";
+    historyDiv.style.textAlign = "left";
+    document.body.appendChild(historyDiv);
+  }
+
+  historyDiv.innerHTML = "<h2>📘 История на играта</h2><br>";
+
+  gameHistory.forEach((h, i) => {
+    historyDiv.innerHTML += `
+      <div style="margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid #444;">
+        <b>${i+1}. ${h.question}</b><br><br>
+        Твоят отговор: <span style="color:${h.correct?'#2ecc71':'#e74c3c'}">${h.yourAnswer}</span><br>
+        Верен отговор: <b style="color:#2ecc71">${h.correctAnswer}</b><br>
+        <div style="margin-top:10px;color:#ddd"><i>${h.explanation}</i></div>
+      </div>
+    `;
+  });
+
+  historyDiv.innerHTML += `
+    <button id="retry2-btn" class="yellow-btn" style="margin-top:20px;">Опитай пак</button>
+  `;
+
+  document.getElementById("retry2-btn").onclick = restartGame;
+}
+
+// ===============================
+// РЕСТАРТ
+// ===============================
+function restartGame() {
+  localStorage.removeItem("progress");
+  location.reload();
+}
+
+// ===============================
+// ЗАТВАРЯНЕ НА ОБЯСНЕНИЕ
+// ===============================
 document.getElementById("close-explanation-btn").onclick = () => {
   explanationDiv.style.display = "none";
 };
 
-})();
 </script>
 
 </body>
