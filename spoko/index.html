@@ -271,7 +271,7 @@ continueBtn.onclick = () => {
 // ===============================
 async function registerPlayerInFirestore() {
   await setDoc(
-    doc(db, "games", "relaxed", "episodes", EPISODE_ID, "players", playerId),
+    doc(db, "games", "spoko", "episodes", EPISODE_ID, "players", playerId),
     {
       playerId,
       playerName,
