@@ -164,7 +164,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 7⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 8⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -630,19 +630,20 @@ function applyPhaseImmediately(data) {
 
  if (phase === "prestart") {
     showOnly(waitingScreen);
+
+    // Заглавие и таймер
     waitingTitle.textContent = "Играта започва след:";
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
 
+    // Показване на информацията за куиза
     if (episodeConfig) {
 
-        // Теми
         const topics = Object.entries(episodeConfig.topics || {})
             .filter(([k, v]) => v > 0)
             .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
             .join("<br>");
 
-        // Трудност
         const diff = episodeConfig.difficulty || {};
         const diffText = `
             Лесни: ${diff.easy}<br>
@@ -651,10 +652,9 @@ function applyPhaseImmediately(data) {
             Супертрудни: ${diff.superHard}
         `;
 
-        // Конфигураторът за деня
         const configuratorName = episodeConfig.configuratorName || "Конфигураторът";
 
-        document.getElementById("lobbyTitle").innerHTML = `
+        lobbyTitle.innerHTML = `
             <div style="font-size:1.1em; margin-bottom:10px;">
                 <b>Днес конфигуратор е:</b> ${configuratorName}
             </div>
@@ -675,7 +675,10 @@ function applyPhaseImmediately(data) {
         `;
     }
 
+    // ⭐ ВАЖНО: стартираме таймера
+    clearInterval(timerInterval);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+
     return;
 }
 
