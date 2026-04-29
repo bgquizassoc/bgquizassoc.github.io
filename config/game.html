@@ -164,7 +164,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 10⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 11⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -601,114 +601,105 @@ function applyPhaseImmediately(data) {
 
   if (timerInterval) clearInterval(timerInterval);
 
- if (phase === "lobby") {
+  /* ---------------------- LOBBY ---------------------- */
+  if (phase === "lobby") {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
     answeredList.style.display = "none";
 
     if (episodeConfig) {
 
-        // Теми (само тези > 0)
-        const topics = Object.entries(episodeConfig.topics || {})
-            .filter(([k, v]) => v > 0)
-            .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
-            .join("<br>");
+      const topics = Object.entries(episodeConfig.topics || {})
+        .filter(([k, v]) => v > 0)
+        .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
+        .join("<br>");
 
-        // Трудност
-        const diff = episodeConfig.difficulty || {};
-        const diffText = `
-            Лесни: ${diff.easy}  
-            Средни: ${diff.medium}  
-            Трудни: ${diff.hard}  
-            Супертрудни: ${diff.superHard}
-        `;
+      const diff = episodeConfig.difficulty || {};
+      const diffText = `
+        Лесни: ${diff.easy}<br>
+        Средни: ${diff.medium}<br>
+        Трудни: ${diff.hard}<br>
+        Супертрудни: ${diff.superHard}
+      `;
 
-        // Име на конфигуратора (днес конфигуратор е…)
-      const todayConfigurator = "Зорка Желязкова"; // ← сменяш ръчно когато искаш
+      const todayConfigurator = "Зорка Желязкова";
 
-document.getElementById("lobbyTitle").innerHTML = `
-    <!-- РОЗОВО ИМЕ НА КОНФИГУРАТОРА -->
-    <div style="font-size:1.1em; margin-bottom:10px; color:#ff66cc;">
-        <b>Днес конфигуратор е:</b> ${todayConfigurator}
-    </div>
+      lobbyTitle.innerHTML = `
+        <div style="font-size:1.1em; margin-bottom:10px; color:#ff66cc;">
+          <b>Днес конфигуратор е:</b> ${todayConfigurator}
+        </div>
 
-    <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
-        <b>Параметрите на куиза са:</b>
-    </div>
+        <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
+          <b>Параметрите на куиза са:</b>
+        </div>
 
-    <!-- ЗЕЛЕНА ИНФОРМАЦИЯ ЗА КУИЗА -->
-    <div style="font-size:0.95em; line-height:1.4; color:#7CFC00;">
-        <b>Формат:</b> ${formatNames[episodeConfig.format] || episodeConfig.format}<br>
-        <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode] || episodeConfig.pointsMode}<br>
-        <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
+        <div style="font-size:0.95em; line-height:1.4; color:#7CFC00;">
+          <b>Формат:</b> ${formatNames[episodeConfig.format]}<br>
+          <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode]}<br>
+          <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
 
-        <b>Теми:</b><br>${topics}<br><br>
+          <b>Теми:</b><br>${topics}<br><br>
 
-        <b>Трудност:</b><br>${diffText}
-    </div>
-`;
-
+          <b>Трудност:</b><br>${diffText}
+        </div>
+      `;
     }
 
     return;
-}
+  }
 
-
- if (phase === "prestart") {
+  /* ---------------------- PRESTART ---------------------- */
+  if (phase === "prestart") {
     showOnly(waitingScreen);
 
-    // Заглавие и таймер
     waitingTitle.textContent = "Играта започва след:";
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
 
-    // Показване на информацията за куиза
     if (episodeConfig) {
 
-        const topics = Object.entries(episodeConfig.topics || {})
-            .filter(([k, v]) => v > 0)
-            .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
-            .join("<br>");
+      const topics = Object.entries(episodeConfig.topics || {})
+        .filter(([k, v]) => v > 0)
+        .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
+        .join("<br>");
 
-        const diff = episodeConfig.difficulty || {};
-        const diffText = `
-            Лесни: ${diff.easy}<br>
-            Средни: ${diff.medium}<br>
-            Трудни: ${diff.hard}<br>
-            Супертрудни: ${diff.superHard}
-        `;
+      const diff = episodeConfig.difficulty || {};
+      const diffText = `
+        Лесни: ${diff.easy}<br>
+        Средни: ${diff.medium}<br>
+        Трудни: ${diff.hard}<br>
+        Супертрудни: ${diff.superHard}
+      `;
 
-        const configuratorName = episodeConfig.configuratorName || "Конфигураторът";
+      const todayConfigurator = "Зорка Желязкова";
 
-        lobbyTitle.innerHTML = `
-            <div style="font-size:1.1em; margin-bottom:10px;">
-                <b>Днес конфигуратор е:</b> ${configuratorName}
-            </div>
+      lobbyTitle.innerHTML = `
+        <div style="font-size:1.1em; margin-bottom:10px; color:#ff66cc;">
+          <b>Днес конфигуратор е:</b> ${todayConfigurator}
+        </div>
 
-            <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
-                <b>Параметрите на куиза са:</b>
-            </div>
+        <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
+          <b>Параметрите на куиза са:</b>
+        </div>
 
-            <div style="font-size:0.95em; line-height:1.4;">
-                <b>Формат:</b> ${formatNames[episodeConfig.format]}<br>
-                <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode]}<br>
-                <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
+        <div style="font-size:0.95em; line-height:1.4; color:#7CFC00;">
+          <b>Формат:</b> ${formatNames[episodeConfig.format]}<br>
+          <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode]}<br>
+          <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
 
-                <b>Теми:</b><br>${topics}<br><br>
+          <b>Теми:</b><br>${topics}<br><br>
 
-                <b>Трудност:</b><br>${diffText}
-            </div>
-        `;
+          <b>Трудност:</b><br>${diffText}
+        </div>
+      `;
     }
 
-    // ⭐ ВАЖНО: стартираме таймера
     clearInterval(timerInterval);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
-
     return;
-}
+  }
 
-
+  /* ---------------------- QUESTION ---------------------- */
   if (phase === "question") {
     showOnly(quizDiv);
     globalTimer.style.display = "block";
@@ -716,7 +707,7 @@ document.getElementById("lobbyTitle").innerHTML = `
     const q = questions[index];
     if (!q) return;
 
-    qText.textContent = `${index+1}. ${q.question}`;
+    qText.textContent = `${index + 1}. ${q.question}`;
     answersDiv.innerHTML = "";
     answeredNames.innerHTML = "";
     answeredList.style.display = "block";
@@ -761,6 +752,7 @@ document.getElementById("lobbyTitle").innerHTML = `
     return;
   }
 
+  /* ---------------------- EXPLANATION ---------------------- */
   if (phase === "explanation") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
@@ -769,6 +761,7 @@ document.getElementById("lobbyTitle").innerHTML = `
     return;
   }
 
+  /* ---------------------- RANKING ---------------------- */
   if (phase === "ranking") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
@@ -777,6 +770,7 @@ document.getElementById("lobbyTitle").innerHTML = `
     return;
   }
 }
+
 
 /* Слушане на фазите */
 onSnapshot(doc(db, "games", "configurator", "state", "current"), async snap => {
