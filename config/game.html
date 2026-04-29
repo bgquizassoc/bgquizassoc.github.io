@@ -261,7 +261,18 @@ let episodeId = null;
 let lobbyUnsub = null;
 let lobbyEpisodeId = null;
 let questionsLoaded = false;
- let episodeConfig = null;
+let episodeConfig = null;
+  
+const formatNames = {
+  mcq: "Избор от 4 отговора (а,б,в,г)",
+  open_first_letter: "Отворен с първа буква",
+  number: "Числов отговор"
+};
+
+const pointsNames = {
+  equal: "Еднакви точки",
+  by_difficulty: "По трудност"
+};
 
 document.getElementById("archiveBtn").onclick = () => {
   window.location.href = "archive.html";
@@ -567,12 +578,55 @@ function applyPhaseImmediately(data) {
 
   if (timerInterval) clearInterval(timerInterval);
 
-  if (phase === "lobby") {
+ if (phase === "lobby") {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
     answeredList.style.display = "none";
+
+    if (episodeConfig) {
+
+        // Теми (само тези > 0)
+        const topics = Object.entries(episodeConfig.topics || {})
+            .filter(([k, v]) => v > 0)
+            .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
+            .join("<br>");
+
+        // Трудност
+        const diff = episodeConfig.difficulty || {};
+        const diffText = `
+            Лесни: ${diff.easy}  
+            Средни: ${diff.medium}  
+            Трудни: ${diff.hard}  
+            Супертрудни: ${diff.superHard}
+        `;
+
+        // Име на конфигуратора (днес конфигуратор е…)
+        const todayConfigurator = document.getElementById("configId")?.value || "Конфигураторът";
+
+        document.getElementById("lobbyTitle").innerHTML = `
+            <div style="font-size:1.1em; margin-bottom:10px;">
+                <b>Днес конфигуратор е:</b> ${todayConfigurator}
+            </div>
+
+            <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
+                <b>Параметрите на куиза са:</b>
+            </div>
+
+            <div style="font-size:0.95em; line-height:1.4;">
+                <b>Формат:</b> ${formatNames[episodeConfig.format] || episodeConfig.format}<br>
+                <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode] || episodeConfig.pointsMode}<br>
+                <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
+
+                <b>Теми:</b><br>${topics}<br><br>
+
+                <b>Трудност:</b><br>${diffText}
+            </div>
+        `;
+    }
+
     return;
-  }
+}
+
 
   if (phase === "prestart") {
     showOnly(waitingScreen);
