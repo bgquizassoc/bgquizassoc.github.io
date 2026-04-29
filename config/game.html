@@ -270,7 +270,7 @@ const formatNames = {
 };
 
 const pointsNames = {
-  equal: "Единични точки",
+  equal: "Еднакви точки",
   by_difficulty: "По трудност"
 };
 
@@ -624,27 +624,30 @@ function applyPhaseImmediately(data) {
         `;
 
         // Име на конфигуратора (днес конфигуратор е…)
-        const todayConfigurator = document.getElementById("configId")?.value || "Конфигураторът";
+      const todayConfigurator = "Зорка Желязкова"; // ← сменяш ръчно когато искаш
 
-        document.getElementById("lobbyTitle").innerHTML = `
-            <div style="font-size:1.1em; margin-bottom:10px;">
-                <b>Днес конфигуратор е Зорка Желязкова:</b> ${todayConfigurator}
-            </div>
+document.getElementById("lobbyTitle").innerHTML = `
+    <!-- РОЗОВО ИМЕ НА КОНФИГУРАТОРА -->
+    <div style="font-size:1.1em; margin-bottom:10px; color:#ff66cc;">
+        <b>Днес конфигуратор е:</b> ${todayConfigurator}
+    </div>
 
-            <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
-                <b>Параметрите на куиза са:</b>
-            </div>
+    <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
+        <b>Параметрите на куиза са:</b>
+    </div>
 
-            <div style="font-size:0.95em; line-height:1.4;">
-                <b>Формат:</b> ${formatNames[episodeConfig.format] || episodeConfig.format}<br>
-                <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode] || episodeConfig.pointsMode}<br>
-                <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
+    <!-- ЗЕЛЕНА ИНФОРМАЦИЯ ЗА КУИЗА -->
+    <div style="font-size:0.95em; line-height:1.4; color:#7CFC00;">
+        <b>Формат:</b> ${formatNames[episodeConfig.format] || episodeConfig.format}<br>
+        <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode] || episodeConfig.pointsMode}<br>
+        <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
 
-                <b>Теми:</b><br>${topics}<br><br>
+        <b>Теми:</b><br>${topics}<br><br>
 
-                <b>Трудност:</b><br>${diffText}
-            </div>
-        `;
+        <b>Трудност:</b><br>${diffText}
+    </div>
+`;
+
     }
 
     return;
