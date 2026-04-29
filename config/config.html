@@ -424,30 +424,22 @@ async function saveToFirestore(episodeId, cocktail, config) {
 }
 
 /* ------------------------- Фазов двигател ------------------------- */
-async function scheduleEpisode(episodeId, cocktail, config) {
+const now = Date.now();
 
-  const questionDuration = config.timePerQuestion * 1000;
+// ⭐ PRESTART: започва веднага, брои до зададения час
+await setDoc(
+  doc(db, "games", "configurator", "state", "current"),
+  {
+    episodeId,
+    phase: "prestart",
+    index: 0,
+    startTime: now,
+    duration: base - now   // ← колкото остава до часа
+  }
+);
 
-  // ⭐ Вече използваме зададения час
- let base = config.startAt;
-
-  let offset = 0;
-
- // Ако избраният час е минал → местим го 1 минута напред
-if (base < Date.now()) {
-    base = Date.now() + 60000;
-}
-
-await setDoc(doc(db, "games", "configurator", "state", "current"), {
-  episodeId,
-  phase: "prestart",
-  index: 0,
-  startTime: base, // ← истинският час на старта
-  duration: PRESTART_DURATION
-});
-
-
-  offset += PRESTART_DURATION;
+// offset = колко остава до старта
+let offset = base - now;
 
   for (let i = 0; i < cocktail.length; i++) {
     const qIndex = i;
