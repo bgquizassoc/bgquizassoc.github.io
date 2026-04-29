@@ -429,7 +429,7 @@ async function scheduleEpisode(episodeId, cocktail, config) {
   const questionDuration = config.timePerQuestion * 1000;
 
   // ⭐ Вече използваме зададения час
-  const base = config.startAt;
+ let base = config.startAt;
 
   let offset = 0;
 
