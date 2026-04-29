@@ -122,7 +122,7 @@
 
 <body>
 
-<h1>🛠 Куиз Конфигуратор 13 🛠</h1>
+<h1>🛠 Куиз Конфигуратор 14 🛠</h1>
 
 <h2>Човекът на деня задава параметрите на куиза</h2>
 
@@ -517,23 +517,7 @@ async function scheduleEpisode(episodeId, cocktail, config) {
 
 }   // ← ТАЗИ СКОБА ТИ ЛИПСВАШЕ
 
-
-  // Финално класиране
-  setTimeout(async () => {
-    await setDoc(
-      doc(db, "games", "configurator", "state", "current"),
-      {
-        episodeId,
-        phase: "ranking",
-        index: cocktail.length - 1,
-        startTime: Date.now(),
-        duration: RANKING_DURATION
-      }
-    );
-  }, offset);
-}
-
-/* ------------------------- Старт ------------------------- */
+  /* ------------------------- Старт ------------------------- */
 
 startBtn.onclick = async () => {
   errorBox.textContent = "";
