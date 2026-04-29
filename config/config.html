@@ -433,16 +433,19 @@ async function scheduleEpisode(episodeId, cocktail, config) {
 
   let offset = 0;
 
-  await setDoc(
-    doc(db, "games", "configurator", "state", "current"),
-    {
-      episodeId,
-      phase: "prestart",
-      index: 0,
-      startTime: base,
-      duration: PRESTART_DURATION
-    }
-  );
+ // Ако избраният час е минал → местим го 1 минута напред
+if (base < Date.now()) {
+    base = Date.now() + 60000;
+}
+
+await setDoc(doc(db, "games", "configurator", "state", "current"), {
+  episodeId,
+  phase: "prestart",
+  index: 0,
+  startTime: base, // ← истинският час на старта
+  duration: PRESTART_DURATION
+});
+
 
   offset += PRESTART_DURATION;
 
