@@ -164,7 +164,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 6⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 7⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -605,7 +605,7 @@ function applyPhaseImmediately(data) {
 
         document.getElementById("lobbyTitle").innerHTML = `
             <div style="font-size:1.1em; margin-bottom:10px;">
-                <b>Днес конфигуратор е:</b> ${todayConfigurator}
+                <b>Днес конфигуратор е Зорка Желязкова:</b> ${todayConfigurator}
             </div>
 
             <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
@@ -628,14 +628,57 @@ function applyPhaseImmediately(data) {
 }
 
 
-  if (phase === "prestart") {
+ if (phase === "prestart") {
     showOnly(waitingScreen);
     waitingTitle.textContent = "Играта започва след:";
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
+
+    if (episodeConfig) {
+
+        // Теми
+        const topics = Object.entries(episodeConfig.topics || {})
+            .filter(([k, v]) => v > 0)
+            .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
+            .join("<br>");
+
+        // Трудност
+        const diff = episodeConfig.difficulty || {};
+        const diffText = `
+            Лесни: ${diff.easy}<br>
+            Средни: ${diff.medium}<br>
+            Трудни: ${diff.hard}<br>
+            Супертрудни: ${diff.superHard}
+        `;
+
+        // Конфигураторът за деня
+        const configuratorName = episodeConfig.configuratorName || "Конфигураторът";
+
+        document.getElementById("lobbyTitle").innerHTML = `
+            <div style="font-size:1.1em; margin-bottom:10px;">
+                <b>Днес конфигуратор е:</b> ${configuratorName}
+            </div>
+
+            <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
+                <b>Параметрите на куиза са:</b>
+            </div>
+
+            <div style="font-size:0.95em; line-height:1.4;">
+                <b>Формат:</b> ${formatNames[episodeConfig.format]}<br>
+                <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode]}<br>
+                <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
+
+                <b>Теми:</b><br>${topics}<br><br>
+
+                <b>Трудност:</b><br>${diffText}
+            </div>
+        `;
+    }
+
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
-  }
+}
+
 
   if (phase === "question") {
     showOnly(quizDiv);
