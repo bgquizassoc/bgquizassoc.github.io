@@ -164,7 +164,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 8⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод тест 9⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -265,13 +265,36 @@ let episodeConfig = null;
   
 const formatNames = {
   mcq: "Избор от 4 отговора (а,б,в,г)",
-  open_first_letter: "Отворен с първа буква",
+  open_first_letter: "Отговор с първа буква",
   number: "Числов отговор"
 };
 
 const pointsNames = {
-  equal: "Еднакви точки",
+  equal: "Единични точки",
   by_difficulty: "По трудност"
+};
+
+// ⭐ ПЪРВА КРЪПКА — добавяме map за темите
+const topicMap = {
+  arhitektura:"Архитектура",
+  astronomia:"Астрономия",
+  biologia:"Биология",
+  geografia:"География",
+  izkustvo:"Изкуство",
+  istoria:"История",
+  kino:"Кино",
+  kulinaria:"Кулинария",
+  literatura:"Литература",
+  matematika:"Математика",
+  mitologia:"Митология",
+  muzika:"Музика",
+  nauka:"Наука",
+  religia:"Религия",
+  sport:"Спорт",
+  filosofia:"Философия",
+  fizika:"Физика",
+  futbol:"Футбол",
+  himia:"Химия"
 };
 
 document.getElementById("archiveBtn").onclick = () => {
