@@ -424,22 +424,30 @@ async function saveToFirestore(episodeId, cocktail, config) {
 }
 
 /* ------------------------- Фазов двигател ------------------------- */
-const now = Date.now();
+async function scheduleEpisode(episodeId, cocktail, config) {
 
-// ⭐ PRESTART: започва веднага, брои до зададения час
-await setDoc(
-  doc(db, "games", "configurator", "state", "current"),
-  {
-    episodeId,
-    phase: "prestart",
-    index: 0,
-    startTime: now,
-    duration: base - now   // ← колкото остава до часа
+  const questionDuration = config.timePerQuestion * 1000;
+  let base = config.startAt;
+
+  if (base < Date.now()) {
+    base = Date.now() + 60000;
   }
-);
 
-// offset = колко остава до старта
-let offset = base - now;
+  const now = Date.now();
+
+  // PRESTART
+  await setDoc(
+    doc(db, "games", "configurator", "state", "current"),
+    {
+      episodeId,
+      phase: "prestart",
+      index: 0,
+      startTime: now,
+      duration: base - now
+    }
+  );
+
+  let offset = base - now;
 
   for (let i = 0; i < cocktail.length; i++) {
     const qIndex = i;
@@ -492,6 +500,23 @@ let offset = base - now;
     }, offset);
     offset += RANKING_DURATION;
   }
+
+  // Финално класиране
+  setTimeout(async () => {
+    await setDoc(
+      doc(db, "games", "configurator", "state", "current"),
+      {
+        episodeId,
+        phase: "ranking",
+        index: cocktail.length - 1,
+        startTime: Date.now(),
+        duration: RANKING_DURATION
+      }
+    );
+  }, offset);
+
+}   // ← ТАЗИ СКОБА ТИ ЛИПСВАШЕ
+
 
   // Финално класиране
   setTimeout(async () => {
