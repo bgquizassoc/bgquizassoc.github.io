@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<title>Старт на Буквомания Live</title>
+<style>
+  body { background:#001a33; color:white; text-align:center; padding:40px; font-family:Arial; }
+  button {
+    padding:15px 30px; font-size:1.4em; border:none; border-radius:10px;
+    background:#ffd100; color:#111; font-weight:bold; cursor:pointer;
+  }
+  input {
+    padding:10px; font-size:1.2em; border-radius:8px; border:none;
+    margin-bottom:20px; width:200px; text-align:center;
+  }
+</style>
+</head>
+<body>
+<h1>🔤 Старт на Буквомания Live</h1>
+<p>Въведи име на епизод:</p>
+<input id="ep" placeholder="пример: bukv01">
+<br><br>
+<button id="startBtn">СТАРТ</button>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА =====
+const LOBBY_TIME = 10000;         // 10 секунди лоби
+const PRESTART   = 15 * 60 * 1000; // 15 минути престарт
+const Q          = 20000;         // време за въпрос
+const EXPL       = 25000;         // време за обяснение
+const RANK       = 20000;         // време за класиране
+
+let questions = [];
+
+async function loadQuestions() {
+  const res = await fetch("bukvomania/questions.json");
+  questions = await res.json();
+}
+
+async function setState(ep, index, phase, durationMs) {
+  await setDoc(
+    doc(db, "games", "bukvomania", "state", "current"),
+    {
+      episodeId: ep,
+      index,
+      phase,
+      startTime: Date.now(),
+      duration: durationMs
+    },
+    { merge: false }
+  );
+}
+
+async function resetState() {
+  try {
+    await deleteDoc(doc(db, "games", "bukvomania", "state", "current"));
+  } catch(e) {}
+}
+
+async function runGame(ep) {
+  await loadQuestions();
+  const total = questions.length;
+  let t = 0;
+
+  // ПРЕСТАРТ
+  setTimeout(() => setState(ep, 0, "prestart", PRESTART), t);
+  t += PRESTART;
+
+  // ЦИКЪЛ НА ИГРАТА
+  for (let i = 0; i < total; i++) {
+    setTimeout(() => setState(ep, i, "question", Q), t);
+    t += Q;
+
+    setTimeout(() => setState(ep, i, "explanation", EXPL), t);
+    t += EXPL;
+
+    setTimeout(() => setState(ep, i, "ranking", RANK), t);
+    t += RANK;
+  }
+}
+
+document.getElementById("startBtn").onclick = async () => {
+  const ep = document.getElementById("ep").value.trim();
+  if (!ep) return alert("Въведи име на епизод!");
+
+  await resetState();
+  await setState(ep, 0, "lobby", LOBBY_TIME);
+  setTimeout(() => runGame(ep), LOBBY_TIME);
+
+  alert("Буквомания е стартирана! Лоби 10 сек → Престарт 15 мин.");
+};
+</script>
+</body>
+</html>
