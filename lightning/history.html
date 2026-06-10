@@ -3,71 +3,101 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>История на играта</title>
-
+  <title>История на играта – Светкавичен куиз</title>
   <style>
     body {
-      background: #00264d;
-      color: #fff;
-      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0a1a3a;
+      color: white;
+      font-family: Arial, sans-serif;
       padding: 20px;
       max-width: 900px;
       margin: auto;
+      line-height: 1.6;
     }
-
     h1 {
+      color: #7fffd4;
+      text-align: center;
+      margin-bottom: 5px;
+      text-shadow: 0 0 5px #00e5ff44;
+    }
+    #playerTitle {
       text-align: center;
       color: #ffd100;
-      text-shadow: 0 0 5px #ffb400;
-      margin-bottom: 20px;
+      font-size: 1.2em;
+      margin-bottom: 25px;
     }
-
-    .entry {
-      background: rgba(255,255,255,0.08);
+    .question-block {
+      margin-bottom: 30px;
       padding: 15px;
       border-radius: 12px;
-      margin-bottom: 20px;
+      background: rgba(255,255,255,0.06);
       border-left: 6px solid #ffd100;
     }
-
+    .question-block.correct-block {
+      border-left-color: #00e676;
+    }
+    .question-block.wrong-block {
+      border-left-color: #ff5252;
+    }
+    .question-block.skipped-block {
+      border-left-color: #888;
+      opacity: 0.7;
+    }
+    .label {
+      color: #7fffd4;
+      font-weight: bold;
+    }
     .correct {
       color: #00e676;
       font-weight: bold;
     }
-
     .wrong {
       color: #ff5252;
       font-weight: bold;
     }
-
+    .skipped {
+      color: #aaa;
+      font-style: italic;
+    }
+    .explanation {
+      margin-top: 10px;
+      opacity: 0.85;
+    }
     .backBtn {
       display: block;
-      margin: 20px auto;
-      padding: 12px 20px;
+      margin: 30px auto;
+      padding: 12px 30px;
       background: #ffd100;
       color: #003344;
       border: none;
       border-radius: 8px;
       font-size: 1.2em;
       cursor: pointer;
+      font-weight: bold;
       text-align: center;
       width: 200px;
     }
+    .backBtn:hover { background: #ffcc33; }
+    #summary {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 1.1em;
+      color: #aaddff;
+    }
   </style>
 </head>
-
 <body>
 
-<h1>История на играта</h1>
-
-<div id="history"></div>
-
+<h1>📘 История на играта</h1>
+<div id="playerTitle"></div>
+<div id="summary">Зареждане...</div>
+<div id="content"></div>
 <button class="backBtn" onclick="window.history.back()">Назад</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, getDocs, collection
+  getFirestore, doc, getDoc, collection, getDocs
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -80,67 +110,99 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db  = getFirestore(app);
 
-// Взимаме episodeId и player от URL
-const params = new URLSearchParams(window.location.search);
+const params    = new URLSearchParams(window.location.search);
 const episodeId = params.get("episodeId");
-const player = params.get("player");
+const player    = params.get("player");
 
-const historyDiv = document.getElementById("history");
+const playerTitle = document.getElementById("playerTitle");
+const summary     = document.getElementById("summary");
+const content     = document.getElementById("content");
 
-let questions = [];
-
-// Зареждаме въпросите
-async function loadQuestions() {
-  const res = await fetch("questions.json");
-  questions = await res.json();
+if (!episodeId || !player) {
+  summary.textContent = "Липсва информация за епизод или играч.";
+  throw new Error("Missing params");
 }
 
-// Зареждаме историята на играча
+playerTitle.textContent = "Играч: " + player;
+
 async function loadHistory() {
-  await loadQuestions();
 
-  const answersSnap = await getDocs(
-    collection(db, "games", "lightning", "episodes", episodeId, "results", player, "answers")
-  );
+  // Зареждаме въпросите от questions.json
+  let questions = [];
+  try {
+    const res = await fetch("questions.json");
+    questions = await res.json();
+  } catch(e) {
+    summary.textContent = "Не мога да заредя въпросите.";
+    return;
+  }
 
-  const entries = [];
+  // Зареждаме отговорите на играча от Firestore
+  let answers = {};
+  try {
+    const answersSnap = await getDocs(
+      collection(db, "games", "lightning", "episodes", episodeId, "results", player, "answers")
+    );
+    answersSnap.forEach(d => answers[d.id] = d.data());
+  } catch(e) {
+    summary.textContent = "Нямате история за този епизод.";
+    return;
+  }
 
-  answersSnap.forEach(docSnap => {
-    const index = Number(docSnap.id);
-    const data = docSnap.data();
-    const q = questions[index];
+  if (Object.keys(answers).length === 0) {
+    summary.textContent = "Нямате записани отговори за този епизод.";
+    return;
+  }
 
-    if (!q) return;
-
-    const isCorrect = data.answer.trim() === q.correct.trim();
-
-    entries.push({
-      index,
-      question: q.question,
-      answer: data.answer,
-      correct: q.correct,
-      explanation: q.explanation,
-      isCorrect
-    });
+  // Статистика
+  let correct = 0, wrong = 0, skipped = 0;
+  questions.forEach((q, i) => {
+    const ans = answers[String(i)];
+    if (!ans) { skipped++; return; }
+    if ((ans.answer || "").trim() === (q.correct || "").trim()) correct++;
+    else wrong++;
   });
 
-  // Подреждаме по номер на въпрос
-  entries.sort((a, b) => a.index - b.index);
+  summary.innerHTML = `
+    Верни: <span style="color:#00e676;font-weight:bold;">${correct}</span> &nbsp;|&nbsp;
+    Грешни: <span style="color:#ff5252;font-weight:bold;">${wrong}</span> &nbsp;|&nbsp;
+    Пропуснати: <span style="color:#aaa;">${skipped}</span>
+    &nbsp; от общо ${questions.length} въпроса
+  `;
 
-  // Показваме
-  historyDiv.innerHTML = entries.map(e => `
-    <div class="entry">
-      <h3>${e.index + 1}. ${e.question}</h3>
-      <p><strong>Твоят отговор:</strong> ${e.answer}</p>
-      <p><strong>Верен отговор:</strong> ${e.correct}</p>
-      <p><strong>Обяснение:</strong> ${e.explanation}</p>
-      <p class="${e.isCorrect ? 'correct' : 'wrong'}">
-        ${e.isCorrect ? '✔ Вярно' : '❌ Грешно'}
-      </p>
-    </div>
-  `).join("");
+  // Генерираме HTML за всички въпроси
+  let html = "";
+  questions.forEach((q, i) => {
+    const ans = answers[String(i)];
+    const yourAnswer = ans?.answer || null;
+    const correct    = (q.correct || "").trim();
+    const explanation= q.explanation || "";
+
+    let statusClass = "skipped-block";
+    let statusText  = '<span class="skipped">⬜ Не е отговорено</span>';
+
+    if (yourAnswer !== null) {
+      const isCorrect = yourAnswer.trim() === correct;
+      statusClass = isCorrect ? "correct-block" : "wrong-block";
+      statusText  = isCorrect
+        ? '<span class="correct">✔ Вярно</span>'
+        : '<span class="wrong">✘ Грешно</span>';
+    }
+
+    html += `
+      <div class="question-block ${statusClass}">
+        <div class="label">${i + 1}. ${q.question}</div>
+        <div><span class="label">Твоят отговор:</span> ${yourAnswer ?? "—"}</div>
+        <div><span class="label">Верен отговор:</span> ${correct}</div>
+        <div style="margin-top:6px;">${statusText}</div>
+        ${explanation ? `<div class="explanation">${explanation}</div>` : ""}
+      </div>
+    `;
+  });
+
+  content.innerHTML = html;
 }
 
 loadHistory();
