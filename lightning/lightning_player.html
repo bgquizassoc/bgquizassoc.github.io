@@ -45,7 +45,6 @@
   }
   button:hover { background:#ffcc33; transform:scale(1.05); }
 
-  /* ЕДИНЕН ТАЙМЕР */
   #globalTimer {
     text-align: center; font-weight: 800; margin: 20px 0;
     font-size: clamp(1.8em, 5vw, 2.6em);
@@ -65,6 +64,25 @@
     background: #00e5ff;
     color: #003344;
     font-weight: bold;
+  }
+
+  /* ⭐ LIVE "Отговорили:" списък */
+  #answeredList {
+    margin-top: 20px;
+    text-align: left;
+    font-size: 1.1em;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  #answeredList div {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  #answeredList div:last-child {
+    border-bottom: none;
   }
 
   .stat-answer {
@@ -107,7 +125,7 @@
     font-size: 1.2em;
     text-align: left;
   }
-  .gold { background: #ffeb3b33; border-left: 6px solid #ffd700; }
+  .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
   .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
   .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
 
@@ -148,10 +166,8 @@
 
 <h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 85 - специално издание (повторение)⚡</h1>
 
-<!-- 🎵 МУЗИКА -->
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<!-- ЕДИНЕН ТАЙМЕР -->
 <div id="globalTimer" style="display:none;">-</div>
 
 <div id="start-screen">
@@ -173,6 +189,12 @@
 <div id="quiz" style="display:none;">
   <div id="question"></div>
   <div id="answers" class="answers"></div>
+
+  <!-- ⭐ LIVE СПИСЪК КОЙ Е ОТГОВОРИЛ -->
+  <div id="answeredList" style="display:none;">
+    <strong>Отговорили:</strong>
+    <div id="answeredNames"></div>
+  </div>
 </div>
 
 <div id="explanation" style="display:none;">
@@ -192,28 +214,29 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, onSnapshot, setDoc, collection, getDocs
+  getFirestore, doc, onSnapshot, setDoc, collection, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-const startScreen = document.getElementById("start-screen");
-const waitingScreen = document.getElementById("waiting-screen");
-const quizDiv = document.getElementById("quiz");
+const startScreen    = document.getElementById("start-screen");
+const waitingScreen  = document.getElementById("waiting-screen");
+const quizDiv        = document.getElementById("quiz");
 const explanationDiv = document.getElementById("explanation");
-const rankingDiv = document.getElementById("ranking");
+const rankingDiv     = document.getElementById("ranking");
 
-const qText = document.getElementById("question");
-const answersDiv = document.getElementById("answers");
-const statsBlock = document.getElementById("statsBlock");
-const explanationText = document.getElementById("explanationText");
-const rankingList = document.getElementById("rankingList");
-const rankingTitle = document.getElementById("rankingTitle");
-const historyBtn = document.getElementById("historyBtn");
-const lobbyList = document.getElementById("lobbyList");
-
-const globalTimer = document.getElementById("globalTimer");
-const waitingTitle = document.getElementById("waitingTitle");
-
-const bgMusic = document.getElementById("bg-music");
+const qText          = document.getElementById("question");
+const answersDiv     = document.getElementById("answers");
+const statsBlock     = document.getElementById("statsBlock");
+const explanationText= document.getElementById("explanationText");
+const rankingList    = document.getElementById("rankingList");
+const rankingTitle   = document.getElementById("rankingTitle");
+const historyBtn     = document.getElementById("historyBtn");
+const lobbyList      = document.getElementById("lobbyList");
+const lobbyTitle     = document.getElementById("lobbyTitle");
+const globalTimer    = document.getElementById("globalTimer");
+const waitingTitle   = document.getElementById("waitingTitle");
+const answeredList   = document.getElementById("answeredList");
+const answeredNames  = document.getElementById("answeredNames");
+const bgMusic        = document.getElementById("bg-music");
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
@@ -225,16 +248,17 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db  = getFirestore(app);
 
-let player = "";
-let questions = [];
-let ready = false;
+let player        = "";
+let questions     = [];
+let ready         = false;
 let timerInterval = null;
-let episodeId = null;
+let episodeId     = null;
 
-let lobbyUnsub = null;
-let lobbyEpisodeId = null;
+let lobbyUnsub    = null;
+let lobbyEpisodeId= null;
+let answersUnsub  = null;
 
 /* Архив бутон */
 document.getElementById("archiveBtn").onclick = () => {
@@ -255,11 +279,11 @@ async function loadQuestions() {
 
 /* Показване само на един екран */
 function showOnly(div) {
-  startScreen.style.display = "none";
-  waitingScreen.style.display = "none";
-  quizDiv.style.display = "none";
+  startScreen.style.display    = "none";
+  waitingScreen.style.display  = "none";
+  quizDiv.style.display        = "none";
   explanationDiv.style.display = "none";
-  rankingDiv.style.display = "none";
+  rankingDiv.style.display     = "none";
   div.style.display = "block";
 }
 
@@ -276,7 +300,6 @@ function updateTimer(startTime, duration) {
   const now = Date.now();
   const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
   globalTimer.textContent = remaining;
-
   if (remaining <= 5) globalTimer.classList.add("warning");
   else globalTimer.classList.remove("warning");
 }
@@ -292,6 +315,7 @@ function seededShuffle(array, seed) {
   }
   return result;
 }
+
 /* Временно / крайно класиране */
 function updateRankingTitle(index) {
   const isLast = index >= questions.length - 1;
@@ -307,7 +331,6 @@ document.getElementById("enterBtn").onclick = async () => {
   await loadQuestions();
   ready = true;
   showOnly(waitingScreen);
-
   globalTimer.style.display = "none";
 
   if (bgMusic) {
@@ -323,15 +346,47 @@ document.getElementById("enterBtn").onclick = async () => {
     { merge: true }
   );
 
-  // ⭐ FIX: веднага при влизане прилагаме текущата фаза
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
+
+/* ⭐ LIVE "кой е отговорил" */
+function startAnswerListener(index) {
+  if (answersUnsub) answersUnsub();
+
+  answeredNames.innerHTML = "";
+  answeredList.style.display = "block";
+
+  answersUnsub = onSnapshot(
+    collection(db, "games", "lightning", "episodes", episodeId, "results"),
+    resultsSnap => {
+      resultsSnap.forEach(playerDoc => {
+        const pName = playerDoc.id;
+        onSnapshot(
+          doc(db, "games", "lightning", "episodes", episodeId, "results", pName, "answers", String(index)),
+          ansDoc => {
+            if (ansDoc.exists()) {
+              const already = Array.from(answeredNames.children).some(d => d.dataset.player === pName);
+              if (!already) {
+                const div = document.createElement("div");
+                div.dataset.player = pName;
+                div.textContent = pName + " отговори";
+                answeredNames.appendChild(div);
+              }
+            }
+          }
+        );
+      });
+    }
+  );
+}
 
 /* Обяснение + статистика */
 async function renderExplanation(index) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = "";
   explanationText.textContent = "";
+  answeredList.style.display = "none";
+  answeredNames.innerHTML = "";
 
   const q = questions[index];
   if (!q) return;
@@ -365,7 +420,6 @@ async function renderExplanation(index) {
     const c = counts[key] || 0;
     const pct = total ? Math.round((c / total) * 100) : 0;
     const isCorrect = key === correct;
-
     html += `
       <div class="stat-answer ${isCorrect ? "correct" : ""}">
         ${a}
@@ -378,7 +432,7 @@ async function renderExplanation(index) {
   statsBlock.innerHTML = html;
 }
 
-/* Класиране с тайбрек по време */
+/* Класиране */
 async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
@@ -391,95 +445,82 @@ async function renderRanking(index) {
 
   for (const playerDoc of playersSnap.docs) {
     const playerName = playerDoc.id;
-
     const answersSnap = await getDocs(
       collection(db, "games", "lightning", "episodes", episodeId, "results", playerName, "answers")
     );
 
     let totalPoints = 0;
-    let totalTime = 0;
+    let totalTime   = 0;
 
     answersSnap.forEach(ansDoc => {
       const qIndex = Number(ansDoc.id);
-      const data = ansDoc.data();
-      const q = questions[qIndex];
+      const data   = ansDoc.data();
+      const q      = questions[qIndex];
       if (!q) return;
 
       if ((data.answer || "").trim() === (q.correct || "").trim()) {
-        if (qIndex < 10) totalPoints += 1;
+        if (qIndex < 10)      totalPoints += 1;
         else if (qIndex < 20) totalPoints += 2;
-        else totalPoints += 3;
+        else                  totalPoints += 3;
       }
 
-      if (typeof data.thinkingTime === "number") {
-        totalTime += data.thinkingTime;
-      }
+      if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
     });
 
     scores[playerName] = { points: totalPoints, time: totalTime };
   }
 
   const sorted = Object.entries(scores).sort((a, b) => {
-    const ap = a[1].points;
-    const bp = b[1].points;
-    if (bp !== ap) return bp - ap;
-
-    const at = a[1].time;
-    const bt = b[1].time;
-    if (at !== bt) return at - bt;
-
+    if (b[1].points !== a[1].points) return b[1].points - a[1].points;
+    if (a[1].time   !== b[1].time)   return a[1].time   - b[1].time;
     return a[0].localeCompare(b[0], "bg");
   });
 
- rankingList.innerHTML = sorted
-  .map(([name, obj], i) => {
-    const pts = obj.points;
-    const time = (obj.time / 1000).toFixed(1);
+  rankingList.innerHTML = sorted.map(([name, obj], i) => {
+    const pts    = obj.points;
+    const time   = (obj.time / 1000).toFixed(1);
     const isLast = index >= questions.length - 1;
-
-    let cls = "";
-    const isMe = name === player;
-    let medal = "";
-
-    if (i === 0) { cls = "gold"; medal = "🥇"; }
+    const isMe   = name === player;
+    let cls = "", medal = "";
+    if (i === 0) { cls = "gold";   medal = "🥇"; }
     else if (i === 1) { cls = "silver"; medal = "🥈"; }
     else if (i === 2) { cls = "bronze"; medal = "🥉"; }
-
     const timeText = isLast ? ` (време: ${time} сек)` : "";
-
-    return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
-        ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
-      </div>`;
-  })
-  .join("");
+    return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+      ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
+    </div>`;
+  }).join("");
 
   updateRankingTitle(index);
 }
 
-/* ⭐ FIX: запомняме последната снимка на фазата */
+/* Прилагане на фаза */
 let lastPhaseSnapshot = null;
 
-/* ⭐ FIX: функция за прилагане на фазата веднага след влизане */
 function applyPhaseImmediately(data) {
   const { index, phase, startTime, duration } = data;
-
   if (timerInterval) clearInterval(timerInterval);
 
+  /* LOBBY */
   if (phase === "lobby") {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
+    answeredList.style.display = "none";
     waitingTitle.textContent = "Играта още не е започнала.";
     return;
   }
 
+  /* PRESTART */
   if (phase === "prestart") {
     showOnly(waitingScreen);
     waitingTitle.textContent = "Играта започва след:";
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
 
+  /* QUESTION */
   if (phase === "question") {
     showOnly(quizDiv);
     globalTimer.style.display = "block";
@@ -489,6 +530,10 @@ function applyPhaseImmediately(data) {
 
     qText.textContent = `${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
+    answeredNames.innerHTML = "";
+    answeredList.style.display = "block";
+
+    startAnswerListener(index);
 
     const seed = episodeId.length * 1000 + index;
     const shuffled = seededShuffle(q.answers, seed);
@@ -496,7 +541,6 @@ function applyPhaseImmediately(data) {
     shuffled.forEach(ans => {
       const btn = document.createElement("button");
       btn.textContent = ans;
-
       btn.onclick = async () => {
         btn.classList.add("selected");
         Array.from(answersDiv.children).forEach(b => b.disabled = true);
@@ -520,7 +564,6 @@ function applyPhaseImmediately(data) {
           }
         );
       };
-
       answersDiv.appendChild(btn);
     });
 
@@ -528,15 +571,19 @@ function applyPhaseImmediately(data) {
     return;
   }
 
+  /* EXPLANATION */
   if (phase === "explanation") {
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     renderExplanation(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
 
+  /* RANKING */
   if (phase === "ranking") {
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -548,12 +595,9 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   if (!snap.exists()) return;
 
   const data = snap.data();
-  lastPhaseSnapshot = data; // ⭐ FIX
-
+  lastPhaseSnapshot = data;
   episodeId = data.episodeId;
   if (!episodeId) return;
-
-  const { index, phase, startTime, duration } = data;
 
   if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
     if (lobbyUnsub) lobbyUnsub();
@@ -570,7 +614,6 @@ onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   }
 
   if (!ready) return;
-
   applyPhaseImmediately(data);
 });
 </script>
