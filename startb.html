@@ -49,7 +49,7 @@ const RANK       = 20000;         // време за класиране
 let questions = [];
 
 async function loadQuestions() {
-  const res = await fetch("bukvomania/questions.json");
+  const res = await fetch("bukvomanialive/questions.json");
   questions = await res.json();
 }
 
