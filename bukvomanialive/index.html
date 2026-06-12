@@ -178,9 +178,9 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Буквомания Live 2⚡<br>⚡ епизод 2 ⚡</h1>
+<h1>Игри на Знания<br>⚡ Буквомания Live ⚡<br>⚡ епизод 2 ⚡</h1>
 
-<audio id="bg-music" src="Ellie.mp3" loop preload="auto"></audio>
+<audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
 
@@ -283,9 +283,30 @@ let lobbyUnsub    = null;
 let lobbyEpisodeId= null;
 let answersUnsub  = null;
 
+/* ⭐ Транслитерация на визуално еднакви латински букви към кирилица */
+const LATIN_TO_CYRILLIC = {
+  "A": "А",
+  "B": "В",
+  "C": "С",
+  "E": "Е",
+  "H": "Н",
+  "K": "К",
+  "M": "М",
+  "O": "О",
+  "P": "Р",
+  "T": "Т",
+  "X": "Х",
+  "Y": "У"
+};
+
+function normalizeLetter(letter) {
+  const upper = letter.toUpperCase();
+  return LATIN_TO_CYRILLIC[upper] || upper;
+}
+
 /* ⭐ Проверка на верен отговор — letter + alt_letters */
 function isCorrectAnswer(q, input) {
-  const typed = input.trim().toUpperCase();
+  const typed = normalizeLetter(input.trim());
   if (!typed) return false;
   const main = (q.letter || "").toUpperCase();
   const alts = (q.alt_letters || []).map(l => l.toUpperCase());
@@ -363,11 +384,12 @@ document.getElementById("enterBtn").onclick = async () => {
 
 /* ⭐ Изпращане на отговор */
 async function submitAnswer(index, startTime) {
-  const typed = letterInput.value.trim().toUpperCase();
-  if (!typed) { alert("Напиши буква!"); return; }
+  const raw = letterInput.value.trim();
+  if (!raw) { alert("Напиши буква!"); return; }
 
+  const typed = normalizeLetter(raw);
   const q = questions[index];
-  const correct = isCorrectAnswer(q, typed);
+  const correct = isCorrectAnswer(q, raw);
 
   // Заключваме полето
   letterInput.classList.add("submitted");
@@ -450,7 +472,7 @@ async function renderExplanation(index) {
     );
     const ansDoc = ansSnap.docs.find(d => d.id === String(index));
     if (ansDoc) {
-      const typed = (ansDoc.data().answer || "").toUpperCase();
+      const typed = normalizeLetter((ansDoc.data().answer || ""));
       counts[typed] = (counts[typed] || 0) + 1;
     }
   }
