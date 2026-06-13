@@ -2,6 +2,7 @@
 ## Българска национална куиз асоциация (БНКА)
 
 Official website repository of the Bulgarian National Quiz Association.
+Официален сайт на Българската национална куиз асоциация
 
 🌐 Website: https://bgquizassoc.github.io
 
@@ -13,7 +14,7 @@ Official website repository of the Bulgarian National Quiz Association.
 чиято цел е развитието на състезателния куиз в България, организирането на
 национални първенства и представянето на България на международни куиз събития.
 
-**ЕИК:** XXXXXXXX  
+**ЕИК:**208553344
 **Държава:** България  
 **Тип:** Сдружение с нестопанска цел
 
