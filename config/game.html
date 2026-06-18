@@ -164,7 +164,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод 30⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод 31⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -274,7 +274,6 @@ const pointsNames = {
   by_difficulty: "По трудност"
 };
 
-// ⭐ ПЪРВА КРЪПКА — добавяме map за темите
 const topicMap = {
   arhitektura:"Архитектура",
   astronomia:"Астрономия",
@@ -323,11 +322,25 @@ setInterval(() => {
   if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
 }, 400);
 
-/* Таймер */
+/* ⭐ ТАЙМЕР — показва ЧЧ:ММ:СС в престарт, секунди при въпроси */
+function formatTime(totalSeconds) {
+  if (totalSeconds >= 60) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) {
+      return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    } else {
+      return `${m}:${String(s).padStart(2, "0")}`;
+    }
+  }
+  return String(totalSeconds);
+}
+
 function updateTimer(startTime, duration) {
   const now = Date.now();
   const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
-  globalTimer.textContent = remaining;
+  globalTimer.textContent = formatTime(remaining);
 
   if (remaining <= 5) globalTimer.classList.add("warning");
   else globalTimer.classList.remove("warning");
@@ -492,22 +505,17 @@ async function renderRanking(index) {
       const q = questions[qIndex];
       if (!q) return;
 
-    // Четем режима на точкуване от епизода
-const scoringMode = episodeConfig?.scoringMode || "progressive";
+      const scoringMode = episodeConfig?.scoringMode || "progressive";
 
-if ((data.answer || "").trim() === (q.correct || "").trim()) {
-
-  if (scoringMode === "equal") {
-    // ⭐ Еднакви точки
-    totalPoints += 1;
-
-  } else {
-    // ⭐ Прогресивни точки (lightning стил)
-    if (qIndex < 10) totalPoints += 1;
-    else if (qIndex < 20) totalPoints += 2;
-    else totalPoints += 3;
-  }
-}
+      if ((data.answer || "").trim() === (q.correct || "").trim()) {
+        if (scoringMode === "equal") {
+          totalPoints += 1;
+        } else {
+          if (qIndex < 10) totalPoints += 1;
+          else if (qIndex < 20) totalPoints += 2;
+          else totalPoints += 3;
+        }
+      }
 
       if (typeof data.thinkingTime === "number") {
         totalTime += data.thinkingTime;
@@ -563,17 +571,14 @@ function startAnswerListener(index) {
   answeredNames.innerHTML = "";
   answeredList.style.display = "block";
 
-  // Слушаме списъка с играчи
   answersUnsub = onSnapshot(
     collection(db, "games", "configurator", "episodes", episodeId, "results"),
     resultsSnap => {
-
       const answered = [];
 
       resultsSnap.forEach(playerDoc => {
         const playerName = playerDoc.id;
 
-        // Слушаме конкретния въпрос за конкретния играч
         onSnapshot(
           doc(db, "games", "configurator", "episodes", episodeId, "results", playerName, "answers", String(index)),
           ansDoc => {
@@ -608,7 +613,6 @@ function applyPhaseImmediately(data) {
     answeredList.style.display = "none";
 
     if (episodeConfig) {
-
       const topics = Object.entries(episodeConfig.topics || {})
         .filter(([k, v]) => v > 0)
         .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
@@ -622,24 +626,20 @@ function applyPhaseImmediately(data) {
         Супертрудни: ${diff.superHard}
       `;
 
-      const todayConfigurator = "Христомир Раков";
+      const todayConfigurator = " Деница Динева (Музика), Станимир Генев (Спорт), Виолета Георгиева (Химия)";
 
       lobbyTitle.innerHTML = `
         <div style="font-size:1.1em; margin-bottom:10px; color:#ff66cc;">
           <b>Днес конфигуратор е:</b> ${todayConfigurator}
         </div>
-
         <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
           <b>Параметрите на куиза са:</b>
         </div>
-
         <div style="font-size:0.95em; line-height:1.4; color:#7CFC00;">
           <b>Формат:</b> ${formatNames[episodeConfig.format]}<br>
           <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode]}<br>
           <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
-
           <b>Теми:</b><br>${topics}<br><br>
-
           <b>Трудност:</b><br>${diffText}
         </div>
       `;
@@ -657,7 +657,6 @@ function applyPhaseImmediately(data) {
     answeredList.style.display = "none";
 
     if (episodeConfig) {
-
       const topics = Object.entries(episodeConfig.topics || {})
         .filter(([k, v]) => v > 0)
         .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
@@ -671,24 +670,20 @@ function applyPhaseImmediately(data) {
         Супертрудни: ${diff.superHard}
       `;
 
-      const todayConfigurator = " Марин Николов ";
+      const todayConfigurator = "Марин Николов";
 
       lobbyTitle.innerHTML = `
         <div style="font-size:1.1em; margin-bottom:10px; color:#ff66cc;">
           <b>Днес конфигуратор е:</b> ${todayConfigurator}
         </div>
-
         <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
           <b>Параметрите на куиза са:</b>
         </div>
-
         <div style="font-size:0.95em; line-height:1.4; color:#7CFC00;">
           <b>Формат:</b> ${formatNames[episodeConfig.format]}<br>
           <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode]}<br>
           <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
-
           <b>Теми:</b><br>${topics}<br><br>
-
           <b>Трудност:</b><br>${diffText}
         </div>
       `;
@@ -770,7 +765,6 @@ function applyPhaseImmediately(data) {
     return;
   }
 }
-
 
 /* Слушане на фазите */
 onSnapshot(doc(db, "games", "configurator", "state", "current"), async snap => {
