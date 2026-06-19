@@ -9,18 +9,38 @@
     padding:15px 30px; font-size:1.4em; border:none; border-radius:10px;
     background:#ffd100; color:#111; font-weight:bold; cursor:pointer;
   }
-  input {
+  input, select {
     padding:10px; font-size:1.2em; border-radius:8px; border:none;
     margin-bottom:20px; width:200px; text-align:center;
+  }
+  .field-row {
+    margin: 10px 0;
+    font-size: 1.1em;
+  }
+  .field-row label {
+    display: inline-block;
+    width: 220px;
+    text-align: right;
+    margin-right: 10px;
   }
 </style>
 </head>
 <body>
 <h1>🔤 Старт на Буквомания Live</h1>
-<p>Въведи име на епизод:</p>
-<input id="ep" placeholder="пример: bukv01">
-<br><br>
+
+<div class="field-row">
+  <label>Име на епизод:</label>
+  <input id="ep" placeholder="пример: bukv01">
+</div>
+
+<div class="field-row">
+  <label>Час за старт на играта:</label>
+  <input type="time" id="startTime">
+</div>
+
+<br>
 <button id="startBtn">СТАРТ</button>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
@@ -40,11 +60,10 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА =====
-const LOBBY_TIME = 10000;         // 10 секунди лоби
-const PRESTART   = 5 * 60 * 1000; // 15 минути престарт
-const Q          = 20000;         // време за въпрос
-const EXPL       = 25000;         // време за обяснение
-const RANK       = 20000;         // време за класиране
+const LOBBY_TIME = 10000;   // 10 секунди лоби
+const Q          = 20000;   // време за въпрос
+const EXPL       = 25000;   // време за обяснение
+const RANK       = 20000;   // време за класиране
 
 let questions = [];
 
@@ -78,18 +97,11 @@ async function runGame(ep) {
   const total = questions.length;
   let t = 0;
 
-  // ПРЕСТАРТ
-  setTimeout(() => setState(ep, 0, "prestart", PRESTART), t);
-  t += PRESTART;
-
-  // ЦИКЪЛ НА ИГРАТА
   for (let i = 0; i < total; i++) {
     setTimeout(() => setState(ep, i, "question", Q), t);
     t += Q;
-
     setTimeout(() => setState(ep, i, "explanation", EXPL), t);
     t += EXPL;
-
     setTimeout(() => setState(ep, i, "ranking", RANK), t);
     t += RANK;
   }
@@ -97,13 +109,43 @@ async function runGame(ep) {
 
 document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
+  const startTimeRaw = document.getElementById("startTime").value;
+
   if (!ep) return alert("Въведи име на епизод!");
+  if (!startTimeRaw) return alert("Избери час за старт!");
+
+  // Изчисляваме колко ms до уречения час
+  const [hh, mm] = startTimeRaw.split(":").map(Number);
+  const now = new Date();
+  let startAt = new Date(
+    now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0
+  ).getTime();
+
+  // Ако часът вече е минал — слагаме за утре
+  if (startAt <= Date.now()) {
+    startAt += 24 * 60 * 60 * 1000;
+  }
+
+  const prestartDuration = startAt - Date.now() - LOBBY_TIME;
+
+  if (prestartDuration < 0) {
+    return alert("Избраният час е твърде близо! Избери по-късен час.");
+  }
 
   await resetState();
-  await setState(ep, 0, "lobby", LOBBY_TIME);
-  setTimeout(() => runGame(ep), LOBBY_TIME);
 
-  alert("Буквомания е стартирана! Лоби 10 сек → Престарт 15 мин.");
+  // ЛОБИ — 10 секунди
+  await setState(ep, 0, "lobby", LOBBY_TIME);
+
+  // ПРЕСТАРТ — отброява до уречения час
+  setTimeout(() => setState(ep, 0, "prestart", prestartDuration), LOBBY_TIME);
+
+  // ИГРАТА — стартира в уречения час
+  setTimeout(() => runGame(ep), LOBBY_TIME + prestartDuration);
+
+  const h = Math.floor(prestartDuration / 3600000);
+  const m = Math.floor((prestartDuration % 3600000) / 60000);
+  alert(`Буквомания стартирана! Лоби 10 сек → Престарт ${h > 0 ? h + "ч " : ""}${m}мин → Старт в ${startTimeRaw}`);
 };
 </script>
 </body>
