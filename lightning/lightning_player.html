@@ -14,8 +14,7 @@
     align-items: center; justify-content: flex-start;
     font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
     max-width: 900px; margin: 0 auto; padding: 20px;
-    background: #00264d;
-    color: #ffffff;
+    background: #00264d; color: #ffffff;
   }
 
   h1 {
@@ -61,110 +60,65 @@
   }
 
   .answers button.selected {
-    background: #00e5ff;
-    color: #003344;
-    font-weight: bold;
+    background: #00e5ff; color: #003344; font-weight: bold;
   }
 
-  /* ⭐ LIVE "Отговорили:" списък */
   #answeredList {
-    margin-top: 20px;
-    text-align: left;
-    font-size: 1.1em;
-    background: rgba(255,255,255,0.05);
-    padding: 12px;
-    border-radius: 10px;
+    margin-top: 20px; text-align: left; font-size: 1.1em;
+    background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px;
   }
 
   #answeredList div {
-    padding: 4px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
   }
-
-  #answeredList div:last-child {
-    border-bottom: none;
-  }
+  #answeredList div:last-child { border-bottom: none; }
 
   .stat-answer {
-    display: block;
-    width: 100%;
-    margin: 10px 0;
-    padding: 16px;
-    border-radius: 10px;
-    background: #333;
-    color: #fff;
-    font-size: 1.2em;
-    text-align: left;
-    position: relative;
+    display: block; width: 100%; margin: 10px 0; padding: 16px;
+    border-radius: 10px; background: #333; color: #fff;
+    font-size: 1.2em; text-align: left; position: relative;
   }
-
-  .stat-answer.correct {
-    background: #2e7d32;
-    font-weight: bold;
-  }
-
+  .stat-answer.correct { background: #2e7d32; font-weight: bold; }
   .stat-answer .pct {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0.9;
+    position: absolute; right: 16px; top: 50%;
+    transform: translateY(-50%); opacity: 0.9;
   }
 
   #explanationText {
-    font-size: 1.25em;
-    line-height: 1.5em;
-    margin-top: 20px;
-    text-align: left;
+    font-size: 1.25em; line-height: 1.5em; margin-top: 20px; text-align: left;
   }
 
   .rank-item {
-    padding: 10px;
-    margin: 8px 0;
-    border-radius: 10px;
-    font-size: 1.2em;
-    text-align: left;
+    padding: 10px; margin: 8px 0; border-radius: 10px;
+    font-size: 1.2em; text-align: left;
   }
   .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
   .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
   .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
 
   #historyBtn, #archiveBtn {
-    margin-top: 20px;
-    background: #00e5ff;
-    color: #003344;
+    margin-top: 20px; background: #00e5ff; color: #003344;
   }
 
-  #lobbyTitle {
-    margin-top: 20px;
-    font-weight: 600;
-  }
+  #lobbyTitle { margin-top: 20px; font-weight: 600; }
 
   #lobbyList {
-    margin-top: 10px;
-    text-align: left;
-    max-height: 200px;
-    overflow-y: auto;
-    font-size: 0.95em;
+    margin-top: 10px; text-align: left;
+    max-height: 200px; overflow-y: auto; font-size: 0.95em;
   }
-
-  #lobbyList div {
-    padding: 4px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
+  #lobbyList div { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
 
   .myself {
     background: #00e5ff55 !important;
     border-left: 6px solid #00e5ff !important;
-    font-weight: 700;
-    color: #fff !important;
+    font-weight: 700; color: #fff !important;
   }
   </style>
 </head>
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 87 - Световни първенства по футбол⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 88 - БГ География от Вихрен Стоев⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -180,7 +134,6 @@
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
-
   <h3 id="lobbyTitle">Стартов списък на играчите</h3>
   <p style="margin-top:10px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
   <div id="lobbyList">Още няма други играчи.</div>
@@ -189,8 +142,6 @@
 <div id="quiz" style="display:none;">
   <div id="question"></div>
   <div id="answers" class="answers"></div>
-
-  <!-- ⭐ LIVE СПИСЪК КОЙ Е ОТГОВОРИЛ -->
   <div id="answeredList" style="display:none;">
     <strong>Отговорили:</strong>
     <div id="answeredNames"></div>
@@ -200,7 +151,6 @@
 <div id="explanation" style="display:none;">
   <h3>Статистика</h3>
   <div id="statsBlock"></div>
-
   <h3 style="margin-top:25px;">Обяснение</h3>
   <div id="explanationText"></div>
 </div>
@@ -255,29 +205,24 @@ let questions     = [];
 let ready         = false;
 let timerInterval = null;
 let episodeId     = null;
-
 let lobbyUnsub    = null;
 let lobbyEpisodeId= null;
 let answersUnsub  = null;
 
-/* Архив бутон */
 document.getElementById("archiveBtn").onclick = () => {
   window.location.href = "archive.html";
 };
 
-/* История бутон */
 historyBtn.onclick = () => {
   if (!episodeId) return;
   window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
 
-/* Зареждане на въпроси */
 async function loadQuestions() {
   const res = await fetch("questions.json");
   questions = await res.json();
 }
 
-/* Показване само на един екран */
 function showOnly(div) {
   startScreen.style.display    = "none";
   waitingScreen.style.display  = "none";
@@ -287,7 +232,6 @@ function showOnly(div) {
   div.style.display = "block";
 }
 
-/* Анимация на точките */
 let dotCount = 0;
 setInterval(() => {
   dotCount = (dotCount + 1) % 4;
@@ -295,16 +239,28 @@ setInterval(() => {
   if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
 }, 400);
 
-/* Таймер */
+/* ⭐ ТАЙМЕР — ЧЧ:ММ:СС при лоби, секунди при въпроси */
+function formatTime(totalSeconds) {
+  if (totalSeconds >= 60) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) {
+      return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    }
+    return `${m}:${String(s).padStart(2,"0")}`;
+  }
+  return String(totalSeconds);
+}
+
 function updateTimer(startTime, duration) {
   const now = Date.now();
   const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
-  globalTimer.textContent = remaining;
+  globalTimer.textContent = formatTime(remaining);
   if (remaining <= 5) globalTimer.classList.add("warning");
   else globalTimer.classList.remove("warning");
 }
 
-/* Детерминирано разбъркване */
 function seededShuffle(array, seed) {
   let result = array.slice();
   let s = seed;
@@ -316,17 +272,15 @@ function seededShuffle(array, seed) {
   return result;
 }
 
-/* Временно / крайно класиране */
 function updateRankingTitle(index) {
   const isLast = index >= questions.length - 1;
   rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
   historyBtn.style.display = isLast ? "block" : "none";
 }
 
-/* Влизане в играта */
 document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
-  if (!player) return alert("Въведете име!");
+  if (!player) return alert("Въведете ime!");
 
   await loadQuestions();
   ready = true;
@@ -349,10 +303,8 @@ document.getElementById("enterBtn").onclick = async () => {
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
-/* ⭐ LIVE "кой е отговорил" */
 function startAnswerListener(index) {
   if (answersUnsub) answersUnsub();
-
   answeredNames.innerHTML = "";
   answeredList.style.display = "block";
 
@@ -380,7 +332,6 @@ function startAnswerListener(index) {
   );
 }
 
-/* Обяснение + статистика */
 async function renderExplanation(index) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = "";
@@ -422,17 +373,13 @@ async function renderExplanation(index) {
     const isCorrect = key === correct;
     html += `
       <div class="stat-answer ${isCorrect ? "correct" : ""}">
-        ${a}
-        <span class="pct">${pct}%</span>
-        ${isCorrect ? " ✔" : ""}
-      </div>
-    `;
+        ${a}<span class="pct">${pct}%</span>${isCorrect ? " ✔" : ""}
+      </div>`;
   });
 
   statsBlock.innerHTML = html;
 }
 
-/* Класиране */
 async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
@@ -494,14 +441,12 @@ async function renderRanking(index) {
   updateRankingTitle(index);
 }
 
-/* Прилагане на фаза */
 let lastPhaseSnapshot = null;
 
 function applyPhaseImmediately(data) {
   const { index, phase, startTime, duration } = data;
   if (timerInterval) clearInterval(timerInterval);
 
-  /* LOBBY */
   if (phase === "lobby") {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
@@ -510,7 +455,6 @@ function applyPhaseImmediately(data) {
     return;
   }
 
-  /* PRESTART */
   if (phase === "prestart") {
     showOnly(waitingScreen);
     waitingTitle.textContent = "Играта започва след:";
@@ -520,7 +464,6 @@ function applyPhaseImmediately(data) {
     return;
   }
 
-  /* QUESTION */
   if (phase === "question") {
     showOnly(quizDiv);
     globalTimer.style.display = "block";
@@ -571,7 +514,6 @@ function applyPhaseImmediately(data) {
     return;
   }
 
-  /* EXPLANATION */
   if (phase === "explanation") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
@@ -580,7 +522,6 @@ function applyPhaseImmediately(data) {
     return;
   }
 
-  /* RANKING */
   if (phase === "ranking") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
@@ -590,7 +531,6 @@ function applyPhaseImmediately(data) {
   }
 }
 
-/* Слушане на фазите */
 onSnapshot(doc(db, "games", "lightning", "state", "current"), async snap => {
   if (!snap.exists()) return;
 
