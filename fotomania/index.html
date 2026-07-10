@@ -583,7 +583,8 @@ async function renderRanking(index) {
 let lastPhaseSnapshot = null;
 
 function applyPhaseImmediately(data) {
-  const { index, phase, startTime, duration } = data;
+ const { index, phase, duration } = data;
+ const startTime = data.startTime?.toMillis?.() ?? data.startTime ?? Date.now();
   if (timerInterval) clearInterval(timerInterval);
 
   if (phase === "lobby") {
