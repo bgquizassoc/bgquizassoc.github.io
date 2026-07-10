@@ -44,7 +44,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, deleteDoc
+  getFirestore, doc, setDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -59,10 +59,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const LOBBY_TIME = 10000;   // 10 секунди лоби
-const Q          = 25000;   // 25 секунди за въпрос (малко повече — снимката трябва да се зареди)
-const EXPL       = 25000;   // обяснение
-const RANK       = 20000;   // класиране
+const LOBBY_TIME = 10000;
+const Q          = 25000;
+const EXPL       = 25000;
+const RANK       = 20000;
 
 let questions = [];
 
@@ -71,10 +71,18 @@ async function loadQuestions() {
   questions = await res.json();
 }
 
+/* ⭐ serverTimestamp() — Firebase сървърът слага времето,
+   всички клиенти виждат едно и също startTime */
 async function setState(ep, index, phase, durationMs) {
   await setDoc(
     doc(db, "games", "fotomania", "state", "current"),
-    { episodeId: ep, index, phase, startTime: Date.now(), duration: durationMs },
+    {
+      episodeId: ep,
+      index,
+      phase,
+      startTime: serverTimestamp(),
+      duration: durationMs
+    },
     { merge: false }
   );
 }
