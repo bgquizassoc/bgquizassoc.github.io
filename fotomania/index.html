@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>⚡ Игри на Знания - Фотомания Live ⚡</title>
+
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 900px; margin: 0 auto; padding: 20px;
+    background: #00264d;
+    color: #ffffff;
+  }
+
+  h1 {
+    text-align: center; color: #ffd100;
+    font-size: clamp(1.5em, 4vw, 2em);
+    margin: 10px auto 15px auto;
+    text-shadow: 0 0 5px #ffb400;
+  }
+
+  #start-screen, #waiting-screen, #quiz, #explanation, #ranking {
+    width: 100%; max-width: 600px; text-align: center;
+    margin-top: 30px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 0 10px rgba(255,209,0,0.2);
+  }
+
+  input {
+    padding: 10px; font-size: 1.1em; border-radius: 8px;
+    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+  }
+
+  button {
+    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    border-radius: 8px; border: none;
+    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background:#ffcc33; transform:scale(1.05); }
+
+  #globalTimer {
+    text-align: center; font-weight: 800; margin: 20px 0;
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+  }
+  #globalTimer.warning { color: #ff4c4c; }
+
+  /* ⭐ СНИМКА */
+  #questionImage {
+    width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    display: none;
+    background: #001a33;
+  }
+
+  #question { font-size: 1.4em; margin: 10px 0 6px; font-weight: 600; }
+
+  #letterArea {
+    margin: 16px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #letterHint {
+    font-size: 1em;
+    color: #aaddff;
+    margin-bottom: 4px;
+  }
+
+  #letterInput {
+    width: 80px;
+    height: 80px;
+    font-size: 2.5em;
+    text-align: center;
+    border-radius: 12px;
+    border: 3px solid #00509e;
+    background: #001a33;
+    color: #fff;
+    font-weight: bold;
+    text-transform: uppercase;
+    caret-color: #ffd100;
+    outline: none;
+  }
+
+  #letterInput:focus {
+    border-color: #ffd100;
+    box-shadow: 0 0 10px #ffd10066;
+  }
+
+  #letterInput.submitted {
+    border-color: #00e676;
+    background: #00264d;
+    color: #00e676;
+  }
+
+  #submitBtn {
+    width: 200px;
+    font-size: 1.2em;
+    padding: 14px;
+    background: #ffd100;
+    color: #111;
+  }
+
+  #submitBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  #answeredList {
+    margin-top: 20px;
+    text-align: left;
+    font-size: 1.1em;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  #answeredList div {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  #answeredList div:last-child { border-bottom: none; }
+
+  /* ⭐ СНИМКА В ОБЯСНЕНИЕТО */
+  #explanationImage {
+    width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    display: none;
+    background: #001a33;
+  }
+
+  .stat-answer {
+    display: block; width: 100%; margin: 10px 0; padding: 16px;
+    border-radius: 10px; background: #333; color: #fff;
+    font-size: 1.2em; text-align: left; position: relative;
+  }
+  .stat-answer.correct { background: #2e7d32; font-weight: bold; }
+  .stat-answer .pct {
+    position: absolute; right: 16px; top: 50%;
+    transform: translateY(-50%); opacity: 0.9;
+  }
+
+  #explanationText {
+    font-size: 1.25em; line-height: 1.5em;
+    margin-top: 20px; text-align: left;
+  }
+
+  .rank-item {
+    padding: 10px; margin: 8px 0;
+    border-radius: 10px; font-size: 1.2em; text-align: left;
+  }
+  .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
+  .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
+  .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
+
+  #historyBtn, #archiveBtn {
+    margin-top: 20px; background: #00e5ff; color: #003344;
+  }
+
+  #lobbyTitle { margin-top: 20px; font-weight: 600; }
+
+  #lobbyList {
+    margin-top: 10px; text-align: left;
+    max-height: 200px; overflow-y: auto; font-size: 0.95em;
+  }
+  #lobbyList div { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+  .myself {
+    background: #00e5ff55 !important;
+    border-left: 6px solid #00e5ff !important;
+    font-weight: 700; color: #fff !important;
+  }
+  </style>
+</head>
+
+<body>
+
+<h1>Игри на Знания<br>📷 Фотомания Live 📷<br>⚡ епизод тест 1 ⚡</h1>
+
+<audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
+
+<div id="globalTimer" style="display:none;">-</div>
+
+<div id="start-screen">
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="playerName" placeholder="Име ..." />
+  <button id="enterBtn">Влез в играта</button>
+  <button id="archiveBtn">Архив класирания</button>
+</div>
+
+<div id="waiting-screen" style="display:none;">
+  <h2 id="waitingTitle">Играта още не е започнала.</h2>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
+  <h3 id="lobbyTitle">Стартов списък на играчите</h3>
+  <p style="margin-top:10px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
+  <div id="lobbyList">Още няма други играчи.</div>
+</div>
+
+<div id="quiz" style="display:none;">
+  <!-- ⭐ СНИМКАТА ИЗЛИЗА НАД ВЪПРОСА -->
+  <img id="questionImage" src="" alt="Снимка към въпроса" />
+  <div id="question"></div>
+  <div id="letterArea">
+    <div id="letterHint">Напиши първата буква на отговора:</div>
+    <input type="text" id="letterInput" maxlength="1" autocomplete="off"
+           autocorrect="off" autocapitalize="characters" spellcheck="false"
+           placeholder="?" />
+    <button id="submitBtn">Изпрати</button>
+  </div>
+  <div id="answeredList" style="display:none;">
+    <strong>Отговорили:</strong>
+    <div id="answeredNames"></div>
+  </div>
+</div>
+
+<div id="explanation" style="display:none;">
+  <h3>Статистика</h3>
+  <div id="statsBlock"></div>
+  <!-- ⭐ СНИМКАТА СЕ ПОКАЗВА И В ОБЯСНЕНИЕТО -->
+  <img id="explanationImage" src="" alt="Снимка" />
+  <h3 style="margin-top:25px;">Обяснение</h3>
+  <div id="explanationText"></div>
+</div>
+
+<div id="ranking" style="display:none;">
+  <h3 id="rankingTitle">Крайно класиране</h3>
+  <div id="rankingList"></div>
+  <button id="historyBtn">История на играта</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, onSnapshot, setDoc, collection, getDocs, getDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const startScreen    = document.getElementById("start-screen");
+const waitingScreen  = document.getElementById("waiting-screen");
+const quizDiv        = document.getElementById("quiz");
+const explanationDiv = document.getElementById("explanation");
+const rankingDiv     = document.getElementById("ranking");
+
+const qText           = document.getElementById("question");
+const questionImage   = document.getElementById("questionImage");
+const explanationImage= document.getElementById("explanationImage");
+const letterInput     = document.getElementById("letterInput");
+const submitBtn       = document.getElementById("submitBtn");
+const statsBlock      = document.getElementById("statsBlock");
+const explanationText = document.getElementById("explanationText");
+const rankingList     = document.getElementById("rankingList");
+const rankingTitle    = document.getElementById("rankingTitle");
+const historyBtn      = document.getElementById("historyBtn");
+const lobbyList       = document.getElementById("lobbyList");
+const lobbyTitle      = document.getElementById("lobbyTitle");
+const globalTimer     = document.getElementById("globalTimer");
+const waitingTitle    = document.getElementById("waitingTitle");
+const answeredList    = document.getElementById("answeredList");
+const answeredNames   = document.getElementById("answeredNames");
+const bgMusic         = document.getElementById("bg-music");
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+let player        = "";
+let questions     = [];
+let ready         = false;
+let timerInterval = null;
+let episodeId     = null;
+let lobbyUnsub    = null;
+let lobbyEpisodeId= null;
+let answersUnsub  = null;
+
+/* ⭐ Транслитерация */
+const LATIN_TO_CYRILLIC = {
+  "A":"А","B":"В","C":"С","E":"Е","H":"Н",
+  "K":"К","M":"М","O":"О","P":"Р","T":"Т","X":"Х","Y":"У"
+};
+
+function normalizeLetter(letter) {
+  const upper = letter.toUpperCase();
+  return LATIN_TO_CYRILLIC[upper] || upper;
+}
+
+function isCorrectAnswer(q, input) {
+  const typed = normalizeLetter(input.trim());
+  if (!typed) return false;
+  const main = (q.letter || "").toUpperCase();
+  const alts = (q.alt_letters || []).map(l => l.toUpperCase());
+  return typed === main || alts.includes(typed);
+}
+
+/* ⭐ Показване на снимка */
+function showImage(imgEl, url) {
+  if (url && url.trim() !== "") {
+    imgEl.src = url;
+    imgEl.style.display = "block";
+  } else {
+    imgEl.style.display = "none";
+    imgEl.src = "";
+  }
+}
+
+document.getElementById("archiveBtn").onclick = () => {
+  window.location.href = "archive.html";
+};
+
+historyBtn.onclick = () => {
+  if (!episodeId) return;
+  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+};
+
+async function loadQuestions() {
+  const res = await fetch("questions.json");
+  questions = await res.json();
+}
+
+function showOnly(div) {
+  startScreen.style.display    = "none";
+  waitingScreen.style.display  = "none";
+  quizDiv.style.display        = "none";
+  explanationDiv.style.display = "none";
+  rankingDiv.style.display     = "none";
+  div.style.display = "block";
+}
+
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  const dotsEl = document.getElementById("dots");
+  if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
+}, 400);
+
+function formatTime(totalSeconds) {
+  if (totalSeconds >= 60) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return `${m}:${String(s).padStart(2,"0")}`;
+  }
+  return String(totalSeconds);
+}
+
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  globalTimer.textContent = formatTime(remaining);
+  if (remaining <= 5) globalTimer.classList.add("warning");
+  else globalTimer.classList.remove("warning");
+}
+
+function updateRankingTitle(index) {
+  const isLast = index >= questions.length - 1;
+  rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
+  historyBtn.style.display = isLast ? "block" : "none";
+}
+
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете ime!");
+
+  await loadQuestions();
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+
+  if (bgMusic) {
+    bgMusic.volume = 0.35;
+    bgMusic.play().catch(() => {});
+  }
+
+  if (!episodeId) return;
+
+  await setDoc(
+    doc(db, "games", "fotomania", "episodes", episodeId, "lobby", player),
+    { joinedAt: Date.now() },
+    { merge: true }
+  );
+
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
+
+async function submitAnswer(index, startTime) {
+  const raw = letterInput.value.trim();
+  if (!raw) { alert("Напиши буква!"); return; }
+
+  const typed = normalizeLetter(raw);
+  const q = questions[index];
+  const correct = isCorrectAnswer(q, raw);
+
+  letterInput.classList.add("submitted");
+  letterInput.disabled = true;
+  submitBtn.disabled = true;
+
+  await setDoc(
+    doc(db, "games", "fotomania", "episodes", episodeId, "results", player),
+    { exists: true },
+    { merge: true }
+  );
+
+  const thinkingTime = Date.now() - startTime;
+
+  await setDoc(
+    doc(db, "games", "fotomania", "episodes", episodeId, "results", player, "answers", String(index)),
+    {
+      answer: typed,
+      correct: (q.letter || "").toUpperCase(),
+      isCorrect: correct,
+      explanation: q.explanation || "",
+      timestamp: Date.now(),
+      thinkingTime
+    }
+  );
+}
+
+function startAnswerListener(index) {
+  if (answersUnsub) answersUnsub();
+  answeredNames.innerHTML = "";
+  answeredList.style.display = "block";
+
+  answersUnsub = onSnapshot(
+    collection(db, "games", "fotomania", "episodes", episodeId, "results"),
+    resultsSnap => {
+      resultsSnap.forEach(playerDoc => {
+        const pName = playerDoc.id;
+        onSnapshot(
+          doc(db, "games", "fotomania", "episodes", episodeId, "results", pName, "answers", String(index)),
+          ansDoc => {
+            if (ansDoc.exists()) {
+              const already = Array.from(answeredNames.children).some(d => d.dataset.player === pName);
+              if (!already) {
+                const div = document.createElement("div");
+                div.dataset.player = pName;
+                div.textContent = pName + " отговори";
+                answeredNames.appendChild(div);
+              }
+            }
+          }
+        );
+      });
+    }
+  );
+}
+
+async function renderExplanation(index) {
+  showOnly(explanationDiv);
+  statsBlock.innerHTML = "";
+  explanationText.textContent = "";
+  answeredList.style.display = "none";
+  answeredNames.innerHTML = "";
+
+  const q = questions[index];
+  if (!q) return;
+
+  // ⭐ Снимката в обяснението
+  showImage(explanationImage, q.image);
+
+  explanationText.textContent = q.explanation || "";
+
+  const playersSnap = await getDocs(
+    collection(db, "games", "fotomania", "episodes", episodeId, "results")
+  );
+
+  const counts = {};
+  for (const playerDoc of playersSnap.docs) {
+    const ansSnap = await getDocs(
+      collection(db, "games", "fotomania", "episodes", episodeId, "results", playerDoc.id, "answers")
+    );
+    const ansDoc = ansSnap.docs.find(d => d.id === String(index));
+    if (ansDoc) {
+      const typed = normalizeLetter((ansDoc.data().answer || ""));
+      counts[typed] = (counts[typed] || 0) + 1;
+    }
+  }
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const mainLetter = (q.letter || "").toUpperCase();
+  const altLetters = (q.alt_letters || []).map(l => l.toUpperCase());
+  const allCorrect = [mainLetter, ...altLetters];
+
+  let html = "";
+  allCorrect.forEach(l => {
+    const c = counts[l] || 0;
+    const pct = total ? Math.round((c / total) * 100) : 0;
+    html += `<div class="stat-answer correct">${l} — верен отговор<span class="pct">${pct}%</span> ✔</div>`;
+  });
+
+  Object.entries(counts).forEach(([letter, count]) => {
+    if (allCorrect.includes(letter)) return;
+    const pct = total ? Math.round((count / total) * 100) : 0;
+    html += `<div class="stat-answer">${letter}<span class="pct">${pct}%</span></div>`;
+  });
+
+  statsBlock.innerHTML = html || "<p>Няма отговори.</p>";
+}
+
+async function renderRanking(index) {
+  showOnly(rankingDiv);
+  rankingList.innerHTML = "";
+
+  const playersSnap = await getDocs(
+    collection(db, "games", "fotomania", "episodes", episodeId, "results")
+  );
+
+  const scores = {};
+
+  for (const playerDoc of playersSnap.docs) {
+    const playerName = playerDoc.id;
+    const answersSnap = await getDocs(
+      collection(db, "games", "fotomania", "episodes", episodeId, "results", playerName, "answers")
+    );
+
+    let totalPoints = 0;
+    let totalTime   = 0;
+
+    answersSnap.forEach(ansDoc => {
+      const qIndex = Number(ansDoc.id);
+      const data   = ansDoc.data();
+      const q      = questions[qIndex];
+      if (!q) return;
+
+      if (data.isCorrect) {
+        if (qIndex < 10)      totalPoints += 1;
+        else if (qIndex < 20) totalPoints += 2;
+        else                  totalPoints += 3;
+      }
+
+      if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
+    });
+
+    scores[playerName] = { points: totalPoints, time: totalTime };
+  }
+
+  const sorted = Object.entries(scores).sort((a, b) => {
+    if (b[1].points !== a[1].points) return b[1].points - a[1].points;
+    if (a[1].time   !== b[1].time)   return a[1].time   - b[1].time;
+    return a[0].localeCompare(b[0], "bg");
+  });
+
+  rankingList.innerHTML = sorted.map(([name, obj], i) => {
+    const pts    = obj.points;
+    const time   = (obj.time / 1000).toFixed(1);
+    const isLast = index >= questions.length - 1;
+    const isMe   = name === player;
+    let cls = "", medal = "";
+    if (i === 0) { cls = "gold";   medal = "🥇"; }
+    else if (i === 1) { cls = "silver"; medal = "🥈"; }
+    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+    const timeText = isLast ? ` (време: ${time} сек)` : "";
+    return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+      ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
+    </div>`;
+  }).join("");
+
+  updateRankingTitle(index);
+}
+
+let lastPhaseSnapshot = null;
+
+function applyPhaseImmediately(data) {
+  const { index, phase, startTime, duration } = data;
+  if (timerInterval) clearInterval(timerInterval);
+
+  if (phase === "lobby") {
+    showOnly(waitingScreen);
+    globalTimer.style.display = "none";
+    answeredList.style.display = "none";
+    waitingTitle.textContent = "Играта още не е започнала.";
+    return;
+  }
+
+  if (phase === "prestart") {
+    showOnly(waitingScreen);
+    waitingTitle.textContent = "Играта започва след:";
+    globalTimer.style.display = "block";
+    answeredList.style.display = "none";
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "question") {
+    showOnly(quizDiv);
+    globalTimer.style.display = "block";
+
+    const q = questions[index];
+    if (!q) return;
+
+    // ⭐ Зареждаме снимката
+    showImage(questionImage, q.image);
+    qText.textContent = `${index+1}. ${q.question}`;
+
+    letterInput.value = "";
+    letterInput.disabled = false;
+    letterInput.classList.remove("submitted");
+    submitBtn.disabled = false;
+
+    answeredNames.innerHTML = "";
+    answeredList.style.display = "block";
+
+    startAnswerListener(index);
+
+    submitBtn.onclick = () => submitAnswer(index, startTime);
+    letterInput.onkeydown = (e) => {
+      if (e.key === "Enter" && !submitBtn.disabled) submitAnswer(index, startTime);
+    };
+    letterInput.oninput = () => {
+      letterInput.value = letterInput.value.slice(0, 1).toUpperCase();
+    };
+
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "explanation") {
+    globalTimer.style.display = "block";
+    answeredList.style.display = "none";
+    renderExplanation(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "ranking") {
+    globalTimer.style.display = "block";
+    answeredList.style.display = "none";
+    renderRanking(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+}
+
+onSnapshot(doc(db, "games", "fotomania", "state", "current"), async snap => {
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+  lastPhaseSnapshot = data;
+  episodeId = data.episodeId;
+  if (!episodeId) return;
+
+  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
+    if (lobbyUnsub) lobbyUnsub();
+    lobbyEpisodeId = episodeId;
+    lobbyUnsub = onSnapshot(
+      collection(db, "games", "fotomania", "episodes", episodeId, "lobby"),
+      lobbySnap => {
+        const names = lobbySnap.docs.map(d => d.id);
+        lobbyList.innerHTML = names.length
+          ? names.map(n => `<div>${n}</div>`).join("")
+          : "Още няма други играчи.";
+      }
+    );
+  }
+
+  if (!ready) return;
+  applyPhaseImmediately(data);
+});
+</script>
+
+</body>
+</html>
