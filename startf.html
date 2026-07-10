@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<title>Старт на Фотомания Live</title>
+<style>
+  body { background:#001a33; color:white; text-align:center; padding:40px; font-family:Arial; }
+  button {
+    padding:15px 30px; font-size:1.4em; border:none; border-radius:10px;
+    background:#ffd100; color:#111; font-weight:bold; cursor:pointer;
+  }
+  input {
+    padding:10px; font-size:1.2em; border-radius:8px; border:none;
+    margin-bottom:20px; width:200px; text-align:center;
+  }
+  .field-row {
+    margin: 10px 0;
+    font-size: 1.1em;
+  }
+  .field-row label {
+    display: inline-block;
+    width: 220px;
+    text-align: right;
+    margin-right: 10px;
+  }
+</style>
+</head>
+<body>
+<h1>📷 Старт на Фотомания Live</h1>
+
+<div class="field-row">
+  <label>Име на епизод:</label>
+  <input id="ep" placeholder="пример: foto01">
+</div>
+
+<div class="field-row">
+  <label>Час за старт на играта:</label>
+  <input type="time" id="startTime">
+</div>
+
+<br>
+<button id="startBtn">СТАРТ</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const LOBBY_TIME = 10000;   // 10 секунди лоби
+const Q          = 25000;   // 25 секунди за въпрос (малко повече — снимката трябва да се зареди)
+const EXPL       = 25000;   // обяснение
+const RANK       = 20000;   // класиране
+
+let questions = [];
+
+async function loadQuestions() {
+  const res = await fetch("fotomania/questions.json");
+  questions = await res.json();
+}
+
+async function setState(ep, index, phase, durationMs) {
+  await setDoc(
+    doc(db, "games", "fotomania", "state", "current"),
+    { episodeId: ep, index, phase, startTime: Date.now(), duration: durationMs },
+    { merge: false }
+  );
+}
+
+async function resetState() {
+  try {
+    await deleteDoc(doc(db, "games", "fotomania", "state", "current"));
+  } catch(e) {}
+}
+
+async function runGame(ep) {
+  await loadQuestions();
+  const total = questions.length;
+  let t = 0;
+
+  for (let i = 0; i < total; i++) {
+    setTimeout(() => setState(ep, i, "question", Q), t);
+    t += Q;
+    setTimeout(() => setState(ep, i, "explanation", EXPL), t);
+    t += EXPL;
+    setTimeout(() => setState(ep, i, "ranking", RANK), t);
+    t += RANK;
+  }
+}
+
+document.getElementById("startBtn").onclick = async () => {
+  const ep = document.getElementById("ep").value.trim();
+  const startTimeRaw = document.getElementById("startTime").value;
+
+  if (!ep) return alert("Въведи име на епизод!");
+  if (!startTimeRaw) return alert("Избери час за старт!");
+
+  const [hh, mm] = startTimeRaw.split(":").map(Number);
+  const now = new Date();
+  let startAt = new Date(
+    now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0
+  ).getTime();
+
+  if (startAt <= Date.now()) {
+    startAt += 24 * 60 * 60 * 1000;
+  }
+
+  const prestartDuration = startAt - Date.now() - LOBBY_TIME;
+
+  if (prestartDuration < 0) {
+    return alert("Избраният час е твърде близо! Избери по-късен час.");
+  }
+
+  await resetState();
+  await setState(ep, 0, "lobby", LOBBY_TIME);
+  setTimeout(() => setState(ep, 0, "prestart", prestartDuration), LOBBY_TIME);
+  setTimeout(() => runGame(ep), LOBBY_TIME + prestartDuration);
+
+  const h = Math.floor(prestartDuration / 3600000);
+  const m = Math.floor((prestartDuration % 3600000) / 60000);
+  alert(`Фотомания стартирана! Лоби 10 сек → Престарт ${h > 0 ? h + "ч " : ""}${m}мин → Старт в ${startTimeRaw}`);
+};
+</script>
+</body>
+</html>
