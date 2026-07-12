@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История на играта – Цифромания Live</title>
+  <style>
+    body {
+      background: #0a1a3a;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #7fffd4;
+      text-align: center;
+      margin-bottom: 5px;
+      text-shadow: 0 0 5px #00e5ff44;
+    }
+    #playerTitle {
+      text-align: center;
+      color: #ffd100;
+      font-size: 1.2em;
+      margin-bottom: 25px;
+    }
+    .question-block {
+      margin-bottom: 30px;
+      padding: 15px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      border-left: 6px solid #ffd100;
+    }
+    .question-block.pts5  { border-left-color: #ffd700; }
+    .question-block.pts3  { border-left-color: #00e676; }
+    .question-block.pts2  { border-left-color: #00b0ff; }
+    .question-block.pts1  { border-left-color: #ff9800; }
+    .question-block.pts0  { border-left-color: #ff5252; opacity: 0.75; }
+    .question-block.skipped { border-left-color: #888; opacity: 0.65; }
+
+    .label { color: #7fffd4; font-weight: bold; }
+
+    .pts-badge {
+      display: inline-block;
+      font-size: 1.4em;
+      font-weight: bold;
+      padding: 4px 14px;
+      border-radius: 8px;
+      margin: 6px 4px;
+      background: rgba(255,255,255,0.1);
+    }
+    .pts-badge.p5 { background: #7f6000; color: #ffd700; }
+    .pts-badge.p3 { background: #1b5e20; color: #00e676; }
+    .pts-badge.p2 { background: #01579b; color: #80d8ff; }
+    .pts-badge.p1 { background: #e65100; color: #ffe0b2; }
+    .pts-badge.p0 { background: #7f2020; color: #ff8a80; }
+
+    .answer-row {
+      margin: 8px 0;
+      font-size: 1.05em;
+    }
+
+    .correct-val { color: #00e676; font-weight: bold; }
+    .user-val    { color: #ffd100; font-weight: bold; }
+    .diff-val    { color: #aaddff; }
+
+    .explanation { margin-top: 10px; opacity: 0.85; font-size: 0.95em; }
+
+    .backBtn {
+      display: block; margin: 30px auto;
+      padding: 12px 30px; background: #ffd100;
+      color: #003344; border: none; border-radius: 8px;
+      font-size: 1.2em; cursor: pointer; font-weight: bold;
+      text-align: center; width: 200px;
+    }
+    .backBtn:hover { background: #ffcc33; }
+
+    #summary {
+      text-align: center; margin-bottom: 25px;
+      font-size: 1.1em; color: #aaddff;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🔢 История на играта – Цифромания Live</h1>
+<div id="playerTitle"></div>
+<div id="summary">Зареждане...</div>
+<div id="content"></div>
+<button class="backBtn" onclick="window.history.back()">Назад</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const params    = new URLSearchParams(window.location.search);
+const episodeId = params.get("episodeId");
+const player    = params.get("player");
+
+const playerTitle = document.getElementById("playerTitle");
+const summary     = document.getElementById("summary");
+const content     = document.getElementById("content");
+
+if (!episodeId || !player) {
+  summary.textContent = "Липсва информация за епизод или играч.";
+  throw new Error("Missing params");
+}
+
+playerTitle.textContent = "Играч: " + player;
+
+function ptsBadge(pts) {
+  const cls = ["p0","p1","p2","p3","","p5"][pts] || "p0";
+  return `<span class="pts-badge ${cls}">${pts} т.</span>`;
+}
+
+function blockClass(pts, skipped) {
+  if (skipped) return "skipped";
+  return ["pts0","pts1","pts2","pts3","","pts5"][pts] || "pts0";
+}
+
+async function loadHistory() {
+  let questions = [];
+  try {
+    const res = await fetch("questions.json");
+    questions = await res.json();
+  } catch(e) {
+    summary.textContent = "Не мога да заредя въпросите.";
+    return;
+  }
+
+  let answers = {};
+  try {
+    const answersSnap = await getDocs(
+      collection(db, "games", "cifromania_live", "episodes", episodeId, "results", player, "answers")
+    );
+    answersSnap.forEach(d => answers[d.id] = d.data());
+  } catch(e) {
+    summary.textContent = "Нямате история за този епизод.";
+    return;
+  }
+
+  if (Object.keys(answers).length === 0) {
+    summary.textContent = "Нямате записани отговори за този епизод.";
+    return;
+  }
+
+  // Статистика
+  let totalPts = 0, exact = 0, skipped = 0;
+  questions.forEach((q, i) => {
+    const ans = answers[String(i)];
+    if (!ans) { skipped++; return; }
+    totalPts += (ans.points || 0);
+    if (ans.points === 5) exact++;
+  });
+
+  summary.innerHTML = `
+    Общо точки: <span style="color:#ffd700;font-weight:bold;">${totalPts}</span> &nbsp;|&nbsp;
+    Точни: <span style="color:#ffd700;font-weight:bold;">${exact}</span> &nbsp;|&nbsp;
+    Пропуснати: <span style="color:#aaa;">${skipped}</span>
+    &nbsp; от ${questions.length} въпроса
+  `;
+
+  let html = "";
+  questions.forEach((q, i) => {
+    const ans         = answers[String(i)];
+    const correct     = Number(q.answer);
+    const explanation = q.explanation || "";
+    const skippedQ    = !ans;
+    const pts         = ans ? (ans.points || 0) : null;
+    const userAns     = ans ? ans.answer : null;
+    const diff        = ans ? ans.diff : null;
+
+    const bClass = blockClass(pts, skippedQ);
+
+    let answerHtml = "";
+    if (skippedQ) {
+      answerHtml = `<div class="answer-row"><span class="label">Верен отговор:</span> <span class="correct-val">${correct}</span> &nbsp; <span style="color:#aaa;font-style:italic;">⬜ Не е отговорено</span></div>`;
+    } else {
+      answerHtml = `
+        <div class="answer-row">
+          <span class="label">Твоят отговор:</span> <span class="user-val">${userAns}</span>
+          &nbsp; <span class="label">Верен:</span> <span class="correct-val">${correct}</span>
+          &nbsp; <span class="label">Отклонение:</span> <span class="diff-val">${diff}</span>
+          &nbsp; ${ptsBadge(pts)}
+        </div>
+      `;
+    }
+
+    html += `
+      <div class="question-block ${bClass}">
+        <div class="label">${i + 1}. ${q.question}</div>
+        ${answerHtml}
+        ${explanation ? `<div class="explanation">${explanation}</div>` : ""}
+      </div>
+    `;
+  });
+
+  content.innerHTML = html;
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>
