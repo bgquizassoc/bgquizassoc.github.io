@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История – Цифромания Топ 20</title>
+  <style>
+    body {
+      background: #0a1a3a; color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px; max-width: 900px; margin: auto; line-height: 1.6;
+    }
+    h1 { color: #7fffd4; text-align: center; margin-bottom: 5px; }
+    #playerTitle { text-align: center; color: #ffd100; font-size: 1.2em; margin-bottom: 25px; }
+    #summary { text-align: center; margin-bottom: 25px; font-size: 1.1em; color: #aaddff; }
+
+    .question-block {
+      margin-bottom: 25px; padding: 15px;
+      border-radius: 12px; background: rgba(255,255,255,0.06);
+      border-left: 6px solid #555;
+    }
+    .question-block.top1  { border-left-color: #ffd700; }
+    .question-block.top5  { border-left-color: #00e676; }
+    .question-block.top20 { border-left-color: #00b0ff; }
+    .question-block.zero  { border-left-color: #ff5252; opacity: 0.75; }
+    .question-block.skip  { border-left-color: #444; opacity: 0.6; }
+
+    .label { color: #7fffd4; font-weight: bold; }
+    .correct-val { color: #00e676; font-weight: bold; }
+    .user-val { color: #ffd100; font-weight: bold; }
+    .diff-val { color: #aaddff; }
+
+    .pts-badge {
+      display: inline-block; font-size: 1.3em; font-weight: bold;
+      padding: 3px 12px; border-radius: 8px; margin-left: 8px;
+      background: rgba(255,215,0,0.15); color: #ffd700;
+    }
+
+    .answer-row { margin: 8px 0; font-size: 1.05em; }
+    .explanation { margin-top: 10px; opacity: 0.8; font-size: 0.95em; color: #aaddff; }
+
+    .backBtn {
+      display: block; margin: 30px auto; padding: 12px 30px;
+      background: #ffd100; color: #003344; border: none;
+      border-radius: 8px; font-size: 1.2em; cursor: pointer;
+      font-weight: bold; width: 200px;
+    }
+    .backBtn:hover { background: #ffcc33; }
+  </style>
+</head>
+<body>
+
+<h1>🔢 История – Цифромания Топ 20</h1>
+<div id="playerTitle"></div>
+<div id="summary">Зареждане...</div>
+<div id="content"></div>
+<button class="backBtn" onclick="window.history.back()">Назад</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const params    = new URLSearchParams(window.location.search);
+const episodeId = params.get("episodeId");
+const player    = params.get("player");
+
+document.getElementById("playerTitle").textContent = "Играч: " + player;
+const summary = document.getElementById("summary");
+const content = document.getElementById("content");
+
+if (!episodeId || !player) {
+  summary.textContent = "Липсва информация.";
+  throw new Error("Missing params");
+}
+
+/* ⭐ Същото точкуване като в играта */
+function calcPointsMain(diffs, myDiff) {
+  const unique = [...new Set(diffs)].sort((a, b) => a - b);
+  const rank = unique.indexOf(myDiff);
+  if (rank < 0 || rank >= 20) return 0;
+  return 20 - rank;
+}
+function calcPoints28(diffs, myDiff) {
+  const unique = [...new Set(diffs)].sort((a, b) => a - b);
+  const rank = unique.indexOf(myDiff);
+  if (rank < 0 || rank >= 9) return 0;
+  return parseFloat((0.9 - rank * 0.1).toFixed(2));
+}
+function calcPoints29(diffs, myDiff) {
+  const unique = [...new Set(diffs)].sort((a, b) => a - b);
+  const rank = unique.indexOf(myDiff);
+  if (rank < 0 || rank >= 9) return 0;
+  return parseFloat((0.09 - rank * 0.01).toFixed(4));
+}
+function calcPoints30(diffs, myDiff) {
+  const unique = [...new Set(diffs)].sort((a, b) => a - b);
+  const rank = unique.indexOf(myDiff);
+  if (rank < 0 || rank >= 99) return 0;
+  return parseFloat((0.0099 - rank * 0.0001).toFixed(6));
+}
+function calcPoints(index, diffs, myDiff) {
+  if (index <= 26) return calcPointsMain(diffs, myDiff);
+  if (index === 27) return calcPoints28(diffs, myDiff);
+  if (index === 28) return calcPoints29(diffs, myDiff);
+  if (index === 29) return calcPoints30(diffs, myDiff);
+  return 0;
+}
+
+function blockClass(pts, skipped) {
+  if (skipped) return "skip";
+  if (pts >= 18) return "top1";
+  if (pts >= 10) return "top5";
+  if (pts > 0)   return "top20";
+  return "zero";
+}
+
+async function loadHistory() {
+  let questions = [];
+  try {
+    const res = await fetch("questions.json");
+    questions = await res.json();
+  } catch(e) {
+    summary.textContent = "Не мога да заредя въпросите.";
+    return;
+  }
+
+  // Вземаме всички отговори на всички играчи за да изчислим точките коректно
+  const playersSnap = await getDocs(
+    collection(db, "games", "cifromania20", "episodes", episodeId, "results")
+  );
+
+  // Събираме отговорите по въпрос
+  const allAnswers = {}; // { qIndex: { playerName: { answer, diff } } }
+  for (const playerDoc of playersSnap.docs) {
+    const pName = playerDoc.id;
+    const answersSnap = await getDocs(
+      collection(db, "games", "cifromania20", "episodes", episodeId, "results", pName, "answers")
+    );
+    answersSnap.forEach(ansDoc => {
+      const qi = Number(ansDoc.id);
+      if (!allAnswers[qi]) allAnswers[qi] = {};
+      allAnswers[qi][pName] = ansDoc.data();
+    });
+  }
+
+  // Намираме отговорите на нашия играч
+  const myAnswers = {};
+  if (allAnswers) {
+    Object.entries(allAnswers).forEach(([qi, players]) => {
+      if (players[player]) myAnswers[qi] = players[player];
+    });
+  }
+
+  if (Object.keys(myAnswers).length === 0) {
+    summary.textContent = "Нямате записани отговори за този епизод.";
+    return;
+  }
+
+  let totalPts = 0, skipped = 0;
+  questions.forEach((q, i) => {
+    if (!myAnswers[i]) { skipped++; return; }
+    const diffs = Object.values(allAnswers[i] || {}).map(a => a.diff);
+    const pts = calcPoints(i, diffs, myAnswers[i].diff);
+    totalPts += pts;
+  });
+
+  summary.innerHTML = `
+    Общо точки: <span style="color:#ffd700;font-weight:bold;">${totalPts.toFixed(4).replace(/\.?0+$/, "")}</span>
+    &nbsp;|&nbsp; Пропуснати: <span style="color:#aaa;">${skipped}</span>
+    от ${questions.length} въпроса
+  `;
+
+  let html = "";
+  questions.forEach((q, i) => {
+    const myAns = myAnswers[i];
+    const skippedQ = !myAns;
+    const correct = Number(q.answer);
+
+    let pts = 0;
+    if (!skippedQ) {
+      const diffs = Object.values(allAnswers[i] || {}).map(a => a.diff);
+      pts = calcPoints(i, diffs, myAns.diff);
+    }
+
+    const bClass = blockClass(pts, skippedQ);
+
+    let answerHtml = "";
+    if (skippedQ) {
+      answerHtml = `<div class="answer-row">
+        <span class="label">Верен отговор:</span> <span class="correct-val">${correct}</span>
+        &nbsp; <span style="color:#aaa;font-style:italic;">⬜ Не е отговорено</span>
+      </div>`;
+    } else {
+      answerHtml = `<div class="answer-row">
+        <span class="label">Твоят отговор:</span> <span class="user-val">${myAns.answer}</span>
+        &nbsp; <span class="label">Верен:</span> <span class="correct-val">${correct}</span>
+        &nbsp; <span class="label">Отклонение:</span> <span class="diff-val">±${myAns.diff}</span>
+        <span class="pts-badge">${pts.toFixed(4).replace(/\.?0+$/, "")} т.</span>
+      </div>`;
+    }
+
+    html += `
+      <div class="question-block ${bClass}">
+        <div class="label">${i + 1}. ${q.question}</div>
+        ${answerHtml}
+        ${q.explanation ? `<div class="explanation">${q.explanation}</div>` : ""}
+      </div>
+    `;
+  });
+
+  content.innerHTML = html;
+}
+
+loadHistory();
+</script>
+</body>
+</html>
