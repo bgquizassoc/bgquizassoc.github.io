@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🔗 Куиз Чифтосване 🔗</title>
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    font-size: 16px; font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 900px; margin: 0 auto; padding: 20px;
+    background: #00264d; color: #ffffff;
+  }
+
+  h1 {
+    text-align: center; color: #ffd100;
+    font-size: clamp(1.4em, 4vw, 2em);
+    margin: 10px auto 15px auto;
+    text-shadow: 0 0 5px #ffb400;
+  }
+
+  #start-screen, #waiting-screen, #info-screen, #quiz, #results, #ranking {
+    width: 100%; max-width: 700px; text-align: center;
+    margin-top: 20px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 0 10px rgba(255,209,0,0.2);
+  }
+
+  input[type="text"] {
+    padding: 10px; font-size: 1.1em; border-radius: 8px;
+    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+    text-align: center; background: #001a33; color: #fff;
+  }
+
+  button {
+    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    border-radius: 8px; border: none;
+    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background:#ffcc33; transform:scale(1.05); }
+
+  #globalTimer {
+    text-align: center; font-weight: 800; margin: 10px 0;
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+  }
+  #globalTimer.warning { color: #ff4c4c; }
+
+  /* ===== ИНФО ШИЙТ ===== */
+  #info-screen {
+    background: rgba(255,255,255,0.08);
+  }
+  #infoTitle {
+    font-size: 1.8em; color: #ffd100; font-weight: bold; margin-bottom: 15px;
+  }
+  #infoText {
+    font-size: 1.1em; line-height: 1.7; color: #cce8ff;
+  }
+
+  /* ===== ЧИФТОСВАНЕ ===== */
+  #roundTitle {
+    font-size: 1.2em; color: #ffd100; margin-bottom: 10px; font-weight: bold;
+  }
+
+  .match-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 10px 0;
+  }
+
+  .match-col { display: flex; flex-direction: column; gap: 8px; }
+
+  .match-item {
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #003d7a;
+    border: 2px solid #00509e;
+    cursor: pointer;
+    font-size: 0.95em;
+    text-align: center;
+    transition: 0.15s;
+    user-select: none;
+  }
+
+  .match-item:hover { background: #004a9f; }
+  .match-item.selected { border-color: #ffd100; background: #004070; }
+  .match-item.matched { cursor: default; opacity: 0.85; border-color: transparent; }
+  .match-item.correct { background: #1b5e20; border-color: #00e676; }
+  .match-item.wrong   { background: #7f2020; border-color: #ff5252; }
+
+  /* Чифтосаните двойки */
+  #pairsDisplay {
+    margin-top: 12px; text-align: left; font-size: 0.95em;
+  }
+  .pair-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 8px; margin: 4px 0;
+    font-size: 0.9em;
+  }
+  .pair-arrow { color: #ffd100; font-weight: bold; }
+
+  /* ===== РЕЗУЛТАТИ ===== */
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 14px; margin: 5px 0; border-radius: 10px; background: #333;
+  }
+  .result-row.correct { background: #1b5e20; }
+  .result-row.wrong   { background: #7f2020; }
+
+  /* ===== КЛАСИРАНЕ ===== */
+  .rank-item {
+    padding: 10px; margin: 6px 0;
+    border-radius: 10px; font-size: 1.1em; text-align: left;
+  }
+  .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
+  .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
+  .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
+
+  #historyBtn, #archiveBtn {
+    margin-top: 20px; background: #00e5ff; color: #003344;
+  }
+
+  #lobbyList {
+    margin-top: 10px; text-align: left;
+    max-height: 200px; overflow-y: auto; font-size: 0.95em;
+  }
+  #lobbyList div { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+  .myself {
+    background: #00e5ff55 !important;
+    border-left: 6px solid #00e5ff !important;
+    font-weight: 700;
+  }
+
+  #scoreDisplay {
+    margin: 10px 0; font-size: 1.1em; color: #ffd100; font-weight: bold;
+  }
+  </style>
+</head>
+
+<body>
+<h1>🔗 Куиз Чифтосване 🔗</h1>
+
+<audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
+<div id="globalTimer" style="display:none;">-</div>
+
+<!-- СТАРТ -->
+<div id="start-screen">
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="playerName" placeholder="Две имена..." />
+  <button id="enterBtn">Влез в играта</button>
+  <button id="archiveBtn">Архив класирания</button>
+</div>
+
+<!-- ЧАКАНЕ -->
+<div id="waiting-screen" style="display:none;">
+  <h2 id="waitingTitle">Играта още не е започнала.</h2>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
+  <h3 style="margin-top:20px;">Стартов списък</h3>
+  <div id="lobbyList">Още няма играчи.</div>
+</div>
+
+<!-- ИНФО ШИЙТ -->
+<div id="info-screen" style="display:none;">
+  <div id="infoTitle"></div>
+  <div id="infoText"></div>
+</div>
+
+<!-- ЧИФТОСВАНЕ -->
+<div id="quiz" style="display:none;">
+  <div id="roundTitle"></div>
+  <div id="scoreDisplay"></div>
+  <div class="match-grid">
+    <div class="match-col" id="leftCol"></div>
+    <div class="match-col" id="rightCol"></div>
+  </div>
+  <div id="pairsDisplay"></div>
+</div>
+
+<!-- РЕЗУЛТАТИ -->
+<div id="results" style="display:none;">
+  <h3>Резултати от кръга</h3>
+  <div id="resultsBlock"></div>
+</div>
+
+<!-- КЛАСИРАНЕ -->
+<div id="ranking" style="display:none;">
+  <h3 id="rankingTitle">Класиране</h3>
+  <div id="rankingList"></div>
+  <button id="historyBtn" style="display:none;">История на играта</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, onSnapshot, setDoc, serverTimestamp,
+  collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// DOM елементи
+const startScreen   = document.getElementById("start-screen");
+const waitingScreen = document.getElementById("waiting-screen");
+const infoScreen    = document.getElementById("info-screen");
+const quizDiv       = document.getElementById("quiz");
+const resultsDiv    = document.getElementById("results");
+const rankingDiv    = document.getElementById("ranking");
+
+const globalTimer   = document.getElementById("globalTimer");
+const waitingTitle  = document.getElementById("waitingTitle");
+const lobbyList     = document.getElementById("lobbyList");
+const infoTitle     = document.getElementById("infoTitle");
+const infoText      = document.getElementById("infoText");
+const roundTitle    = document.getElementById("roundTitle");
+const scoreDisplay  = document.getElementById("scoreDisplay");
+const leftCol       = document.getElementById("leftCol");
+const rightCol      = document.getElementById("rightCol");
+const pairsDisplay  = document.getElementById("pairsDisplay");
+const resultsBlock  = document.getElementById("resultsBlock");
+const rankingList   = document.getElementById("rankingList");
+const rankingTitle  = document.getElementById("rankingTitle");
+const historyBtn    = document.getElementById("historyBtn");
+const bgMusic       = document.getElementById("bg-music");
+
+let player        = "";
+let questions     = [];
+let ready         = false;
+let timerInterval = null;
+let episodeId     = null;
+let lobbyUnsub    = null;
+let lobbyEpisodeId= null;
+
+// Цветове за чифтовете
+const PAIR_COLORS = [
+  "#e74c3c","#e67e22","#f1c40f","#2ecc71","#1abc9c",
+  "#3498db","#9b59b6","#e91e63","#00bcd4","#8bc34a"
+];
+
+// Стейт на чифтосването
+let selectedLeft  = null;
+let pairs         = []; // [ { left, right, color } ]
+let submitted     = false;
+
+function showOnly(...divs) {
+  [startScreen, waitingScreen, infoScreen, quizDiv, resultsDiv, rankingDiv]
+    .forEach(d => d.style.display = "none");
+  divs.forEach(d => d.style.display = "block");
+}
+
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  const dotsEl = document.getElementById("dots");
+  if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
+}, 400);
+
+function formatTime(totalSeconds) {
+  if (totalSeconds >= 60) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return `${m}:${String(s).padStart(2,"0")}`;
+  }
+  return String(totalSeconds);
+}
+
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  globalTimer.textContent = formatTime(remaining);
+  if (remaining <= 10) globalTimer.classList.add("warning");
+  else globalTimer.classList.remove("warning");
+}
+
+document.getElementById("archiveBtn").onclick = () => {
+  window.location.href = "archive.html";
+};
+
+historyBtn.onclick = () => {
+  if (!episodeId) return;
+  window.location.href = `history_chift.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+};
+
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете две имена!");
+
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+
+  if (bgMusic) { bgMusic.volume = 0.3; bgMusic.play().catch(() => {}); }
+
+  if (!episodeId) return;
+
+  await setDoc(
+    doc(db, "games", "chift", "episodes", episodeId, "lobby", player),
+    { joinedAt: Date.now() }, { merge: true }
+  );
+
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
+
+/* ===== ЧИФТОСВАНЕ — UI ===== */
+function buildMatchUI(q) {
+  selectedLeft = null;
+  pairs = [];
+  submitted = false;
+  pairsDisplay.innerHTML = "";
+  scoreDisplay.textContent = "";
+
+  roundTitle.textContent = q.title || "Чифтосване";
+
+  // Лява колона — азбучен ред
+  const leftItems  = [...q.left].sort();
+  const rightItems = [...q.right].sort();
+
+  leftCol.innerHTML  = "";
+  rightCol.innerHTML = "";
+
+  leftItems.forEach(item => {
+    const el = document.createElement("div");
+    el.className = "match-item";
+    el.textContent = item;
+    el.dataset.value = item;
+    el.onclick = () => selectLeft(el, item);
+    leftCol.appendChild(el);
+  });
+
+  rightItems.forEach(item => {
+    const el = document.createElement("div");
+    el.className = "match-item";
+    el.textContent = item;
+    el.dataset.value = item;
+    el.onclick = () => selectRight(el, item);
+    rightCol.appendChild(el);
+  });
+}
+
+function selectLeft(el, value) {
+  if (submitted) return;
+  if (pairs.find(p => p.left === value)) return; // вече чифтосан
+
+  // Премахваме предишна селекция
+  document.querySelectorAll("#leftCol .match-item.selected").forEach(e => e.classList.remove("selected"));
+  selectedLeft = value;
+  el.classList.add("selected");
+}
+
+function selectRight(el, value) {
+  if (submitted) return;
+  if (!selectedLeft) return;
+  if (pairs.find(p => p.right === value)) return; // вече чифтосан
+
+  const color = PAIR_COLORS[pairs.length % PAIR_COLORS.length];
+
+  // Маркираме двойката
+  const leftEl = [...leftCol.querySelectorAll(".match-item")]
+    .find(e => e.dataset.value === selectedLeft);
+  if (leftEl) {
+    leftEl.classList.remove("selected");
+    leftEl.classList.add("matched");
+    leftEl.style.background = color;
+    leftEl.style.borderColor = color;
+  }
+  el.classList.add("matched");
+  el.style.background = color;
+  el.style.borderColor = color;
+
+  pairs.push({ left: selectedLeft, right: value, color });
+
+  // Показваме двойката
+  const row = document.createElement("div");
+  row.className = "pair-row";
+  row.style.background = color + "33";
+  row.innerHTML = `<span>${selectedLeft}</span><span class="pair-arrow">→</span><span>${value}</span>`;
+  pairsDisplay.appendChild(row);
+
+  selectedLeft = null;
+  scoreDisplay.textContent = `Чифтосани: ${pairs.length} / 10`;
+}
+
+/* ===== ЗАПИСВАНЕ НА ОТГОВОРИТЕ ===== */
+async function submitPairs(index) {
+  if (submitted) return;
+  submitted = true;
+
+  const q = questions[index];
+  if (!q) return;
+
+  // Изчисляваме точките
+  let correct = 0;
+  pairs.forEach(p => {
+    const correctRight = q.pairs[p.left];
+    if (correctRight && correctRight === p.right) correct++;
+  });
+
+  const bonus = correct === 10 ? 3 : 0;
+  const total = correct + bonus;
+
+  await setDoc(
+    doc(db, "games", "chift", "episodes", episodeId, "results", player),
+    { exists: true }, { merge: true }
+  );
+
+  await setDoc(
+    doc(db, "games", "chift", "episodes", episodeId, "results", player, "answers", String(index)),
+    {
+      pairs: pairs.map(p => ({ left: p.left, right: p.right })),
+      correct,
+      bonus,
+      total,
+      timestamp: Date.now()
+    }
+  );
+}
+
+/* ===== ПОКАЗВАНЕ НА РЕЗУЛТАТИ ===== */
+async function renderResults(index) {
+  showOnly(resultsDiv);
+
+  const q = questions[index];
+  if (!q) return;
+
+  // Намираме нашите отговори
+  const playersSnap = await getDocs(
+    collection(db, "games", "chift", "episodes", episodeId, "results")
+  );
+
+  let html = `<h4 style="margin-bottom:10px;color:#ffd100;">Верни чифтове:</h4>`;
+
+  // Показваме верните двойки
+  Object.entries(q.pairs).sort().forEach(([left, right]) => {
+    html += `<div class="result-row correct">
+      <span>${left}</span><span>→</span><span>${right}</span>
+      <span>✔</span>
+    </div>`;
+  });
+
+  // Показваме нашите грешни чифтове
+  const myAnsSnap = await getDocs(
+    collection(db, "games", "chift", "episodes", episodeId, "results", player, "answers")
+  );
+  const myAns = myAnsSnap.docs.find(d => d.id === String(index));
+
+  if (myAns) {
+    const data = myAns.data();
+    html += `<div style="margin-top:15px;color:#ffd100;font-weight:bold;">
+      Ти: ${data.correct} верни + ${data.bonus} бонус = ${data.total} т.
+    </div>`;
+  }
+
+  resultsBlock.innerHTML = html;
+}
+
+/* ===== КЛАСИРАНЕ ===== */
+async function renderRanking(index) {
+  showOnly(rankingDiv);
+
+  const isLast = index >= questions.length - 1;
+  rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
+  historyBtn.style.display = isLast ? "block" : "none";
+
+  const playersSnap = await getDocs(
+    collection(db, "games", "chift", "episodes", episodeId, "results")
+  );
+
+  const scores = {};
+  for (const playerDoc of playersSnap.docs) {
+    const pName = playerDoc.id;
+    const answersSnap = await getDocs(
+      collection(db, "games", "chift", "episodes", episodeId, "results", pName, "answers")
+    );
+    let total = 0;
+    answersSnap.forEach(ansDoc => total += (ansDoc.data().total || 0));
+    scores[pName] = total;
+  }
+
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+
+  rankingList.innerHTML = sorted.map(([name, pts], i) => {
+    const isMe = name === player;
+    let cls = "", medal = "";
+    if (i === 0) { cls = "gold"; medal = "🥇"; }
+    else if (i === 1) { cls = "silver"; medal = "🥈"; }
+    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+    return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+      ${i+1}. ${medal} ${name} — ${pts} т.
+    </div>`;
+  }).join("");
+}
+
+/* ===== ФАЗИ ===== */
+let lastPhaseSnapshot = null;
+
+function applyPhaseImmediately(data) {
+  const { index, phase, duration } = data;
+  const startTime = data.startTime?.toMillis?.() ?? data.startTime ?? Date.now();
+  if (timerInterval) clearInterval(timerInterval);
+
+  if (phase === "lobby") {
+    showOnly(waitingScreen);
+    globalTimer.style.display = "none";
+    waitingTitle.textContent = "Играта още не е започнала.";
+    return;
+  }
+
+  if (phase === "prestart") {
+    showOnly(waitingScreen);
+    waitingTitle.textContent = "Играта започва след:";
+    globalTimer.style.display = "block";
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  /* ИНФО ШИЙТ */
+  if (phase === "info") {
+    showOnly(infoScreen);
+    globalTimer.style.display = "block";
+    const info = data.info || {};
+    infoTitle.textContent = info.title || "";
+    infoText.innerHTML = info.text || "";
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  /* ВЪПРОС — ЧИФТОСВАНЕ */
+  if (phase === "question") {
+    showOnly(quizDiv);
+    globalTimer.style.display = "block";
+
+    const q = questions[index];
+    if (!q) return;
+
+    buildMatchUI(q);
+
+    // Автоматично записваме след края на времето
+    timerInterval = setInterval(() => {
+      updateTimer(startTime, duration);
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+      if (remaining === 0 && !submitted) {
+        submitPairs(index);
+      }
+    }, 200);
+    return;
+  }
+
+  /* РЕЗУЛТАТИ */
+  if (phase === "results") {
+    globalTimer.style.display = "block";
+    renderResults(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  /* КЛАСИРАНЕ */
+  if (phase === "ranking") {
+    globalTimer.style.display = "block";
+    renderRanking(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+}
+
+/* ===== ЗАРЕЖДАНЕ НА ВЪПРОСИ ===== */
+async function loadQuestions(episodeData) {
+  // Въпросите идват от Firestore (качени от startch.html)
+  questions = episodeData.questions || [];
+}
+
+/* ===== СЛУШАНЕ НА ФАЗИТЕ ===== */
+onSnapshot(doc(db, "games", "chift", "state", "current"), async snap => {
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+  lastPhaseSnapshot = data;
+  episodeId = data.episodeId;
+  if (!episodeId) return;
+
+  // Зареждаме въпросите от Firestore ако още не сме
+  if (questions.length === 0 && data.questions) {
+    questions = data.questions;
+  }
+
+  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
+    if (lobbyUnsub) lobbyUnsub();
+    lobbyEpisodeId = episodeId;
+    lobbyUnsub = onSnapshot(
+      collection(db, "games", "chift", "episodes", episodeId, "lobby"),
+      lobbySnap => {
+        const names = lobbySnap.docs.map(d => d.id);
+        lobbyList.innerHTML = names.length
+          ? names.map(n => `<div>${n}</div>`).join("")
+          : "Още няма играчи.";
+      }
+    );
+  }
+
+  if (!ready) return;
+  applyPhaseImmediately(data);
+});
+</script>
+</body>
+</html>
