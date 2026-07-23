@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История – Куиз Чифтосване</title>
+  <style>
+    body {
+      background: #0a1a3a; color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px; max-width: 900px; margin: auto; line-height: 1.6;
+    }
+    h1 { color: #7fffd4; text-align: center; margin-bottom: 5px; }
+    #playerTitle { text-align: center; color: #ffd100; font-size: 1.2em; margin-bottom: 20px; }
+    #summary { text-align: center; margin-bottom: 25px; font-size: 1.1em; color: #aaddff; }
+
+    .round-block {
+      margin-bottom: 30px; padding: 15px;
+      border-radius: 12px; background: rgba(255,255,255,0.06);
+      border-left: 6px solid #ffd100;
+    }
+    .round-title { color: #ffd100; font-size: 1.2em; font-weight: bold; margin-bottom: 12px; }
+
+    .pair-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; margin: 5px 0; border-radius: 8px;
+      font-size: 1em;
+    }
+    .pair-row.correct { background: #1b5e20; }
+    .pair-row.wrong   { background: #7f2020; }
+    .pair-row.skipped { background: #333; opacity: 0.7; }
+
+    .pair-icon { font-size: 1.2em; }
+    .correct-ans { color: #00e676; font-size: 0.9em; margin-left: auto; }
+
+    .score-row {
+      margin-top: 12px; padding: 10px;
+      background: rgba(255,215,0,0.1); border-radius: 8px;
+      font-size: 1.1em; color: #ffd100; font-weight: bold;
+    }
+
+    .backBtn {
+      display: block; margin: 30px auto; padding: 12px 30px;
+      background: #ffd100; color: #003344; border: none;
+      border-radius: 8px; font-size: 1.2em; cursor: pointer; font-weight: bold; width: 200px;
+    }
+    .backBtn:hover { background: #ffcc33; }
+  </style>
+</head>
+<body>
+<h1>🔗 История – Куиз Чифтосване</h1>
+<div id="playerTitle"></div>
+<div id="summary">Зареждане...</div>
+<div id="content"></div>
+<button class="backBtn" onclick="window.history.back()">Назад</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const params    = new URLSearchParams(window.location.search);
+const episodeId = params.get("episodeId");
+const player    = params.get("player");
+
+document.getElementById("playerTitle").textContent = "Играч: " + player;
+const summary = document.getElementById("summary");
+const content = document.getElementById("content");
+
+if (!episodeId || !player) {
+  summary.textContent = "Липсва информация.";
+  throw new Error("Missing params");
+}
+
+async function loadHistory() {
+  // Вземаме въпросите от state документа
+  const stateDoc = await getDoc(doc(db, "games", "chift", "state", "current"));
+  let questions = [];
+  if (stateDoc.exists() && stateDoc.data().questions) {
+    questions = stateDoc.data().questions;
+  }
+
+  // Вземаме отговорите на играча
+  const answersSnap = await getDocs(
+    collection(db, "games", "chift", "episodes", episodeId, "results", player, "answers")
+  );
+
+  if (answersSnap.empty) {
+    summary.textContent = "Нямате записани отговори за този епизод.";
+    return;
+  }
+
+  const answers = {};
+  answersSnap.forEach(d => answers[Number(d.id)] = d.data());
+
+  let totalCorrect = 0, totalBonus = 0, totalPts = 0;
+  Object.values(answers).forEach(a => {
+    totalCorrect += (a.correct || 0);
+    totalBonus   += (a.bonus || 0);
+    totalPts     += (a.total || 0);
+  });
+
+  summary.innerHTML = `
+    Верни чифтове: <span style="color:#00e676;font-weight:bold;">${totalCorrect}</span> &nbsp;|&nbsp;
+    Бонус: <span style="color:#ffd700;font-weight:bold;">${totalBonus}</span> &nbsp;|&nbsp;
+    Общо: <span style="color:#ffd700;font-weight:bold;">${totalPts} т.</span>
+  `;
+
+  let html = "";
+
+  questions.forEach((q, i) => {
+    const ans = answers[i];
+    const roundTitle = q.title || `Кръг ${i+1}`;
+
+    html += `<div class="round-block"><div class="round-title">${roundTitle}</div>`;
+
+    if (!ans) {
+      html += `<div style="color:#aaa;font-style:italic;">Не е участвал в този кръг.</div>`;
+    } else {
+      // Показваме всички верни двойки и дали играчът ги е намерил
+      Object.entries(q.pairs).sort().forEach(([left, right]) => {
+        const myPair = ans.pairs?.find(p => p.left === left);
+        const isCorrect = myPair && myPair.right === right;
+        const isWrong   = myPair && myPair.right !== right;
+
+        let cls = "skipped", icon = "⬜";
+        if (isCorrect) { cls = "correct"; icon = "✔"; }
+        else if (isWrong) { cls = "wrong"; icon = "✘"; }
+
+        html += `<div class="pair-row ${cls}">
+          <span class="pair-icon">${icon}</span>
+          <span>${left}</span>
+          <span>→</span>
+          <span>${myPair ? myPair.right : "—"}</span>
+          ${isWrong ? `<span class="correct-ans">(верно: ${right})</span>` : ""}
+        </div>`;
+      });
+
+      html += `<div class="score-row">
+        Верни: ${ans.correct} / 10 &nbsp;+&nbsp; Бонус: ${ans.bonus} &nbsp;=&nbsp; ${ans.total} т.
+      </div>`;
+    }
+
+    html += `</div>`;
+  });
+
+  content.innerHTML = html;
+}
+
+loadHistory();
+</script>
+</body>
+</html>
