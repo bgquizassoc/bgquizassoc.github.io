@@ -50,28 +50,20 @@
   <label>Теми (за лобито):</label>
   <input id="themes" placeholder="Градове, Псевдоними..." style="width:280px;">
 </div>
-
-<!-- ВЪПРОСИ -->
 <div class="section">
   <h3>🔗 Кръгове с двойки</h3>
   <p style="font-size:0.9em;opacity:0.8;margin-bottom:10px;text-align:center;">
-    Формат: <code>Ляво → Дясно</code> или <code>Ляво [Tab] Дясно</code> — по един на ред
+    Формат: <code>Ляво → Дясно</code> или <code>Ляво [Tab] Дясно</code>
   </p>
   <div id="roundsContainer"></div>
   <button onclick="addRound()" style="background:#003d7a;color:white;border:1px solid #00509e;">+ Добави кръг</button>
 </div>
 
-<!-- ВРЕМЕНА -->
 <div class="section">
   <h3>⏱ Времена (секунди)</h3>
   <div class="field-row"><label>Въпрос:</label><input id="tQ" type="number" value="120" style="width:80px;"></div>
   <div class="field-row"><label>Резултати:</label><input id="tRes" type="number" value="30" style="width:80px;"></div>
-
-  <!-- ⭐ НОВО: класиране за кръга -->
-  <div class="field-row"><label>Класиране за кръга:</label>
-    <input id="tQRank" type="number" value="20" style="width:80px;">
-  </div>
-
+  <div class="field-row"><label>Класиране за кръга:</label><input id="tQRank" type="number" value="20" style="width:80px;"></div>
   <div class="field-row"><label>Общо класиране:</label><input id="tRank" type="number" value="30" style="width:80px;"></div>
 </div>
 
@@ -100,7 +92,6 @@ const db = getFirestore(app);
 const LOBBY_TIME = 1000;
 let roundCount = 0;
 
-/* ⭐ ФУНКЦИЯТА addRound — ТОВА ЛИПСВАШЕ ПРИ ТЕБ */
 window.addRound = function() {
   roundCount++;
   const container = document.getElementById("roundsContainer");
@@ -108,32 +99,22 @@ window.addRound = function() {
   div.className = "round-block";
   div.innerHTML = `
     <div class="round-label">Кръг ${roundCount}</div>
-    <div style="margin-bottom:8px;">
-      <label style="color:#7fffd4;">Заглавие на кръга:</label>
-      <input class="round-title" placeholder="БГ Градове и древните им имена" style="width:280px;display:block;margin-top:4px;">
-    </div>
-    <textarea class="round-pairs" rows="11"
-      placeholder="Поморие → Анхиало&#10;Созопол → Аполония&#10;..."></textarea>
+    <label style="color:#7fffd4;">Заглавие:</label>
+    <input class="round-title" placeholder="БГ Градове..." style="width:280px;display:block;margin-top:4px;">
+    <textarea class="round-pairs" rows="11"></textarea>
   `;
   container.appendChild(div);
 };
 addRound();
 
-/* ⭐ Парсва и Tab и → като разделител */
 function parsePairs(text) {
-  const pairs = {};
-  const left = [], right = [];
+  const pairs = {}, left = [], right = [];
   text.split("\n").forEach(line => {
     line = line.trim();
     if (!line) return;
     let l, r;
-    if (line.includes("→")) {
-      const parts = line.split("→");
-      l = parts[0].trim(); r = parts[1]?.trim();
-    } else if (line.includes("\t")) {
-      const parts = line.split("\t");
-      l = parts[0].trim(); r = parts[1]?.trim();
-    }
+    if (line.includes("→")) [l, r] = line.split("→").map(s => s.trim());
+    else if (line.includes("\t")) [l, r] = line.split("\t").map(s => s.trim());
     if (l && r) { pairs[l] = r; left.push(l); right.push(r); }
   });
   return { pairs, left, right };
@@ -150,7 +131,6 @@ async function setState(ep, index, phase, durationMs, extra = {}) {
 async function resetState() {
   try { await deleteDoc(doc(db, "games", "chift", "state", "current")); } catch(e) {}
 }
-
 async function runGame(ep, rounds, times) {
   const { tQ, tRes, tQRank, tRank } = times;
   let t = 0;
@@ -165,7 +145,7 @@ async function runGame(ep, rounds, times) {
     setTimeout(() => setState(ep, i, "results",  tRes * 1000, { questions: rounds }), t);
     t += tRes * 1000;
 
-    // ⭐ НОВО: класиране за кръга
+    // Класиране за кръга
     setTimeout(() => setState(ep, i, "q-ranking", tQRank * 1000, { questions: rounds }), t);
     t += tQRank * 1000;
 
@@ -186,27 +166,25 @@ document.getElementById("startBtn").onclick = async () => {
 
   const rounds = [];
   document.querySelectorAll("#roundsContainer .round-block").forEach((div, i) => {
-    const pairsText = div.querySelector(".round-pairs")?.value || "";
+    const pairsText = div.querySelector(".round-pairs").value;
     const { pairs, left, right } = parsePairs(pairsText);
-    const title = div.querySelector(".round-title")?.value.trim() || `Кръг ${i+1}`;
-    if (Object.keys(pairs).length > 0) {
-      rounds.push({ title, pairs, left, right });
-    }
+    const title = div.querySelector(".round-title").value.trim() || `Кръг ${i+1}`;
+    if (Object.keys(pairs).length > 0) rounds.push({ title, pairs, left, right });
   });
 
-  if (rounds.length === 0) return alert("Добави поне един кръг с двойки!");
+  if (rounds.length === 0) return alert("Добави поне един кръг!");
 
   const times = {
-    tQ:   Number(document.getElementById("tQ").value),
+    tQ: Number(document.getElementById("tQ").value),
     tRes: Number(document.getElementById("tRes").value),
-    tQRank:Number(document.getElementById("tQRank").value),
-    tRank:Number(document.getElementById("tRank").value)
+    tQRank: Number(document.getElementById("tQRank").value),
+    tRank: Number(document.getElementById("tRank").value)
   };
 
   const [hh, mm] = startTimeRaw.split(":").map(Number);
   const now = new Date();
   let startAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0).getTime();
-  if (startAt <= Date.now()) startAt += 24 * 60 * 60 * 1000;
+  if (startAt <= Date.now()) startAt += 86400000;
 
   const prestartDuration = startAt - Date.now() - LOBBY_TIME;
   if (prestartDuration < 0) return alert("Часът е твърде близо!");
@@ -218,7 +196,7 @@ document.getElementById("startBtn").onclick = async () => {
 
   const h = Math.floor(prestartDuration / 3600000);
   const m = Math.floor((prestartDuration % 3600000) / 60000);
-  statusMsg.textContent = `✅ Стартирано! Престарт ${h > 0 ? h + "ч " : ""}${m}мин → Старт в ${startTimeRaw}`;
+  statusMsg.textContent = `Стартирано! Престарт ${h > 0 ? h + "ч " : ""}${m}мин → Старт в ${startTimeRaw}`;
 };
 </script>
 </body>
