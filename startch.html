@@ -66,7 +66,13 @@
   <h3>⏱ Времена (секунди)</h3>
   <div class="field-row"><label>Въпрос:</label><input id="tQ" type="number" value="120" style="width:80px;"></div>
   <div class="field-row"><label>Резултати:</label><input id="tRes" type="number" value="30" style="width:80px;"></div>
-  <div class="field-row"><label>Класиране:</label><input id="tRank" type="number" value="20" style="width:80px;"></div>
+
+  <!-- ⭐ НОВО: класиране за кръга -->
+  <div class="field-row"><label>Класиране за кръга:</label>
+    <input id="tQRank" type="number" value="20" style="width:80px;">
+  </div>
+
+  <div class="field-row"><label>Общо класиране:</label><input id="tRank" type="number" value="30" style="width:80px;"></div>
 </div>
 
 <br>
@@ -145,13 +151,26 @@ async function resetState() {
 }
 
 async function runGame(ep, rounds, times) {
-  const { tQ, tRes, tRank } = times;
+  const { tQ, tRes, tQRank, tRank } = times;
   let t = 0;
 
   rounds.forEach((round, i) => {
-    setTimeout(() => setState(ep, i, "question", tQ * 1000, { questions: rounds }), t); t += tQ * 1000;
-    setTimeout(() => setState(ep, i, "results",  tRes * 1000, { questions: rounds }), t); t += tRes * 1000;
-    setTimeout(() => setState(ep, i, "ranking",  tRank * 1000, { questions: rounds }), t); t += tRank * 1000;
+
+    // Въпрос
+    setTimeout(() => setState(ep, i, "question", tQ * 1000, { questions: rounds }), t);
+    t += tQ * 1000;
+
+    // Резултати
+    setTimeout(() => setState(ep, i, "results",  tRes * 1000, { questions: rounds }), t);
+    t += tRes * 1000;
+
+    // ⭐ НОВО: класиране за кръга
+    setTimeout(() => setState(ep, i, "q-ranking", tQRank * 1000, { questions: rounds }), t);
+    t += tQRank * 1000;
+
+    // Общо класиране
+    setTimeout(() => setState(ep, i, "ranking",  tRank * 1000, { questions: rounds }), t);
+    t += tRank * 1000;
   });
 }
 
@@ -178,27 +197,4 @@ document.getElementById("startBtn").onclick = async () => {
 
   const times = {
     tQ:   Number(document.getElementById("tQ").value),
-    tRes: Number(document.getElementById("tRes").value),
-    tRank:Number(document.getElementById("tRank").value)
-  };
-
-  const [hh, mm] = startTimeRaw.split(":").map(Number);
-  const now = new Date();
-  let startAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0).getTime();
-  if (startAt <= Date.now()) startAt += 24 * 60 * 60 * 1000;
-
-  const prestartDuration = startAt - Date.now() - LOBBY_TIME;
-  if (prestartDuration < 0) return alert("Часът е твърде близо!");
-
-  await resetState();
-  await setState(ep, 0, "lobby", LOBBY_TIME, { questions: rounds, themes });
-  setTimeout(() => setState(ep, 0, "prestart", prestartDuration, { questions: rounds, themes }), LOBBY_TIME);
-  setTimeout(() => runGame(ep, rounds, times), LOBBY_TIME + prestartDuration);
-
-  const h = Math.floor(prestartDuration / 3600000);
-  const m = Math.floor((prestartDuration % 3600000) / 60000);
-  statusMsg.textContent = `✅ Стартирано! Престарт ${h > 0 ? h + "ч " : ""}${m}мин → Старт в ${startTimeRaw}`;
-};
-</script>
-</body>
-</html>
+    tRes: Number(document.getElement
