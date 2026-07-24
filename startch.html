@@ -101,6 +101,10 @@ window.addRound = function() {
   div.className = "round-block";
   div.innerHTML = `
     <div class="round-label">Кръг ${roundCount}</div>
+    <div style="margin-bottom:8px;">
+      <label style="color:#7fffd4;">Заглавие на кръга:</label>
+      <input class="round-title" placeholder="БГ Градове и древните им имена" style="width:280px;display:block;margin-top:4px;">
+    </div>
     <textarea class="round-pairs" rows="11"
       placeholder="Поморие → Анхиало&#10;Созопол → Аполония&#10;..."></textarea>
   `;
@@ -164,8 +168,9 @@ document.getElementById("startBtn").onclick = async () => {
   document.querySelectorAll("#roundsContainer .round-block").forEach((div, i) => {
     const pairsText = div.querySelector(".round-pairs")?.value || "";
     const { pairs, left, right } = parsePairs(pairsText);
+    const title = div.querySelector(".round-title")?.value.trim() || `Кръг ${i+1}`;
     if (Object.keys(pairs).length > 0) {
-      rounds.push({ title: `Кръг ${i+1}`, pairs, left, right });
+      rounds.push({ title, pairs, left, right });
     }
   });
 
