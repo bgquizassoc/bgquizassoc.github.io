@@ -100,6 +100,7 @@ const db = getFirestore(app);
 const LOBBY_TIME = 1000;
 let roundCount = 0;
 
+/* ⭐ ФУНКЦИЯТА addRound — ТОВА ЛИПСВАШЕ ПРИ ТЕБ */
 window.addRound = function() {
   roundCount++;
   const container = document.getElementById("roundsContainer");
@@ -197,4 +198,28 @@ document.getElementById("startBtn").onclick = async () => {
 
   const times = {
     tQ:   Number(document.getElementById("tQ").value),
-    tRes: Number(document.getElement
+    tRes: Number(document.getElementById("tRes").value),
+    tQRank:Number(document.getElementById("tQRank").value),
+    tRank:Number(document.getElementById("tRank").value)
+  };
+
+  const [hh, mm] = startTimeRaw.split(":").map(Number);
+  const now = new Date();
+  let startAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0).getTime();
+  if (startAt <= Date.now()) startAt += 24 * 60 * 60 * 1000;
+
+  const prestartDuration = startAt - Date.now() - LOBBY_TIME;
+  if (prestartDuration < 0) return alert("Часът е твърде близо!");
+
+  await resetState();
+  await setState(ep, 0, "lobby", LOBBY_TIME, { questions: rounds, themes });
+  setTimeout(() => setState(ep, 0, "prestart", prestartDuration, { questions: rounds, themes }), LOBBY_TIME);
+  setTimeout(() => runGame(ep, rounds, times), LOBBY_TIME + prestartDuration);
+
+  const h = Math.floor(prestartDuration / 3600000);
+  const m = Math.floor((prestartDuration % 3600000) / 60000);
+  statusMsg.textContent = `✅ Стартирано! Престарт ${h > 0 ? h + "ч " : ""}${m}мин → Старт в ${startTimeRaw}`;
+};
+</script>
+</body>
+</html>
