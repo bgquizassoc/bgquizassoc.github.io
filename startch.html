@@ -18,15 +18,21 @@
   }
   .field-row { margin: 10px 0; font-size: 1.1em; }
   .field-row label { display:inline-block; width:200px; text-align:right; margin-right:10px; }
-  .section { background:rgba(255,255,255,0.06); border-radius:12px; padding:15px; margin:15px auto; max-width:600px; text-align:left; }
+  .section {
+    background:rgba(255,255,255,0.06); border-radius:12px;
+    padding:15px; margin:15px auto; max-width:600px; text-align:left;
+  }
   .section h3 { color:#ffd100; margin-bottom:10px; text-align:center; }
   textarea {
     width:100%; padding:8px; border-radius:8px; border:none;
     background:#002a55; color:white; font-size:0.95em; resize:vertical;
   }
-  .topic-btn { background:#003d7a; color:white; border:2px solid #00509e; }
-  .topic-btn.active { background:#ffd100; color:#111; border-color:#ffd100; }
   #statusMsg { margin-top:15px; color:#00e676; font-size:1.1em; }
+  .round-block {
+    background:rgba(255,255,255,0.04); border-radius:8px;
+    padding:12px; margin-bottom:12px;
+  }
+  .round-label { color:#ffd100; font-weight:bold; margin-bottom:8px; }
 </style>
 </head>
 <body>
@@ -40,33 +46,19 @@
   <label>Час за старт:</label>
   <input type="time" id="startTime">
 </div>
-
-<!-- ИНФО ШИЙТ -->
-<div class="section">
-  <h3>📋 Инфо шийт (преди играта)</h3>
-  <div class="field-row">
-    <label>Заглавие:</label>
-    <input id="infoTitle" placeholder="Куиз Чифтосване - Кръг 1" style="width:250px;">
-  </div>
-  <div class="field-row" style="text-align:center;">
-    <label>Текст:</label><br>
-    <textarea id="infoText" rows="4" placeholder="Описание на кръга..."></textarea>
-  </div>
-  <div class="field-row">
-    <label>Инфо времетраене (сек):</label>
-    <input id="infoTime" type="number" value="30" style="width:80px;">
-  </div>
+<div class="field-row">
+  <label>Теми (за лобито):</label>
+  <input id="themes" placeholder="Градове, Псевдоними..." style="width:280px;">
 </div>
 
 <!-- ВЪПРОСИ -->
 <div class="section">
-  <h3>🔗 Въпроси (до 3 кръга по 10 двойки)</h3>
-  <p style="font-size:0.9em;opacity:0.8;margin-bottom:10px;">
-    Формат за двойките: <code>Ляво → Дясно</code> (по един на ред)
+  <h3>🔗 Кръгове с двойки</h3>
+  <p style="font-size:0.9em;opacity:0.8;margin-bottom:10px;text-align:center;">
+    Формат: <code>Ляво → Дясно</code> или <code>Ляво [Tab] Дясно</code> — по един на ред
   </p>
-
   <div id="roundsContainer"></div>
-  <button onclick="addRound()" style="margin-top:10px;background:#003d7a;color:white;border:1px solid #00509e;">+ Добави кръг</button>
+  <button onclick="addRound()" style="background:#003d7a;color:white;border:1px solid #00509e;">+ Добави кръг</button>
 </div>
 
 <!-- ВРЕМЕНА -->
@@ -102,40 +94,36 @@ const db = getFirestore(app);
 const LOBBY_TIME = 1000;
 let roundCount = 0;
 
-// Добавяме 1 кръг по подразбиране
 window.addRound = function() {
   roundCount++;
   const container = document.getElementById("roundsContainer");
   const div = document.createElement("div");
-  div.style.cssText = "margin-bottom:15px;padding:10px;background:rgba(255,255,255,0.04);border-radius:8px;";
+  div.className = "round-block";
   div.innerHTML = `
-    <div style="color:#ffd100;font-weight:bold;margin-bottom:8px;">Кръг ${roundCount}</div>
-    <div class="field-row"><label>Заглавие на кръга:</label>
-      <input class="round-title" placeholder="Актьори и филми" style="width:200px;"></div>
-    <div style="margin-top:8px;">
-      <label style="color:#7fffd4;">Двойки (Ляво → Дясно, по един на ред):</label><br>
-      <textarea class="round-pairs" rows="11" style="margin-top:5px;" 
-        placeholder="Ал Пачино → Кръстникът&#10;Де Ниро → Таксиметров шофьор&#10;..."></textarea>
-    </div>
+    <div class="round-label">Кръг ${roundCount}</div>
+    <textarea class="round-pairs" rows="11"
+      placeholder="Поморие → Анхиало&#10;Созопол → Аполония&#10;..."></textarea>
   `;
   container.appendChild(div);
-}
+};
 addRound();
 
+/* ⭐ Парсва и Tab и → като разделител */
 function parsePairs(text) {
   const pairs = {};
   const left = [], right = [];
   text.split("\n").forEach(line => {
-    const parts = line.split("→");
-    if (parts.length === 2) {
-      const l = parts[0].trim();
-      const r = parts[1].trim();
-      if (l && r) {
-        pairs[l] = r;
-        left.push(l);
-        right.push(r);
-      }
+    line = line.trim();
+    if (!line) return;
+    let l, r;
+    if (line.includes("→")) {
+      const parts = line.split("→");
+      l = parts[0].trim(); r = parts[1]?.trim();
+    } else if (line.includes("\t")) {
+      const parts = line.split("\t");
+      l = parts[0].trim(); r = parts[1]?.trim();
     }
+    if (l && r) { pairs[l] = r; left.push(l); right.push(r); }
   });
   return { pairs, left, right };
 }
@@ -143,12 +131,7 @@ function parsePairs(text) {
 async function setState(ep, index, phase, durationMs, extra = {}) {
   await setDoc(
     doc(db, "games", "chift", "state", "current"),
-    {
-      episodeId: ep, index, phase,
-      startTime: serverTimestamp(),
-      duration: durationMs,
-      ...extra
-    },
+    { episodeId: ep, index, phase, startTime: serverTimestamp(), duration: durationMs, ...extra },
     { merge: false }
   );
 }
@@ -158,56 +141,40 @@ async function resetState() {
 }
 
 async function runGame(ep, rounds, times) {
-  const { tQ, tRes, tRank, infoTitle, infoText, tInfo } = times;
+  const { tQ, tRes, tRank } = times;
   let t = 0;
 
-  // Инфо шийт
-  if (infoTitle || infoText) {
-    setTimeout(() => setState(ep, 0, "info", tInfo * 1000, {
-      info: { title: infoTitle, text: infoText },
-      questions: rounds
-    }), t);
-    t += tInfo * 1000;
-  }
-
   rounds.forEach((round, i) => {
-    setTimeout(() => setState(ep, i, "question", tQ * 1000, { questions: rounds }), t);
-    t += tQ * 1000;
-    setTimeout(() => setState(ep, i, "results", tRes * 1000, { questions: rounds }), t);
-    t += tRes * 1000;
-    setTimeout(() => setState(ep, i, "ranking", tRank * 1000, { questions: rounds }), t);
-    t += tRank * 1000;
+    setTimeout(() => setState(ep, i, "question", tQ * 1000, { questions: rounds }), t); t += tQ * 1000;
+    setTimeout(() => setState(ep, i, "results",  tRes * 1000, { questions: rounds }), t); t += tRes * 1000;
+    setTimeout(() => setState(ep, i, "ranking",  tRank * 1000, { questions: rounds }), t); t += tRank * 1000;
   });
 }
 
 document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
   const startTimeRaw = document.getElementById("startTime").value;
+  const themes = document.getElementById("themes").value.trim();
   const statusMsg = document.getElementById("statusMsg");
 
   if (!ep) return alert("Въведи епизод!");
   if (!startTimeRaw) return alert("Избери час!");
 
-  // Парсваме кръговете
   const rounds = [];
-  document.querySelectorAll("#roundsContainer > div").forEach((div, i) => {
-    const title = div.querySelector(".round-title")?.value.trim() || `Кръг ${i+1}`;
+  document.querySelectorAll("#roundsContainer .round-block").forEach((div, i) => {
     const pairsText = div.querySelector(".round-pairs")?.value || "";
     const { pairs, left, right } = parsePairs(pairsText);
     if (Object.keys(pairs).length > 0) {
-      rounds.push({ title, pairs, left, right });
+      rounds.push({ title: `Кръг ${i+1}`, pairs, left, right });
     }
   });
 
   if (rounds.length === 0) return alert("Добави поне един кръг с двойки!");
 
   const times = {
-    tQ:       Number(document.getElementById("tQ").value),
-    tRes:     Number(document.getElementById("tRes").value),
-    tRank:    Number(document.getElementById("tRank").value),
-    infoTitle:document.getElementById("infoTitle").value.trim(),
-    infoText: document.getElementById("infoText").value.trim(),
-    tInfo:    Number(document.getElementById("infoTime").value)
+    tQ:   Number(document.getElementById("tQ").value),
+    tRes: Number(document.getElementById("tRes").value),
+    tRank:Number(document.getElementById("tRank").value)
   };
 
   const [hh, mm] = startTimeRaw.split(":").map(Number);
@@ -219,8 +186,8 @@ document.getElementById("startBtn").onclick = async () => {
   if (prestartDuration < 0) return alert("Часът е твърде близо!");
 
   await resetState();
-  await setState(ep, 0, "lobby", LOBBY_TIME, { questions: rounds });
-  setTimeout(() => setState(ep, 0, "prestart", prestartDuration, { questions: rounds }), LOBBY_TIME);
+  await setState(ep, 0, "lobby", LOBBY_TIME, { questions: rounds, themes });
+  setTimeout(() => setState(ep, 0, "prestart", prestartDuration, { questions: rounds, themes }), LOBBY_TIME);
   setTimeout(() => runGame(ep, rounds, times), LOBBY_TIME + prestartDuration);
 
   const h = Math.floor(prestartDuration / 3600000);
