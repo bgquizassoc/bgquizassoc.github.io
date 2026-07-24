@@ -139,7 +139,6 @@
   }
   </style>
 </head>
-
 <body>
 <h1>Игри на Знания<br>🔗 Куиз Чифтосване 🔗<br>епизод 1</h1>
 
@@ -163,9 +162,9 @@
 
   <div id="lobby-instructions">
     <p><strong id="lobbyThemes">Темите днес са:</strong></p>
-    <p>Очакват ви три теми с по 10 имена вляво и 10 имена вдясно.</p>
+    <p>Очакват ви пет кръга (теми) с по 10 имена вляво и 10 имена вдясно.</p>
     <p>Трябва да маркирате име от лявата колона и съответстващото му име от дясната.</p>
-    <p>Време за мислене — <strong>2 минути</strong> за целия кръг.</p>
+    <p>Време за мислене — <strong>2 минути</strong> за целия кръг (тема).</p>
     <p>Точкуване — по <strong>1 точка</strong> на верен чифт. При 10 верни получавате <strong>бонус 3 точки</strong>.</p>
   </div>
 
@@ -240,7 +239,7 @@ const waitingScreen = document.getElementById("waiting-screen");
 const infoScreen    = document.getElementById("info-screen");
 const quizDiv       = document.getElementById("quiz");
 const resultsDiv    = document.getElementById("results");
-const qRankingDiv   = document.getElementById("q-ranking");   // ⭐ НОВО
+const qRankingDiv   = document.getElementById("q-ranking");
 const rankingDiv    = document.getElementById("ranking");
 
 const globalTimer   = document.getElementById("globalTimer");
@@ -257,7 +256,7 @@ const pairsDisplay  = document.getElementById("pairsDisplay");
 const answeredList  = document.getElementById("answeredList");
 const answeredNames = document.getElementById("answeredNames");
 const resultsBlock  = document.getElementById("resultsBlock");
-const qRankingList  = document.getElementById("qRankingList"); // ⭐ НОВО
+const qRankingList  = document.getElementById("qRankingList");
 const rankingList   = document.getElementById("rankingList");
 const rankingTitle  = document.getElementById("rankingTitle");
 const historyBtn    = document.getElementById("historyBtn");
@@ -282,7 +281,7 @@ const PAIR_COLORS = [
 let selectedLeft  = null;
 let pairs         = [];
 let submitted     = false;
-let lastClickTime = null; // ⭐ за засичане на времето
+let lastClickTime = null;
 
 function showOnly(...divs) {
   [startScreen, waitingScreen, infoScreen, quizDiv, resultsDiv, qRankingDiv, rankingDiv]
@@ -342,7 +341,6 @@ document.getElementById("enterBtn").onclick = async () => {
 
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
-
 /* ===== ЧИФТОСВАНЕ UI ===== */
 function buildMatchUI(q, startTime) {
   selectedLeft  = null;
@@ -391,7 +389,6 @@ function selectLeft(el, value) {
 function selectRight(el, value, startTime) {
   if (submitted) return;
   if (!selectedLeft) return;
-  if (pairs.find(p => p.right === value)) return;
   if (pairs.find(p => p.right === value)) return;
 
   const color = PAIR_COLORS[pairs.length % PAIR_COLORS.length];
@@ -461,33 +458,43 @@ async function submitPairs(index, startTime) {
   );
 }
 
-/* ⭐ LIVE КОЙ Е ЗАВЪРШИЛ */
+/* ⭐ РАБОТЕЩО LIVE „ЗАВЪРШИЛИ“ */
 function startAnswerListener(index) {
   if (answersUnsub) answersUnsub();
   answeredNames.innerHTML = "";
 
-  answersUnsub = onSnapshot(
-    collection(db, "games", "chift", "episodes", episodeId, "results"),
-    resultsSnap => {
-      resultsSnap.forEach(playerDoc => {
-        const pName = playerDoc.id;
-        onSnapshot(
-          doc(db, "games", "chift", "episodes", episodeId, "results", pName, "answers", String(index)),
-          ansDoc => {
-            if (ansDoc.exists()) {
-              const already = Array.from(answeredNames.children).some(d => d.dataset.player === pName);
-              if (!already) {
-                const div = document.createElement("div");
-                div.dataset.player = pName;
-                div.textContent = pName + " завърши";
-                answeredNames.appendChild(div);
-              }
-            }
-          }
-        );
-      });
-    }
+  const resultsRef = collection(
+    db,
+    "games", "chift",
+    "episodes", episodeId,
+    "results"
   );
+
+  answersUnsub = onSnapshot(resultsRef, async resultsSnap => {
+    answeredNames.innerHTML = "";
+
+    for (const playerDoc of resultsSnap.docs) {
+      const pName = playerDoc.id;
+
+      const ansRef = collection(
+        db,
+        "games", "chift",
+        "episodes", episodeId,
+        "results", pName,
+        "answers"
+      );
+
+      const ansSnap = await getDocs(ansRef);
+      const hasAnswer = ansSnap.docs.some(d => d.id === String(index));
+
+      if (hasAnswer) {
+        const div = document.createElement("div");
+        div.dataset.player = pName;
+        div.textContent = pName + " завърши";
+        answeredNames.appendChild(div);
+      }
+    }
+  });
 }
 
 /* ===== РЕЗУЛТАТИ ===== */
@@ -654,6 +661,7 @@ function applyPhaseImmediately(data) {
   }
 
   if (phase === "question") {
+    submitted = false; // ⭐ критично — нулира за всеки кръг
     showOnly(quizDiv);
     globalTimer.style.display = "block";
     const q = questions[index];
@@ -677,7 +685,6 @@ function applyPhaseImmediately(data) {
     return;
   }
 
-  /* ⭐ НОВО: КЛАСИРАНЕ ЗА КРЪГА */
   if (phase === "q-ranking") {
     globalTimer.style.display = "block";
     renderRoundRanking(index);
