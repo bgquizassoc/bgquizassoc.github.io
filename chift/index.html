@@ -79,7 +79,80 @@
   #infoText  { font-size: 1.1em; line-height: 1.7; color: #cce8ff; }
 
   /* ===== ЧИФТОСВАНЕ ===== */
-  #roundTitle { font-size: 1.2em; color: #ffd
+  #roundTitle { font-size: 1.2em; color: #ffd100; margin-bottom: 10px; font-weight: bold; }
+
+  .match-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0;
+  }
+  .match-col { display: flex; flex-direction: column; gap: 8px; }
+
+  .match-item {
+    padding: 10px 14px; border-radius: 10px;
+    background: #003d7a; border: 2px solid #00509e;
+    cursor: pointer; font-size: 0.95em; text-align: center;
+    transition: 0.15s; user-select: none;
+  }
+  .match-item:hover { background: #004a9f; }
+  .match-item.selected { border-color: #ffd100; background: #004070; }
+  .match-item.matched  { cursor: default; opacity: 0.9; border-color: transparent; }
+
+  #pairsDisplay { margin-top: 12px; text-align: left; font-size: 0.95em; }
+  .pair-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 8px; margin: 4px 0; font-size: 0.9em;
+  }
+  .pair-arrow { color: #ffd100; font-weight: bold; }
+
+  #scoreDisplay { margin: 10px 0; font-size: 1.1em; color: #ffd100; font-weight: bold; }
+
+  /* ⭐ LIVE "Отговорили:" */
+  #answeredList {
+    margin-top: 15px; text-align: left; font-size: 1em;
+    background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px;
+  }
+  #answeredList div { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  #answeredList div:last-child { border-bottom: none; }
+
+  /* ===== РЕЗУЛТАТИ ===== */
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 14px; margin: 5px 0; border-radius: 10px; background: #333;
+  }
+  .result-row.correct { background: #1b5e20; }
+  .result-row.wrong   { background: #7f2020; }
+
+  /* ===== КЛАСИРАНЕ ===== */
+  .rank-item {
+    padding: 10px; margin: 6px 0;
+    border-radius: 10px; font-size: 1.1em; text-align: left;
+  }
+  .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
+  .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
+  .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
+
+  #historyBtn, #archiveBtn { margin-top: 20px; background: #00e5ff; color: #003344; }
+
+  .myself {
+    background: #00e5ff55 !important;
+    border-left: 6px solid #00e5ff !important;
+    font-weight: 700;
+  }
+  </style>
+</head>
+
+<body>
+<h1>Игри на Знания<br>🔗 Куиз Чифтосване 🔗<br>епизод 1</h1>
+
+<audio id="bg-music" src="dance.mp3" loop preload="auto"></audio>
+<div id="globalTimer" style="display:none;">-</div>
+
+<!-- СТАРТ -->
+<div id="start-screen">
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="playerName" placeholder="Две имена..." />
+  <button id="enterBtn">Влез в играта</button>
+  <button id="archiveBtn">Архив класирания</button>
+</div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
@@ -150,7 +223,61 @@ let lastClickTime = null;
 function showOnly(...divs) {
   [startScreen, waitingScreen, infoScreen, quizDiv, resultsDiv, rankingDiv]
     .forEach(d => d.style.display = "none");
-  divs.forEach(d => d
+  divs.forEach(d => d.style.display = "block");
+}
+
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  const dotsEl = document.getElementById("dots");
+  if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
+}, 400);
+
+function formatTime(totalSeconds) {
+  if (totalSeconds >= 60) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return `${m}:${String(s).padStart(2,"0")}`;
+  }
+  return String(totalSeconds);
+}
+
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  globalTimer.textContent = formatTime(remaining);
+  if (remaining <= 10) globalTimer.classList.add("warning");
+  else globalTimer.classList.remove("warning");
+}
+
+document.getElementById("archiveBtn").onclick = () => window.location.href = "archive.html";
+
+historyBtn.onclick = () => {
+  if (!episodeId) return;
+  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+};
+
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете две имена!");
+
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+
+  if (bgMusic) { bgMusic.volume = 0.3; bgMusic.play().catch(() => {}); }
+
+  if (!episodeId) return;
+
+  await setDoc(
+    doc(db, "games", "chift", "episodes", episodeId, "lobby", player),
+    { joinedAt: Date.now() }, { merge: true }
+  );
+
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
 /* ⭐ LIVE КОЙ Е ЗАВЪРШИЛ — НОВА ВЕРСИЯ (ЕДИНЕН LISTENER) */
 function startAnswerListener(index) {
   if (answersUnsub) answersUnsub();
@@ -298,8 +425,17 @@ async function renderRanking(index, roundOnly = false) {
 
       const timeText = roundOnly
         ? ` (${(obj.time / 1000).toFixed(1)} сек)`
-        : (index >= questions.length
+        : (index >= questions.length - 1 ? ` (${(obj.time / 1000).toFixed(1)} сек)` : "");
 
+      return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+        ${i+1}. ${medal} ${name} — ${obj.pts} т.${timeText}
+      </div>`;
+    }).join("");
+
+  } catch(e) {
+    rankingList.innerHTML = "<p>Грешка при зареждане.</p>";
+  }
+}
 /* ===== ФАЗИ ===== */
 let lastPhaseSnapshot = null;
 
@@ -348,6 +484,82 @@ function applyPhaseImmediately(data) {
     globalTimer.style.display = "block";
 
     const q = questions[index];
-    if (!
+    if (!q) return;
 
+    buildMatchUI(q, startTime);
+    startAnswerListener(index);
 
+    timerInterval = setInterval(() => {
+      updateTimer(startTime, duration);
+      const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startTime)) / 1000));
+      if (remaining === 0 && !submitted) submitPairs(index, startTime);
+    }, 200);
+
+    return;
+  }
+
+  /* РЕЗУЛТАТИ */
+  if (phase === "results") {
+    globalTimer.style.display = "block";
+    renderResults(index);
+
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  /* ⭐ НОВО: КЛАСИРАНЕ ЗА КРЪГА */
+  if (phase === "q-ranking") {
+    globalTimer.style.display = "block";
+    renderRanking(index, true); // само за кръга
+
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  /* ОБЩО КЛАСИРАНЕ */
+  if (phase === "ranking") {
+    globalTimer.style.display = "block";
+    renderRanking(index, false);
+
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+}
+
+/* ===== FIREBASE СЛУШАНЕ НА ФАЗИТЕ ===== */
+onSnapshot(doc(db, "games", "chift", "state", "current"), async snap => {
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+  lastPhaseSnapshot = data;
+  episodeId = data.episodeId;
+  if (!episodeId) return;
+
+  if (data.questions && data.questions.length > 0) {
+    questions = data.questions;
+  }
+
+  /* ЛОБИ LISTENER */
+  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
+    if (lobbyUnsub) lobbyUnsub();
+
+    lobbyEpisodeId = episodeId;
+
+    lobbyUnsub = onSnapshot(
+      collection(db, "games", "chift", "episodes", episodeId, "lobby"),
+      lobbySnap => {
+        const names = lobbySnap.docs.map(d => d.id);
+        lobbyList.innerHTML = names.length
+          ? names.map(n => `<div>${n}</div>`).join("")
+          : "Още няма играчи.";
+      }
+    );
+  }
+
+  if (!ready) return;
+
+  applyPhaseImmediately(data);
+});
+</script>
+</body>
+</html>
