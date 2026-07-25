@@ -11,7 +11,7 @@
     background:#ffd100; color:#111; font-weight:bold; cursor:pointer; margin:5px;
   }
   button:hover { background:#ffcc33; }
-  input, select {
+  input {
     padding:10px; font-size:1.1em; border-radius:8px; border:none;
     margin-bottom:15px; width:220px; text-align:center;
     background:#002a55; color:white;
@@ -36,7 +36,7 @@
 </style>
 </head>
 <body>
-<h1>🔗 Старт на Куиз Чифтосване 1</h1>
+<h1>🔗 Старт на Куиз Чифтосване 1-1</h1>
 
 <div class="field-row">
   <label>Епизод:</label>
@@ -50,10 +50,11 @@
   <label>Теми (за лобито):</label>
   <input id="themes" placeholder="Градове, Псевдоними..." style="width:280px;">
 </div>
+
 <div class="section">
   <h3>🔗 Кръгове с двойки</h3>
   <p style="font-size:0.9em;opacity:0.8;margin-bottom:10px;text-align:center;">
-    Формат: <code>Ляво → Дясно</code> или <code>Ляво [Tab] Дясно</code>
+    Формат: <code>Ляво → Дясно</code> или <code>Ляво [Tab] Дясно</code> — по един на ред
   </p>
   <div id="roundsContainer"></div>
   <button onclick="addRound()" style="background:#003d7a;color:white;border:1px solid #00509e;">+ Добави кръг</button>
@@ -99,22 +100,31 @@ window.addRound = function() {
   div.className = "round-block";
   div.innerHTML = `
     <div class="round-label">Кръг ${roundCount}</div>
-    <label style="color:#7fffd4;">Заглавие:</label>
-    <input class="round-title" placeholder="БГ Градове..." style="width:280px;display:block;margin-top:4px;">
-    <textarea class="round-pairs" rows="11"></textarea>
+    <div style="margin-bottom:8px;">
+      <label style="color:#7fffd4;">Заглавие на кръга:</label>
+      <input class="round-title" placeholder="БГ Градове и древните им имена" style="width:280px;display:block;margin-top:4px;background:#002a55;color:white;padding:8px;border-radius:6px;border:none;">
+    </div>
+    <textarea class="round-pairs" rows="11"
+      placeholder="Поморие → Анхиало&#10;Созопол → Аполония&#10;..."></textarea>
   `;
   container.appendChild(div);
 };
 addRound();
 
 function parsePairs(text) {
-  const pairs = {}, left = [], right = [];
+  const pairs = {};
+  const left = [], right = [];
   text.split("\n").forEach(line => {
     line = line.trim();
     if (!line) return;
     let l, r;
-    if (line.includes("→")) [l, r] = line.split("→").map(s => s.trim());
-    else if (line.includes("\t")) [l, r] = line.split("\t").map(s => s.trim());
+    if (line.includes("→")) {
+      const parts = line.split("→");
+      l = parts[0].trim(); r = parts[1]?.trim();
+    } else if (line.includes("\t")) {
+      const parts = line.split("\t");
+      l = parts[0].trim(); r = parts[1]?.trim();
+    }
     if (l && r) { pairs[l] = r; left.push(l); right.push(r); }
   });
   return { pairs, left, right };
@@ -131,27 +141,16 @@ async function setState(ep, index, phase, durationMs, extra = {}) {
 async function resetState() {
   try { await deleteDoc(doc(db, "games", "chift", "state", "current")); } catch(e) {}
 }
+
 async function runGame(ep, rounds, times) {
   const { tQ, tRes, tQRank, tRank } = times;
   let t = 0;
 
   rounds.forEach((round, i) => {
-
-    // Въпрос
-    setTimeout(() => setState(ep, i, "question", tQ * 1000, { questions: rounds }), t);
-    t += tQ * 1000;
-
-    // Резултати
-    setTimeout(() => setState(ep, i, "results",  tRes * 1000, { questions: rounds }), t);
-    t += tRes * 1000;
-
-    // Класиране за кръга
-    setTimeout(() => setState(ep, i, "q-ranking", tQRank * 1000, { questions: rounds }), t);
-    t += tQRank * 1000;
-
-    // Общо класиране
-    setTimeout(() => setState(ep, i, "ranking",  tRank * 1000, { questions: rounds }), t);
-    t += tRank * 1000;
+    setTimeout(() => setState(ep, i, "question",   tQ * 1000,     { questions: rounds }), t); t += tQ * 1000;
+    setTimeout(() => setState(ep, i, "results",    tRes * 1000,   { questions: rounds }), t); t += tRes * 1000;
+    setTimeout(() => setState(ep, i, "q-ranking",  tQRank * 1000, { questions: rounds }), t); t += tQRank * 1000;
+    setTimeout(() => setState(ep, i, "ranking",    tRank * 1000,  { questions: rounds }), t); t += tRank * 1000;
   });
 }
 
@@ -166,25 +165,25 @@ document.getElementById("startBtn").onclick = async () => {
 
   const rounds = [];
   document.querySelectorAll("#roundsContainer .round-block").forEach((div, i) => {
-    const pairsText = div.querySelector(".round-pairs").value;
+    const title = div.querySelector(".round-title")?.value.trim() || `Кръг ${i+1}`;
+    const pairsText = div.querySelector(".round-pairs")?.value || "";
     const { pairs, left, right } = parsePairs(pairsText);
-    const title = div.querySelector(".round-title").value.trim() || `Кръг ${i+1}`;
     if (Object.keys(pairs).length > 0) rounds.push({ title, pairs, left, right });
   });
 
-  if (rounds.length === 0) return alert("Добави поне един кръг!");
+  if (rounds.length === 0) return alert("Добави поне един кръг с двойки!");
 
   const times = {
-    tQ: Number(document.getElementById("tQ").value),
-    tRes: Number(document.getElementById("tRes").value),
+    tQ:     Number(document.getElementById("tQ").value),
+    tRes:   Number(document.getElementById("tRes").value),
     tQRank: Number(document.getElementById("tQRank").value),
-    tRank: Number(document.getElementById("tRank").value)
+    tRank:  Number(document.getElementById("tRank").value)
   };
 
   const [hh, mm] = startTimeRaw.split(":").map(Number);
   const now = new Date();
   let startAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0).getTime();
-  if (startAt <= Date.now()) startAt += 86400000;
+  if (startAt <= Date.now()) startAt += 24 * 60 * 60 * 1000;
 
   const prestartDuration = startAt - Date.now() - LOBBY_TIME;
   if (prestartDuration < 0) return alert("Часът е твърде близо!");
@@ -196,7 +195,7 @@ document.getElementById("startBtn").onclick = async () => {
 
   const h = Math.floor(prestartDuration / 3600000);
   const m = Math.floor((prestartDuration % 3600000) / 60000);
-  statusMsg.textContent = `Стартирано! Престарт ${h > 0 ? h + "ч " : ""}${m}мин → Старт в ${startTimeRaw}`;
+  statusMsg.textContent = `✅ Стартирано! Престарт ${h > 0 ? h + "ч " : ""}${m}мин → Старт в ${startTimeRaw}`;
 };
 </script>
 </body>
