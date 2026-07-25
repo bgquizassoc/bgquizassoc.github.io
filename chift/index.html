@@ -135,7 +135,7 @@
 </head>
 
 <body>
-<h1>Игри на Знания<br>🔗 Куиз Чифтосване 🔗<br>епизод 1-1</h1>
+<h1>Игри на Знания<br>🔗 Куиз Чифтосване 🔗<br>епизод 1-2</h1>
 
 <audio id="bg-music" src="dance.mp3" loop preload="auto"></audio>
 <div id="globalTimer" style="display:none;">-</div>
@@ -537,11 +537,6 @@ async function renderQRanking(index) {
     const q = questions[index];
     document.getElementById("qRankingTitle").textContent =
       `Класиране — ${q?.title || "Кръг " + (index + 1)}`;
-
-    qRankingList.innerHTML = scores.map(([name, obj], i) => {
-      // fix: scores е масив от обекти
-      return "";
-    }).join("") || "";
 
     qRankingList.innerHTML = scores.map((obj, i) => {
       const isMe = obj.name === player;
