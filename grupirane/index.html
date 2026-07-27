@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🗂️ Куиз Групиране 🗂️</title>
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    font-size: 16px; font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 900px; margin: 0 auto; padding: 20px;
+    background: #00264d; color: #ffffff;
+  }
+
+  h1 {
+    text-align: center; color: #ffd100;
+    font-size: clamp(1.4em, 4vw, 2em);
+    margin: 10px auto 15px auto;
+    text-shadow: 0 0 5px #ffb400;
+  }
+
+  #start-screen, #waiting-screen, #quiz, #results, #q-ranking, #ranking {
+    width: 100%; max-width: 700px; text-align: center;
+    margin-top: 20px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 0 10px rgba(255,209,0,0.2);
+  }
+
+  input[type="text"] {
+    padding: 10px; font-size: 1.1em; border-radius: 8px;
+    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+    text-align: center; background: #001a33; color: #fff;
+  }
+
+  button {
+    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    border-radius: 8px; border: none;
+    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background:#ffcc33; transform:scale(1.05); }
+
+  #globalTimer {
+    text-align: center; font-weight: 800; margin: 10px 0;
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+  }
+  #globalTimer.warning { color: #ff4c4c; }
+
+  /* ===== ЛОБИ ===== */
+  #lobby-image {
+    width: 100%; max-height: 220px;
+    object-fit: contain; border-radius: 12px; margin-bottom: 15px;
+  }
+  #lobby-instructions {
+    text-align: left; font-size: 1em; line-height: 1.8; color: #cce8ff;
+    margin-bottom: 15px; background: rgba(255,255,255,0.05);
+    padding: 12px; border-radius: 10px;
+  }
+  #lobby-instructions p { margin-bottom: 6px; }
+  #lobby-instructions strong { color: #ffd100; }
+  #lobbyList {
+    margin-top: 10px; text-align: left;
+    max-height: 200px; overflow-y: auto; font-size: 0.95em;
+  }
+  #lobbyList div { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+  /* ===== ИГРАТА ===== */
+  #roundTitle {
+    font-size: 1.2em; color: #ffd100; margin-bottom: 14px; font-weight: bold;
+  }
+
+  /* Обектите горе */
+  #itemsContainer {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 8px; margin-bottom: 20px;
+  }
+
+  .item-btn {
+    padding: 9px 16px; border-radius: 10px;
+    background: #003d7a; border: 2px solid #00509e;
+    color: white; font-size: 0.95em; cursor: pointer;
+    transition: 0.15s; user-select: none;
+  }
+  .item-btn:hover { background: #004a9f; }
+  .item-btn.selected { border-color: #ffd100; background: #004070; }
+  .item-btn.grouped { opacity: 0.85; border-color: transparent; cursor: default; }
+
+  /* Групите долу */
+  #groupsContainer {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .group-area {
+    flex: 1; min-width: 120px; max-width: 200px;
+    border-radius: 12px; border: 2px solid #00509e;
+    padding: 10px; background: rgba(255,255,255,0.04);
+  }
+
+  .group-btn {
+    width: 100%; padding: 10px; border-radius: 8px; border: none;
+    font-size: 1em; font-weight: bold; cursor: pointer;
+    margin-bottom: 8px; transition: 0.15s;
+  }
+  .group-btn:hover { filter: brightness(1.15); }
+
+  .group-items { min-height: 30px; text-align: left; }
+  .group-item-tag {
+    display: inline-block; font-size: 0.82em; padding: 3px 8px;
+    border-radius: 6px; margin: 3px 2px; color: #fff; opacity: 0.9;
+  }
+
+  #scoreDisplay { margin: 8px 0; font-size: 1em; color: #ffd100; font-weight: bold; }
+
+  /* LIVE завършили */
+  #answeredList {
+    margin-top: 12px; text-align: left; font-size: 0.95em;
+    background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px;
+  }
+  #answeredList div { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  #answeredList div:last-child { border-bottom: none; }
+
+  /* ===== РЕЗУЛТАТИ ===== */
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 14px; margin: 5px 0; border-radius: 10px; background: #333;
+    font-size: 0.95em;
+  }
+  .result-row.correct { background: #1b5e20; }
+  .result-row.wrong   { background: #7f2020; }
+
+  /* ===== КЛАСИРАНЕ ===== */
+  .rank-item {
+    padding: 10px; margin: 6px 0;
+    border-radius: 10px; font-size: 1.1em; text-align: left;
+  }
+  .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
+  .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
+  .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
+
+  #historyBtn, #archiveBtn { margin-top: 20px; background: #00e5ff; color: #003344; }
+
+  .myself {
+    background: #00e5ff55 !important;
+    border-left: 6px solid #00e5ff !important;
+    font-weight: 700;
+  }
+  </style>
+</head>
+
+<body>
+<h1>Игри на Знания<br>🗂️ Куиз Групиране 🗂️<br>епизод 1</h1>
+
+<audio id="bg-music" src="dance.mp3" loop preload="auto"></audio>
+<div id="globalTimer" style="display:none;">-</div>
+
+<!-- СТАРТ -->
+<div id="start-screen">
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="playerName" placeholder="Две имена..." />
+  <button id="enterBtn">Влез в играта</button>
+  <button id="archiveBtn">Архив класирания</button>
+</div>
+
+<!-- ЛОБИ -->
+<div id="waiting-screen" style="display:none;">
+  <h2 id="waitingTitle">Играта още не е започнала.</h2>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
+  <img id="lobby-image" src="https://i.imgur.com/mUbjQU6.jpeg" alt="Куиз Групиране" />
+  <div id="lobby-instructions">
+    <p><strong id="lobbyThemes">Темите днес са:</strong></p>
+    <p>Очакват ви 5 кръга с по 10 обекта и няколко групи.</p>
+    <p>Трябва да поставите всеки обект в някоя от групите.</p>
+    <p>Време за мислене — <strong>100 секунди</strong> за всички обекти.</p>
+    <p>Точкуване — по <strong>1 точка</strong> на верен обект. При 10 верни получавате <strong>бонус 3 точки</strong>.</p>
+  </div>
+  <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
+  <p style="margin-top:8px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
+  <div id="lobbyList">Още няма играчи.</div>
+</div>
+
+<!-- ИГРАТА -->
+<div id="quiz" style="display:none;">
+  <div id="roundTitle"></div>
+  <div id="itemsContainer"></div>
+  <div id="groupsContainer"></div>
+  <div id="scoreDisplay"></div>
+  <div id="answeredList" style="display:none;">
+    <strong>Завършили:</strong>
+    <div id="answeredNames"></div>
+  </div>
+</div>
+
+<!-- РЕЗУЛТАТИ -->
+<div id="results" style="display:none;">
+  <h3>Резултати от кръга</h3>
+  <div id="resultsBlock"></div>
+</div>
+
+<!-- КЛАСИРАНЕ ЗА КРЪГА -->
+<div id="q-ranking" style="display:none;">
+  <h3 id="qRankingTitle">Класиране за кръга</h3>
+  <div id="qRankingList"></div>
+</div>
+
+<!-- ОБЩО КЛАСИРАНЕ -->
+<div id="ranking" style="display:none;">
+  <h3 id="rankingTitle">Общо класиране</h3>
+  <div id="rankingList"></div>
+  <button id="historyBtn" style="display:none;">История на играта</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, onSnapshot, setDoc, serverTimestamp,
+  collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const startScreen   = document.getElementById("start-screen");
+const waitingScreen = document.getElementById("waiting-screen");
+const quizDiv       = document.getElementById("quiz");
+const resultsDiv    = document.getElementById("results");
+const qRankingDiv   = document.getElementById("q-ranking");
+const rankingDiv    = document.getElementById("ranking");
+
+const globalTimer   = document.getElementById("globalTimer");
+const waitingTitle  = document.getElementById("waitingTitle");
+const lobbyList     = document.getElementById("lobbyList");
+const lobbyThemes   = document.getElementById("lobbyThemes");
+const roundTitle    = document.getElementById("roundTitle");
+const itemsContainer= document.getElementById("itemsContainer");
+const groupsContainer=document.getElementById("groupsContainer");
+const scoreDisplay  = document.getElementById("scoreDisplay");
+const answeredList  = document.getElementById("answeredList");
+const answeredNames = document.getElementById("answeredNames");
+const resultsBlock  = document.getElementById("resultsBlock");
+const qRankingList  = document.getElementById("qRankingList");
+const rankingList   = document.getElementById("rankingList");
+const rankingTitle  = document.getElementById("rankingTitle");
+const historyBtn    = document.getElementById("historyBtn");
+const bgMusic       = document.getElementById("bg-music");
+
+let player        = "";
+let questions     = [];
+let ready         = false;
+let timerInterval = null;
+let episodeId     = null;
+let lobbyUnsub    = null;
+let lobbyEpisodeId= null;
+let answersUnsub  = null;
+let currentIndex  = 0;
+
+/* Цветове за групите */
+const GROUP_COLORS = [
+  "#3498db","#9b59b6","#e67e22","#1abc9c","#e91e63"
+];
+
+let selectedItem  = null;
+let assignments   = {}; // { item: group }
+let submitted     = false;
+let lastClickTime = null;
+
+function showOnly(...divs) {
+  [startScreen, waitingScreen, quizDiv, resultsDiv, qRankingDiv, rankingDiv]
+    .forEach(d => d.style.display = "none");
+  divs.forEach(d => d.style.display = "block");
+}
+
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  const dotsEl = document.getElementById("dots");
+  if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
+}, 400);
+
+function formatTime(totalSeconds) {
+  if (totalSeconds >= 60) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return `${m}:${String(s).padStart(2,"0")}`;
+  }
+  return String(totalSeconds);
+}
+
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  globalTimer.textContent = formatTime(remaining);
+  if (remaining <= 10) globalTimer.classList.add("warning");
+  else globalTimer.classList.remove("warning");
+}
+
+document.getElementById("archiveBtn").onclick = () => window.location.href = "archive.html";
+
+historyBtn.onclick = () => {
+  if (!episodeId) return;
+  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+};
+
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете две имена!");
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+  if (bgMusic) { bgMusic.volume = 0.3; bgMusic.play().catch(() => {}); }
+  if (!episodeId) return;
+  await setDoc(
+    doc(db, "games", "grupirane", "episodes", episodeId, "lobby", player),
+    { joinedAt: Date.now() }, { merge: true }
+  );
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
+
+/* ===== СТРОИМ UI ===== */
+function buildQuizUI(q, startTime) {
+  selectedItem  = null;
+  assignments   = {};
+  submitted     = false;
+  lastClickTime = null;
+  itemsContainer.innerHTML  = "";
+  groupsContainer.innerHTML = "";
+  scoreDisplay.textContent  = "";
+  answeredNames.innerHTML   = "";
+  answeredList.style.display = "block";
+  roundTitle.textContent = q.title || "Групиране";
+
+  const items  = [...q.items].sort();
+  const groups = q.groups;
+
+  /* Обектите горе */
+  items.forEach(item => {
+    const btn = document.createElement("button");
+    btn.className = "item-btn";
+    btn.textContent = item;
+    btn.dataset.item = item;
+    btn.onclick = () => selectItem(btn, item);
+    itemsContainer.appendChild(btn);
+  });
+
+  /* Групите долу */
+  groups.forEach((group, gi) => {
+    const color = GROUP_COLORS[gi % GROUP_COLORS.length];
+    const area = document.createElement("div");
+    area.className = "group-area";
+    area.style.borderColor = color;
+
+    const gbtn = document.createElement("button");
+    gbtn.className = "group-btn";
+    gbtn.textContent = group;
+    gbtn.style.background = color;
+    gbtn.style.color = "#fff";
+    gbtn.onclick = () => assignToGroup(group, color, startTime);
+
+    const gItems = document.createElement("div");
+    gItems.className = "group-items";
+    gItems.id = "group-items-" + gi;
+
+    area.appendChild(gbtn);
+    area.appendChild(gItems);
+    groupsContainer.appendChild(area);
+  });
+}
+
+function selectItem(btn, item) {
+  if (submitted) return;
+  if (assignments[item]) return; // вече групиран
+  document.querySelectorAll(".item-btn.selected").forEach(b => b.classList.remove("selected"));
+  selectedItem = item;
+  btn.classList.add("selected");
+}
+
+function assignToGroup(group, color, startTime) {
+  if (submitted || !selectedItem) return;
+  if (assignments[selectedItem]) return;
+
+  // Оцветяваме обекта горе
+  const itemBtn = [...itemsContainer.querySelectorAll(".item-btn")]
+    .find(b => b.dataset.item === selectedItem);
+  if (itemBtn) {
+    itemBtn.classList.remove("selected");
+    itemBtn.classList.add("grouped");
+    itemBtn.style.background = color;
+    itemBtn.style.borderColor = color;
+  }
+
+  // Добавяме в групата долу
+  const gi = questions[currentIndex]?.groups.indexOf(group) ?? 0;
+  const gItemsEl = document.getElementById("group-items-" + gi);
+  if (gItemsEl) {
+    const tag = document.createElement("span");
+    tag.className = "group-item-tag";
+    tag.style.background = color;
+    tag.textContent = selectedItem;
+    gItemsEl.appendChild(tag);
+  }
+
+  assignments[selectedItem] = group;
+  lastClickTime = Date.now() - startTime;
+  selectedItem = null;
+
+  const total = questions[currentIndex]?.items.length || 10;
+  const done  = Object.keys(assignments).length;
+  scoreDisplay.textContent = `Групирани: ${done} / ${total}`;
+
+  // Записваме след всяко назначение
+  saveCurrentAssignments(currentIndex, startTime);
+}
+
+/* ===== ЗАПИСВАНЕ ===== */
+async function saveCurrentAssignments(index, startTime) {
+  if (!episodeId || !player) return;
+  const q = questions[index];
+  if (!q) return;
+
+  let correct = 0;
+  Object.entries(assignments).forEach(([item, group]) => {
+    if (q.answers[item] === group) correct++;
+  });
+
+  const total = q.items.length;
+  const bonus = correct === total ? 3 : 0;
+  const pts   = correct + bonus;
+  const thinkingTime = lastClickTime ?? (Date.now() - startTime);
+
+  await setDoc(
+    doc(db, "games", "grupirane", "episodes", episodeId, "results", player),
+    { exists: true }, { merge: true }
+  );
+
+  await setDoc(
+    doc(db, "games", "grupirane", "episodes", episodeId, "results", player, "answers", String(index)),
+    {
+      assignments: { ...assignments },
+      correct, bonus, total: pts,
+      thinkingTime, timestamp: Date.now()
+    }
+  );
+}
+
+async function submitAssignments(index, startTime) {
+  if (submitted) return;
+  submitted = true;
+  await saveCurrentAssignments(index, startTime);
+}
+
+/* ===== LIVE КОЙ Е ЗАВЪРШИЛ ===== */
+function startAnswerListener(index) {
+  if (answersUnsub) { answersUnsub(); answersUnsub = null; }
+  answeredNames.innerHTML = "";
+
+  answersUnsub = onSnapshot(
+    collection(db, "games", "grupirane", "episodes", episodeId, "results"),
+    resultsSnap => {
+      resultsSnap.forEach(playerDoc => {
+        const pName = playerDoc.id;
+        onSnapshot(
+          doc(db, "games", "grupirane", "episodes", episodeId, "results", pName, "answers", String(index)),
+          ansDoc => {
+            if (ansDoc.exists()) {
+              const data = ansDoc.data();
+              const done = Object.keys(data.assignments || {}).length;
+              const existing = Array.from(answeredNames.children).find(d => d.dataset.player === pName);
+              if (!existing) {
+                const div = document.createElement("div");
+                div.dataset.player = pName;
+                div.textContent = `${pName} — ${done} обекта`;
+                answeredNames.appendChild(div);
+              } else {
+                existing.textContent = `${pName} — ${done} обекта`;
+              }
+            }
+          }
+        );
+      });
+    }
+  );
+}
+
+/* ===== РЕЗУЛТАТИ ===== */
+async function renderResults(index) {
+  showOnly(resultsDiv);
+  if (answersUnsub) { answersUnsub(); answersUnsub = null; }
+
+  const q = questions[index];
+  if (!q) return;
+
+  let html = `<h4 style="margin-bottom:10px;color:#ffd100;">Верни групирания:</h4>`;
+
+  q.groups.forEach((group, gi) => {
+    const color = GROUP_COLORS[gi % GROUP_COLORS.length];
+    html += `<div style="margin:10px 0;font-weight:bold;color:${color};">${group}:</div>`;
+    q.items.filter(item => q.answers[item] === group).sort().forEach(item => {
+      html += `<div class="result-row correct"><span>${item}</span><span>✔</span></div>`;
+    });
+  });
+
+  try {
+    const ansSnap = await getDocs(
+      collection(db, "games", "grupirane", "episodes", episodeId, "results", player, "answers")
+    );
+    const myAns = ansSnap.docs.find(d => d.id === String(index));
+    if (myAns) {
+      const data = myAns.data();
+      html += `<div style="margin-top:15px;color:#ffd100;font-weight:bold;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
+        Ти: ${data.correct} верни + ${data.bonus} бонус = <strong>${data.total} т.</strong>
+      </div>`;
+    }
+  } catch(e) {}
+
+  resultsBlock.innerHTML = html;
+}
+
+/* ===== КЛАСИРАНЕ ЗА КРЪГА ===== */
+async function renderQRanking(index) {
+  showOnly(qRankingDiv);
+
+  const q = questions[index];
+  document.getElementById("qRankingTitle").textContent =
+    `Класиране — ${q?.title || "Кръг " + (index + 1)}`;
+
+  try {
+    const playersSnap = await getDocs(
+      collection(db, "games", "grupirane", "episodes", episodeId, "results")
+    );
+
+    const scores = [];
+    for (const playerDoc of playersSnap.docs) {
+      const pName = playerDoc.id;
+      const answersSnap = await getDocs(
+        collection(db, "games", "grupirane", "episodes", episodeId, "results", pName, "answers")
+      );
+      const ansDoc = answersSnap.docs.find(d => d.id === String(index));
+      if (ansDoc) {
+        const data = ansDoc.data();
+        scores.push({ name: pName, pts: data.total || 0, correct: data.correct || 0, time: data.thinkingTime || 0 });
+      }
+    }
+
+    scores.sort((a, b) => b.pts !== a.pts ? b.pts - a.pts : a.time - b.time);
+
+    qRankingList.innerHTML = scores.map((obj, i) => {
+      const isMe = obj.name === player;
+      let cls = "", medal = "";
+      if (i === 0) { cls = "gold"; medal = "🥇"; }
+      else if (i === 1) { cls = "silver"; medal = "🥈"; }
+      else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+      return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+        ${i+1}. ${medal} ${obj.name} — ${obj.correct}/10 верни → <strong>${obj.pts} т.</strong> (${(obj.time/1000).toFixed(1)} сек)
+      </div>`;
+    }).join("") || "<p>Няма данни.</p>";
+  } catch(e) {
+    qRankingList.innerHTML = "<p>Грешка при зареждане.</p>";
+  }
+}
+
+/* ===== ОБЩО КЛАСИРАНЕ ===== */
+async function renderRanking(index) {
+  showOnly(rankingDiv);
+  const isLast = index >= questions.length - 1;
+  rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
+  historyBtn.style.display = isLast ? "block" : "none";
+
+  try {
+    const playersSnap = await getDocs(
+      collection(db, "games", "grupirane", "episodes", episodeId, "results")
+    );
+
+    const scores = {};
+    for (const playerDoc of playersSnap.docs) {
+      const pName = playerDoc.id;
+      const answersSnap = await getDocs(
+        collection(db, "games", "grupirane", "episodes", episodeId, "results", pName, "answers")
+      );
+      let totalPts = 0, totalTime = 0;
+      answersSnap.forEach(ansDoc => {
+        totalPts  += (ansDoc.data().total || 0);
+        totalTime += (ansDoc.data().thinkingTime || 0);
+      });
+      scores[pName] = { pts: totalPts, time: totalTime };
+    }
+
+    const sorted = Object.entries(scores).sort((a, b) =>
+      b[1].pts !== a[1].pts ? b[1].pts - a[1].pts : a[1].time - b[1].time
+    );
+
+    rankingList.innerHTML = sorted.map(([name, obj], i) => {
+      const isMe = name === player;
+      const timeText = isLast ? ` (${(obj.time/1000).toFixed(1)} сек)` : "";
+      let cls = "", medal = "";
+      if (i === 0) { cls = "gold"; medal = "🥇"; }
+      else if (i === 1) { cls = "silver"; medal = "🥈"; }
+      else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+      return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+        ${i+1}. ${medal} ${name} — ${obj.pts} т.${timeText}
+      </div>`;
+    }).join("");
+  } catch(e) {
+    rankingList.innerHTML = "<p>Грешка при зареждане.</p>";
+  }
+}
+
+/* ===== ФАЗИ ===== */
+let lastPhaseSnapshot = null;
+
+function applyPhaseImmediately(data) {
+  const { index, phase, duration } = data;
+  const startTime = data.startTime?.toMillis?.() ?? data.startTime ?? Date.now();
+  currentIndex = index;
+  if (timerInterval) clearInterval(timerInterval);
+
+  if (phase === "lobby") {
+    showOnly(waitingScreen);
+    globalTimer.style.display = "none";
+    waitingTitle.textContent = "Играта още не е започнала.";
+    if (data.themes) lobbyThemes.textContent = "Темите днес са: " + data.themes;
+    return;
+  }
+
+  if (phase === "prestart") {
+    showOnly(waitingScreen);
+    waitingTitle.textContent = "Играта започва след:";
+    globalTimer.style.display = "block";
+    if (data.themes) lobbyThemes.textContent = "Темите днес са: " + data.themes;
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "question") {
+    showOnly(quizDiv);
+    globalTimer.style.display = "block";
+    const q = questions[index];
+    if (!q) return;
+    buildQuizUI(q, startTime);
+    startAnswerListener(index);
+    timerInterval = setInterval(() => {
+      updateTimer(startTime, duration);
+      const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startTime)) / 1000));
+      if (remaining === 0 && !submitted) submitAssignments(index, startTime);
+    }, 200);
+    return;
+  }
+
+  if (phase === "results") {
+    globalTimer.style.display = "block";
+    renderResults(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "q-ranking") {
+    globalTimer.style.display = "block";
+    renderQRanking(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "ranking") {
+    globalTimer.style.display = "block";
+    renderRanking(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+}
+
+/* ===== FIREBASE ===== */
+onSnapshot(doc(db, "games", "grupirane", "state", "current"), async snap => {
+  if (!snap.exists()) return;
+  const data = snap.data();
+  lastPhaseSnapshot = data;
+  episodeId = data.episodeId;
+  if (!episodeId) return;
+  if (data.questions && data.questions.length > 0) questions = data.questions;
+
+  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
+    if (lobbyUnsub) lobbyUnsub();
+    lobbyEpisodeId = episodeId;
+    lobbyUnsub = onSnapshot(
+      collection(db, "games", "grupirane", "episodes", episodeId, "lobby"),
+      lobbySnap => {
+        const names = lobbySnap.docs.map(d => d.id);
+        lobbyList.innerHTML = names.length
+          ? names.map(n => `<div>${n}</div>`).join("")
+          : "Още няма играчи.";
+      }
+    );
+  }
+
+  if (!ready) return;
+  applyPhaseImmediately(data);
+});
+</script>
+</body>
+</html>
