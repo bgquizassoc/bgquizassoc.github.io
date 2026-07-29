@@ -113,12 +113,36 @@
     border-left: 6px solid #00e5ff !important;
     font-weight: 700; color: #fff !important;
   }
+
+  /* ⭐ Добавям CSS от chift.html за лобито */
+  #lobby-image {
+    width: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    border-radius: 12px;
+    margin-bottom: 15px;
+  }
+
+  #lobby-instructions {
+    text-align: left;
+    font-size: 1em;
+    line-height: 1.8;
+    color: #cce8ff;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  #lobby-instructions p { margin-bottom: 6px; }
+  #lobby-instructions strong { color: #ffd100; }
+
   </style>
 </head>
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 91⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 92⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -131,11 +155,22 @@
   <button id="archiveBtn">Архив класирания</button>
 </div>
 
+<!-- ⭐ ПРЕРАБОТЕНО ЛОБИ — 1:1 като в chift.html -->
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
-  <h3 id="lobbyTitle">Стартов списък на играчите</h3>
-  <p style="margin-top:10px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
+
+  <img id="lobby-image" src="https://i.imgur.com/5QDXD26.jpeg" alt="Светкавичен Куиз" />
+
+ <div id="lobby-instructions">
+  <p>Очакват ви 30 въпроса с повишаваща степен на трудност.</p>
+  <p>Отговаря се с натискане на бутон върху някой от четирите отговора.</p>
+  <p>Време за мислене и отговор — <strong>20 секунди </strong> на въпрос</p>
+  <p>Точкуване — първите 10 въпроса - <strong> по 1 точка</strong>, вторите 10 - <strong> по 2 точки</strong>, последните 10 носят по <strong> 3 точки </strong>.</p>
+</div>
+
+  <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
+  <p style="margin-top:8px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
   <div id="lobbyList">Още няма други играчи.</div>
 </div>
 
