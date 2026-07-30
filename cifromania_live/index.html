@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>🔢 Игри на Знания - Цифромания Live 🔢</title>
+  <title>🔢 Игри на Знания - Цифромания Диапазон 🔢</title>
 
   <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -55,7 +55,6 @@
 
   #question { font-size: 1.4em; margin: 20px 0; font-weight: 600; }
 
-  /* ⭐ ПОЛЕ ЗА ЧИСЛО */
   #answerArea {
     margin: 16px 0;
     display: flex;
@@ -108,7 +107,6 @@
     transform: none;
   }
 
-  /* ⭐ Точките на играча */
   #myPoints {
     margin-top: 8px;
     font-size: 1em;
@@ -116,7 +114,6 @@
     font-weight: bold;
   }
 
-  /* ⭐ LIVE "Отговорили:" списък */
   #answeredList {
     margin-top: 20px;
     text-align: left;
@@ -132,7 +129,6 @@
   }
   #answeredList div:last-child { border-bottom: none; }
 
-  /* ⭐ Обяснение */
   .stat-row {
     display: flex;
     justify-content: space-between;
@@ -152,7 +148,6 @@
     color: #aaddff;
   }
 
-  /* ⭐ Класиране */
   .rank-item {
     padding: 10px; margin: 8px 0;
     border-radius: 10px; font-size: 1.2em; text-align: left;
@@ -178,12 +173,36 @@
     border-left: 6px solid #00e5ff !important;
     font-weight: 700; color: #fff !important;
   }
+
+  /* ⭐ ЛОБИ CSS */
+  #lobby-image {
+    width: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    border-radius: 12px;
+    margin-bottom: 15px;
+  }
+
+  #lobby-instructions {
+    text-align: left;
+    font-size: 1em;
+    line-height: 1.8;
+    color: #cce8ff;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  #lobby-instructions p { margin-bottom: 6px; }
+  #lobby-instructions strong { color: #ffd100; }
+
   </style>
 </head>
 
 <body>
 
-<h1>Игри на Знания<br>🔢 Цифромания Диапазон 🔢<br>⚡ епизод 1 ⚡</h1>
+<h1>Игри на Знания<br>🔢 Цифромания Диапазон 🔢<br>⚡ епизод 1 (повторение)⚡</h1>
 
 <audio id="bg-music" src="VeronicaApo.mp3" loop preload="auto"></audio>
 
@@ -196,11 +215,24 @@
   <button id="archiveBtn">Архив класирания</button>
 </div>
 
+<!-- ⭐ НОВО ЛОБИ — 1:1 структура като в chift -->
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
-  <h3 id="lobbyTitle">Стартов списък на играчите</h3>
-  <p style="margin-top:10px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
+
+  <img id="lobby-image" src="https://i.imgur.com/CJ665Up.jpeg" alt="Цифромания Диапазон" />
+
+  <div id="lobby-instructions">
+    <p>Очакват ви <strong>30 цифрови въпроса.</strong></p>
+    <p>Отговаря се с попълване на цифра и натискане бутон "Изпрати" (с "Enter" се изпраща по-бързо).</p>
+    <p>Време за мислене и отговор — <strong>20 секунди</strong> на въпрос</p>
+    <p>Точкуване — Играчът с абсолютно точно попадение печели <strong>5 точки</strong>, с малко отклонение <strong>3 точки</strong>, с по-голямо отклонение <strong>2 точки</strong> и още по-голямо <strong>1 точка</strong>.</p>
+    <p>Ако сте прекалено далеч от верния отговор - не печелите никакви точки.</p>
+    <p>При равни точки се гледа общото време за целия куиз</p>
+  </div>
+
+  <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
+  <p style="margin-top:8px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
   <div id="lobbyList">Още няма други играчи.</div>
 </div>
 
@@ -259,6 +291,7 @@ const waitingTitle   = document.getElementById("waitingTitle");
 const answeredList   = document.getElementById("answeredList");
 const answeredNames  = document.getElementById("answeredNames");
 const bgMusic        = document.getElementById("bg-music");
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
