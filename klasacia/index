@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🏆 Куиз Класация 🏆</title>
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    font-size: 16px; font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 900px; margin: 0 auto; padding: 20px;
+    background: #00264d; color: #ffffff;
+  }
+
+  h1 {
+    text-align: center; color: #ffd100;
+    font-size: clamp(1.4em, 4vw, 2em);
+    margin: 10px auto 15px auto;
+    text-shadow: 0 0 5px #ffb400;
+  }
+
+  #start-screen, #waiting-screen, #quiz, #results, #q-ranking, #ranking {
+    width: 100%; max-width: 700px; text-align: center;
+    margin-top: 20px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 0 10px rgba(255,209,0,0.2);
+  }
+
+  input[type="text"] {
+    padding: 10px; font-size: 1.1em; border-radius: 8px;
+    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+    text-align: center; background: #001a33; color: #fff;
+  }
+
+  button {
+    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    border-radius: 8px; border: none;
+    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background:#ffcc33; transform:scale(1.05); }
+
+  #globalTimer {
+    text-align: center; font-weight: 800; margin: 10px 0;
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+  }
+  #globalTimer.warning { color: #ff4c4c; }
+
+  /* ===== ЛОБИ ===== */
+  #lobby-image {
+    width: 100%; max-height: 350px;
+    object-fit: contain; border-radius: 12px; margin-bottom: 15px;
+  }
+  #lobby-instructions {
+    text-align: left; font-size: 1em; line-height: 1.8; color: #cce8ff;
+    margin-bottom: 15px; background: rgba(255,255,255,0.05);
+    padding: 12px; border-radius: 10px;
+  }
+  #lobby-instructions p { margin-bottom: 6px; }
+  #lobby-instructions strong { color: #ffd100; }
+  #lobbyList {
+    margin-top: 10px; text-align: left;
+    max-height: 200px; overflow-y: auto; font-size: 0.95em;
+  }
+  #lobbyList div { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+  /* ===== ИГРАТА ===== */
+  #roundTitle { font-size: 1.2em; color: #ffd100; margin-bottom: 14px; font-weight: bold; }
+
+  .ranking-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 10px 0;
+  }
+
+  /* Лява колона — обекти */
+  #leftCol { display: flex; flex-direction: column; gap: 6px; }
+
+  .item-btn {
+    padding: 9px 14px; border-radius: 10px;
+    background: #003d7a; border: 2px solid #00509e;
+    color: white; font-size: 0.9em; cursor: pointer;
+    transition: 0.15s; user-select: none; text-align: center;
+  }
+  .item-btn:hover { background: #004a9f; }
+  .item-btn.selected { border-color: #ffd100; background: #004070; }
+  .item-btn.placed { opacity: 0.85; border-color: transparent; cursor: default; }
+
+  /* Дясна колона — номерирани кутийки */
+  #rightCol { display: flex; flex-direction: column; gap: 6px; }
+
+  .slot-row {
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .slot-num {
+    font-size: 0.85em; font-weight: bold; color: #ffd100;
+    min-width: 22px; text-align: right;
+  }
+
+  .slot-btn {
+    flex: 1; padding: 9px 10px; border-radius: 10px;
+    background: #002a55; border: 2px dashed #00509e;
+    color: #aaa; font-size: 0.85em; cursor: pointer;
+    transition: 0.15s; text-align: center; min-height: 38px;
+  }
+  .slot-btn:hover { border-color: #ffd100; }
+  .slot-btn.filled { border-style: solid; color: white; cursor: default; }
+  .slot-btn.filled:hover { border-color: inherit; }
+
+  .slot-value {
+    font-size: 0.75em; color: #7fffd4; min-width: 90px; text-align: left;
+  }
+
+  #scoreDisplay { margin: 8px 0; font-size: 1em; color: #ffd100; font-weight: bold; }
+
+  /* LIVE завършили */
+  #answeredList {
+    margin-top: 12px; text-align: left; font-size: 0.95em;
+    background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px;
+  }
+  #answeredList div { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  #answeredList div:last-child { border-bottom: none; }
+
+  /* ===== РЕЗУЛТАТИ ===== */
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 14px; margin: 4px 0; border-radius: 10px;
+    background: #333; font-size: 0.9em; gap: 6px;
+  }
+  .result-row.correct { background: #1b5e20; }
+  .result-row.wrong   { background: #7f2020; }
+  .result-pos { font-weight: bold; color: #ffd100; min-width: 24px; }
+  .result-val { color: #7fffd4; font-size: 0.85em; }
+
+  /* ===== КЛАСИРАНЕ ===== */
+  .rank-item {
+    padding: 10px; margin: 6px 0;
+    border-radius: 10px; font-size: 1.1em; text-align: left;
+  }
+  .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
+  .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
+  .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
+
+  #historyBtn, #archiveBtn { margin-top: 20px; background: #00e5ff; color: #003344; }
+
+  .myself {
+    background: #00e5ff55 !important;
+    border-left: 6px solid #00e5ff !important;
+    font-weight: 700;
+  }
+  </style>
+</head>
+
+<body>
+<h1>Игри на Знания<br>🏆 Куиз Класация 🏆<br>епизод 1</h1>
+
+<audio id="bg-music" src="dance.mp3" loop preload="auto"></audio>
+<div id="globalTimer" style="display:none;">-</div>
+
+<!-- СТАРТ -->
+<div id="start-screen">
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="playerName" placeholder="Две имена..." />
+  <button id="enterBtn">Влез в играта</button>
+  <button id="archiveBtn">Архив класирания</button>
+</div>
+
+<!-- ЛОБИ -->
+<div id="waiting-screen" style="display:none;">
+  <h2 id="waitingTitle">Играта още не е започнала.</h2>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
+  <img id="lobby-image" src="https://i.imgur.com/mUbjQU6.jpeg" alt="Куиз Класация" />
+  <div id="lobby-instructions">
+    <p><strong id="lobbyThemes">Темите днес са:</strong></p>
+    <p>Очакват ви 5 кръга с по 10 обекта за наредждане.</p>
+    <p>Трябва да поставите всеки обект на правилното му място в класацията.</p>
+    <p>Цъкнете обект вляво, после кутийката вдясно където смятате, че се нареджда.</p>
+    <p>Время за мислене — <strong>2 минути</strong> за всички обекти.</p>
+    <p>Точкуване — по <strong>1 точка</strong> за вярно наредено. При 10 верни — <strong>бонус 3 точки</strong>.</p>
+  </div>
+  <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
+  <p style="margin-top:8px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
+  <div id="lobbyList">Още няма играчи.</div>
+</div>
+
+<!-- ИГРАТА -->
+<div id="quiz" style="display:none;">
+  <div id="roundTitle"></div>
+  <div class="ranking-grid">
+    <div id="leftCol"></div>
+    <div id="rightCol"></div>
+  </div>
+  <div id="scoreDisplay"></div>
+  <div id="answeredList" style="display:none;">
+    <strong>Наредили:</strong>
+    <div id="answeredNames"></div>
+  </div>
+</div>
+
+<!-- РЕЗУЛТАТИ -->
+<div id="results" style="display:none;">
+  <h3>Резултати от кръга</h3>
+  <div id="resultsBlock"></div>
+</div>
+
+<!-- КЛАСИРАНЕ ЗА КРЪГА -->
+<div id="q-ranking" style="display:none;">
+  <h3 id="qRankingTitle">Класиране за кръга</h3>
+  <div id="qRankingList"></div>
+</div>
+
+<!-- ОБЩО КЛАСИРАНЕ -->
+<div id="ranking" style="display:none;">
+  <h3 id="rankingTitle">Общо класиране</h3>
+  <div id="rankingList"></div>
+  <button id="historyBtn" style="display:none;">История на играта</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, onSnapshot, setDoc, serverTimestamp,
+  collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const startScreen   = document.getElementById("start-screen");
+const waitingScreen = document.getElementById("waiting-screen");
+const quizDiv       = document.getElementById("quiz");
+const resultsDiv    = document.getElementById("results");
+const qRankingDiv   = document.getElementById("q-ranking");
+const rankingDiv    = document.getElementById("ranking");
+
+const globalTimer   = document.getElementById("globalTimer");
+const waitingTitle  = document.getElementById("waitingTitle");
+const lobbyList     = document.getElementById("lobbyList");
+const lobbyThemes   = document.getElementById("lobbyThemes");
+const roundTitle    = document.getElementById("roundTitle");
+const leftCol       = document.getElementById("leftCol");
+const rightCol      = document.getElementById("rightCol");
+const scoreDisplay  = document.getElementById("scoreDisplay");
+const answeredList  = document.getElementById("answeredList");
+const answeredNames = document.getElementById("answeredNames");
+const resultsBlock  = document.getElementById("resultsBlock");
+const qRankingList  = document.getElementById("qRankingList");
+const rankingList   = document.getElementById("rankingList");
+const rankingTitle  = document.getElementById("rankingTitle");
+const historyBtn    = document.getElementById("historyBtn");
+const bgMusic       = document.getElementById("bg-music");
+
+const SLOT_COLOR = "#1abc9c";
+
+let player        = "";
+let questions     = [];
+let ready         = false;
+let timerInterval = null;
+let episodeId     = null;
+let lobbyUnsub    = null;
+let lobbyEpisodeId= null;
+let answersUnsub  = null;
+let currentIndex  = 0;
+
+let selectedItem  = null;  // избран обект
+let placements    = {};    // { position: item }
+let submitted     = false;
+let lastClickTime = null;
+
+function showOnly(...divs) {
+  [startScreen, waitingScreen, quizDiv, resultsDiv, qRankingDiv, rankingDiv]
+    .forEach(d => d.style.display = "none");
+  divs.forEach(d => d.style.display = "block");
+}
+
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  const dotsEl = document.getElementById("dots");
+  if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
+}, 400);
+
+function formatTime(totalSeconds) {
+  if (totalSeconds >= 60) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return `${m}:${String(s).padStart(2,"0")}`;
+  }
+  return String(totalSeconds);
+}
+
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  globalTimer.textContent = formatTime(remaining);
+  if (remaining <= 10) globalTimer.classList.add("warning");
+  else globalTimer.classList.remove("warning");
+}
+
+document.getElementById("archiveBtn").onclick = () => window.location.href = "archive.html";
+
+historyBtn.onclick = () => {
+  if (!episodeId) return;
+  window.location.href = `history_kl.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+};
+
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете две имена!");
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+  if (bgMusic) { bgMusic.volume = 0.3; bgMusic.play().catch(() => {}); }
+  if (!episodeId) return;
+  await setDoc(
+    doc(db, "games", "klasacia", "episodes", episodeId, "lobby", player),
+    { joinedAt: Date.now() }, { merge: true }
+  );
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
+
+/* ===== СТРОИМ UI ===== */
+function buildQuizUI(q, startTime) {
+  selectedItem  = null;
+  placements    = {};
+  submitted     = false;
+  lastClickTime = null;
+  leftCol.innerHTML   = "";
+  rightCol.innerHTML  = "";
+  scoreDisplay.textContent = "";
+  answeredNames.innerHTML  = "";
+  answeredList.style.display = "block";
+  roundTitle.textContent = q.title || "Класация";
+
+  // Лява колона — обекти по азбучен ред
+  const items = [...q.items].sort();
+  items.forEach(item => {
+    const btn = document.createElement("button");
+    btn.className = "item-btn";
+    btn.textContent = item;
+    btn.dataset.item = item;
+    btn.onclick = () => selectItem(btn, item);
+    leftCol.appendChild(btn);
+  });
+
+  // Дясна колона — 10 номерирани кутийки със стойности
+  for (let pos = 1; pos <= q.items.length; pos++) {
+    const row = document.createElement("div");
+    row.className = "slot-row";
+
+    const num = document.createElement("span");
+    num.className = "slot-num";
+    num.textContent = pos + ".";
+
+    const slot = document.createElement("button");
+    slot.className = "slot-btn";
+    slot.dataset.pos = pos;
+    slot.textContent = "—";
+    slot.onclick = () => placeItem(slot, pos, startTime);
+
+    const val = document.createElement("span");
+    val.className = "slot-value";
+    val.textContent = q.values[pos] || "";
+
+    row.appendChild(num);
+    row.appendChild(slot);
+    row.appendChild(val);
+    rightCol.appendChild(row);
+  }
+}
+
+function selectItem(btn, item) {
+  if (submitted) return;
+  // Ако обектът вече е поставен — игнорираме
+  if (Object.values(placements).includes(item)) return;
+  document.querySelectorAll(".item-btn.selected").forEach(b => b.classList.remove("selected"));
+  selectedItem = item;
+  btn.classList.add("selected");
+}
+
+function placeItem(slot, pos, startTime) {
+  if (submitted || !selectedItem) return;
+  // Ако кутийката вече е пълна — игнорираме
+  if (placements[pos]) return;
+
+  // Поставяме обекта в кутийката
+  slot.textContent = selectedItem;
+  slot.classList.add("filled");
+  slot.style.background = SLOT_COLOR;
+  slot.style.borderColor = SLOT_COLOR;
+  slot.style.color = "#fff";
+
+  // Оцветяваме обекта вляво
+  const itemBtn = [...leftCol.querySelectorAll(".item-btn")]
+    .find(b => b.dataset.item === selectedItem);
+  if (itemBtn) {
+    itemBtn.classList.remove("selected");
+    itemBtn.classList.add("placed");
+    itemBtn.style.background = SLOT_COLOR;
+    itemBtn.style.borderColor = SLOT_COLOR;
+  }
+
+  placements[pos] = selectedItem;
+  lastClickTime = Date.now() - startTime;
+  selectedItem = null;
+
+  const done  = Object.keys(placements).length;
+  const total = questions[currentIndex]?.items.length || 10;
+  scoreDisplay.textContent = `Наредени: ${done} / ${total}`;
+
+  saveCurrentPlacements(currentIndex, startTime);
+}
+
+/* ===== ЗАПИСВАНЕ ===== */
+async function saveCurrentPlacements(index, startTime) {
+  if (!episodeId || !player) return;
+  const q = questions[index];
+  if (!q) return;
+
+  let correct = 0;
+  Object.entries(placements).forEach(([pos, item]) => {
+    if (q.answers[item] === Number(pos)) correct++;
+  });
+
+  const total = q.items.length;
+  const bonus = correct === total ? 3 : 0;
+  const pts   = correct + bonus;
+  const thinkingTime = lastClickTime ?? (Date.now() - startTime);
+
+  await setDoc(
+    doc(db, "games", "klasacia", "episodes", episodeId, "results", player),
+    { exists: true }, { merge: true }
+  );
+
+  await setDoc(
+    doc(db, "games", "klasacia", "episodes", episodeId, "results", player, "answers", String(index)),
+    {
+      placements: { ...placements },
+      correct, bonus, total: pts,
+      thinkingTime, timestamp: Date.now()
+    }
+  );
+}
+
+async function submitPlacements(index, startTime) {
+  if (submitted) return;
+  submitted = true;
+  await saveCurrentPlacements(index, startTime);
+}
+
+/* ===== LIVE КОЙ Е НАРЕДИЛ ===== */
+function startAnswerListener(index) {
+  if (answersUnsub) { answersUnsub(); answersUnsub = null; }
+  answeredNames.innerHTML = "";
+
+  answersUnsub = onSnapshot(
+    collection(db, "games", "klasacia", "episodes", episodeId, "results"),
+    resultsSnap => {
+      resultsSnap.forEach(playerDoc => {
+        const pName = playerDoc.id;
+        onSnapshot(
+          doc(db, "games", "klasacia", "episodes", episodeId, "results", pName, "answers", String(index)),
+          ansDoc => {
+            if (ansDoc.exists()) {
+              const data = ansDoc.data();
+              const done = Object.keys(data.placements || {}).length;
+              const existing = Array.from(answeredNames.children).find(d => d.dataset.player === pName);
+              if (!existing) {
+                const div = document.createElement("div");
+                div.dataset.player = pName;
+                div.textContent = `${pName} — ${done} наредени`;
+                answeredNames.appendChild(div);
+              } else {
+                existing.textContent = `${pName} — ${done} наредени`;
+              }
+            }
+          }
+        );
+      });
+    }
+  );
+}
+
+/* ===== РЕЗУЛТАТИ ===== */
+async function renderResults(index) {
+  showOnly(resultsDiv);
+  if (answersUnsub) { answersUnsub(); answersUnsub = null; }
+
+  const q = questions[index];
+  if (!q) return;
+
+  // Вземаме моите отговори
+  let myPlacements = {};
+  try {
+    const ansSnap = await getDocs(
+      collection(db, "games", "klasacia", "episodes", episodeId, "results", player, "answers")
+    );
+    const myAns = ansSnap.docs.find(d => d.id === String(index));
+    if (myAns) myPlacements = myAns.data().placements || {};
+  } catch(e) {}
+
+  // Показваме верната класация
+  let html = `<h4 style="margin-bottom:10px;color:#ffd100;">Верна класация:</h4>`;
+
+  // Сортираме по позиция
+  const sortedItems = [...q.items].sort((a, b) => q.answers[a] - q.answers[b]);
+
+  sortedItems.forEach((item, i) => {
+    const pos = q.answers[item];
+    const val = q.values[pos] || "";
+
+    // Намираме дали играчът го е наредил правилно
+    const myPos = Object.entries(myPlacements).find(([p, it]) => it === item)?.[0];
+    const isCorrect = myPos && Number(myPos) === pos;
+    const isWrong   = myPos && Number(myPos) !== pos;
+
+    html += `<div class="result-row ${isCorrect ? "correct" : isWrong ? "wrong" : ""}">
+      <span class="result-pos">${pos}.</span>
+      <span style="flex:1;">${item}</span>
+      <span class="result-val">${val}</span>
+      <span>${isCorrect ? "✔" : myPos ? `(ти: ${myPos})` : "—"}</span>
+    </div>`;
+  });
+
+  try {
+    const ansSnap = await getDocs(
+      collection(db, "games", "klasacia", "episodes", episodeId, "results", player, "answers")
+    );
+    const myAns = ansSnap.docs.find(d => d.id === String(index));
+    if (myAns) {
+      const data = myAns.data();
+      html += `<div style="margin-top:15px;color:#ffd100;font-weight:bold;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
+        Ти: ${data.correct} верни + ${data.bonus} бонус = <strong>${data.total} т.</strong>
+      </div>`;
+    }
+  } catch(e) {}
+
+  resultsBlock.innerHTML = html;
+}
+
+/* ===== КЛАСИРАНЕ ЗА КРЪГА ===== */
+async function renderQRanking(index) {
+  showOnly(qRankingDiv);
+  const q = questions[index];
+  document.getElementById("qRankingTitle").textContent =
+    `Класиране — ${q?.title || "Кръг " + (index + 1)}`;
+
+  try {
+    const playersSnap = await getDocs(
+      collection(db, "games", "klasacia", "episodes", episodeId, "results")
+    );
+    const scores = [];
+    for (const playerDoc of playersSnap.docs) {
+      const pName = playerDoc.id;
+      const answersSnap = await getDocs(
+        collection(db, "games", "klasacia", "episodes", episodeId, "results", pName, "answers")
+      );
+      const ansDoc = answersSnap.docs.find(d => d.id === String(index));
+      if (ansDoc) {
+        const data = ansDoc.data();
+        scores.push({ name: pName, pts: data.total || 0, correct: data.correct || 0, time: data.thinkingTime || 0 });
+      }
+    }
+    scores.sort((a, b) => b.pts !== a.pts ? b.pts - a.pts : a.time - b.time);
+
+    qRankingList.innerHTML = scores.map((obj, i) => {
+      const isMe = obj.name === player;
+      let cls = "", medal = "";
+      if (i === 0) { cls = "gold"; medal = "🥇"; }
+      else if (i === 1) { cls = "silver"; medal = "🥈"; }
+      else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+      return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+        ${i+1}. ${medal} ${obj.name} — ${obj.correct}/10 верни → <strong>${obj.pts} т.</strong> (${(obj.time/1000).toFixed(1)} сек)
+      </div>`;
+    }).join("") || "<p>Няма данни.</p>";
+  } catch(e) {
+    qRankingList.innerHTML = "<p>Грешка при зареждане.</p>";
+  }
+}
+
+/* ===== ОБЩО КЛАСИРАНЕ ===== */
+async function renderRanking(index) {
+  showOnly(rankingDiv);
+  const isLast = index >= questions.length - 1;
+  rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
+  historyBtn.style.display = isLast ? "block" : "none";
+
+  try {
+    const playersSnap = await getDocs(
+      collection(db, "games", "klasacia", "episodes", episodeId, "results")
+    );
+    const scores = {};
+    for (const playerDoc of playersSnap.docs) {
+      const pName = playerDoc.id;
+      const answersSnap = await getDocs(
+        collection(db, "games", "klasacia", "episodes", episodeId, "results", pName, "answers")
+      );
+      let totalPts = 0, totalTime = 0;
+      answersSnap.forEach(ansDoc => {
+        totalPts  += (ansDoc.data().total || 0);
+        totalTime += (ansDoc.data().thinkingTime || 0);
+      });
+      scores[pName] = { pts: totalPts, time: totalTime };
+    }
+
+    const sorted = Object.entries(scores).sort((a, b) =>
+      b[1].pts !== a[1].pts ? b[1].pts - a[1].pts : a[1].time - b[1].time
+    );
+
+    rankingList.innerHTML = sorted.map(([name, obj], i) => {
+      const isMe = name === player;
+      const timeText = isLast ? ` (${(obj.time/1000).toFixed(1)} сек)` : "";
+      let cls = "", medal = "";
+      if (i === 0) { cls = "gold"; medal = "🥇"; }
+      else if (i === 1) { cls = "silver"; medal = "🥈"; }
+      else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+      return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+        ${i+1}. ${medal} ${name} — ${obj.pts} т.${timeText}
+      </div>`;
+    }).join("");
+  } catch(e) {
+    rankingList.innerHTML = "<p>Грешка при зареждане.</p>";
+  }
+}
+
+/* ===== ФАЗИ ===== */
+let lastPhaseSnapshot = null;
+
+function applyPhaseImmediately(data) {
+  const { index, phase, duration } = data;
+  const startTime = data.startTime?.toMillis?.() ?? data.startTime ?? Date.now();
+  currentIndex = index;
+  if (timerInterval) clearInterval(timerInterval);
+
+  if (phase === "lobby") {
+    showOnly(waitingScreen);
+    globalTimer.style.display = "none";
+    waitingTitle.textContent = "Играта още не е започнала.";
+    if (data.themes) lobbyThemes.textContent = "Темите днес са: " + data.themes;
+    return;
+  }
+
+  if (phase === "prestart") {
+    showOnly(waitingScreen);
+    waitingTitle.textContent = "Играта започва след:";
+    globalTimer.style.display = "block";
+    if (data.themes) lobbyThemes.textContent = "Темите днес са: " + data.themes;
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "question") {
+    showOnly(quizDiv);
+    globalTimer.style.display = "block";
+    const q = questions[index];
+    if (!q) return;
+    buildQuizUI(q, startTime);
+    startAnswerListener(index);
+    timerInterval = setInterval(() => {
+      updateTimer(startTime, duration);
+      const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startTime)) / 1000));
+      if (remaining === 0 && !submitted) submitPlacements(index, startTime);
+    }, 200);
+    return;
+  }
+
+  if (phase === "results") {
+    globalTimer.style.display = "block";
+    renderResults(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "q-ranking") {
+    globalTimer.style.display = "block";
+    renderQRanking(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "ranking") {
+    globalTimer.style.display = "block";
+    renderRanking(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+}
+
+/* ===== FIREBASE ===== */
+onSnapshot(doc(db, "games", "klasacia", "state", "current"), async snap => {
+  if (!snap.exists()) return;
+  const data = snap.data();
+  lastPhaseSnapshot = data;
+  episodeId = data.episodeId;
+  if (!episodeId) return;
+  if (data.questions && data.questions.length > 0) questions = data.questions;
+
+  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
+    if (lobbyUnsub) lobbyUnsub();
+    lobbyEpisodeId = episodeId;
+    lobbyUnsub = onSnapshot(
+      collection(db, "games", "klasacia", "episodes", episodeId, "lobby"),
+      lobbySnap => {
+        const names = lobbySnap.docs.map(d => d.id);
+        lobbyList.innerHTML = names.length
+          ? names.map(n => `<div>${n}</div>`).join("")
+          : "Още няма играчи.";
+      }
+    );
+  }
+
+  if (!ready) return;
+  applyPhaseImmediately(data);
+});
+</script>
+</body>
+</html>
