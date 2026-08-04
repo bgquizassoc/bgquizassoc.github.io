@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>⚡ Игри на Знания - Светкавичен куиз ⚡</title>
+  <title>🧘 Игри на Знания - Спокойна игра 🧘</title>
 
   <link rel="manifest" href="manifest.json">
 
@@ -42,7 +42,7 @@
       text-shadow: 0 0 5px #ffb400;
     }
 
-    #quiz, #start-screen {
+    #quiz, #start-screen, #waiting-screen {
       width: 100%; max-width: 600px; text-align: center;
       margin-top: 30px;
       background: rgba(255,255,255,0.05);
@@ -69,6 +69,14 @@
       color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
     }
     #timer.warning { color: #ff4c4c; }
+
+    /* ⭐ Локален таймер за лобито (30 сек. за запознаване с правилата) */
+    #lobby-timer {
+      text-align: center; font-weight: 800; margin: 10px 0 20px 0;
+      font-size: clamp(1.8em, 5vw, 2.6em);
+      color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+    }
+    #lobby-timer.warning { color: #ff4c4c; }
 
     #status { margin-top: 10px; font-weight: bold; min-height: 30px; }
 
@@ -115,19 +123,42 @@
     }
     .yellow-btn:hover { background:#ffcc33; transform:scale(1.05); }
 
-   #seconds {
+   #seconds, #lobby-seconds {
   display: inline-block;
   min-width: 90px;
   text-align: center;
   font-family: "Consolas", "Courier New", monospace;
 }
+
+    /* ⭐ Стилове за лобито, взети от Светкавичен куиз */
+    #lobby-image {
+      width: 100%;
+      max-height: 400px;
+      object-fit: contain;
+      border-radius: 12px;
+      margin-bottom: 15px;
+    }
+
+    #lobby-instructions {
+      text-align: left;
+      font-size: 1em;
+      line-height: 1.8;
+      color: #cce8ff;
+      margin-bottom: 15px;
+      background: rgba(255,255,255,0.05);
+      padding: 12px;
+      border-radius: 10px;
+    }
+
+    #lobby-instructions p { margin-bottom: 6px; }
+    #lobby-instructions strong { color: #ffd100; }
   </style>
 </head>
 
 <body>
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 91 ⚡</h1>
+<h1>Игри на Знания<br>🧘 Спокойна игра 🧘</h1>
 
 <div id="start-screen">
   <p>Въведете Вашето ID:</p>
@@ -141,6 +172,23 @@
   </button>
 
   <div id="last-result" style="margin-top:15px;"></div>
+</div>
+
+<!-- ⭐ ЛОБИ ЕКРАН — локален, с 30 сек. таймер за запознаване с правилата -->
+<div id="waiting-screen" style="display:none;">
+  <h2>Играта започва след:</h2>
+
+  <div id="lobby-timer">
+    <span id="lobby-seconds">30 сек.</span>
+  </div>
+
+  <img id="lobby-image" src="https://i.imgur.com/5QDXD26.jpeg" alt="Игри на Знания" />
+
+  <div id="lobby-instructions">
+    <!-- ⭐ Попълва се динамично от JS, след като въпросите се заредят -->
+  </div>
+
+  <button class="start" id="skip-lobby-btn">Продължи веднага</button>
 </div>
 
 <div id="quiz" style="display:none;">
@@ -173,6 +221,7 @@
 // НАСТРОЙКИ
 // ===============================
 const EPISODE_ID = "episodeId91";
+const LOBBY_SECONDS = 30;
 
 // ===============================
 // FIREBASE
@@ -203,6 +252,12 @@ const startBtn = document.getElementById('start-btn');
 const continueBtn = document.getElementById('continue-btn');
 const lastResultDiv = document.getElementById('last-result');
 
+const waitingScreen = document.getElementById('waiting-screen');
+const lobbySecondsSpan = document.getElementById('lobby-seconds');
+const lobbyTimerDiv = document.getElementById('lobby-timer');
+const lobbyInstructions = document.getElementById('lobby-instructions');
+const skipLobbyBtn = document.getElementById('skip-lobby-btn');
+
 const qText = document.getElementById('question');
 const answersDiv = document.getElementById('answers');
 const nextBtn = document.getElementById('next-btn');
@@ -223,15 +278,40 @@ let playerName = "";
 let questions = [];
 let idx = 0;
 let score = 0;
+let maxScore = 0;
 let timeLeft = 20;
 let timer;
-let gameHistory = [];
+let lobbyTimer;
+let gameHistory = []; // индексирано по номер на въпрос (0..questions.length-1)
+
+// ===============================
+// ТОЧКУВАНЕ ПО НИВА (както в Светкавичен куиз)
+// въпроси 1-10  -> 1 точка
+// въпроси 11-20 -> 2 точки
+// въпроси 21-30 -> 3 точки
+// ===============================
+function pointsForIndex(i) {
+  if (i < 10) return 1;
+  if (i < 20) return 2;
+  return 3;
+}
+
 // ===============================
 // ЗАРЕЖДАНЕ НА ВЪПРОСИ
 // ===============================
 try {
   const res = await fetch('questions.json');
   questions = await res.json();
+
+  maxScore = questions.reduce((sum, _, i) => sum + pointsForIndex(i), 0);
+
+  lobbyInstructions.innerHTML = `
+    <p>Очакват ви <strong>${questions.length}</strong> въпроса с повишаваща степен на трудност.</p>
+    <p>Отговаря се с натискане на бутон върху някой от четирите отговора.</p>
+    <p>Играете сами, в свое темпо — играта не чака други играчи.</p>
+    <p>Време за мислене и отговор — <strong>20 секунди</strong> на въпрос.</p>
+    <p>Точкуване — първите 10 въпроса - <strong>по 1 точка</strong>, вторите 10 - <strong>по 2 точки</strong>, последните 10 носят по <strong>3 точки</strong>.</p>
+  `;
 } catch(e) {
   qText.textContent = "Грешка при зареждане на въпросите.";
 }
@@ -242,12 +322,12 @@ try {
 const last = JSON.parse(localStorage.getItem('lastResult'));
 if (last) {
   lastResultDiv.innerHTML =
-    `<b>Последен резултат:</b><br>${last.name} — ${last.score}/${last.total} (${last.percent}%)<br>
+    `<b>Последен резултат:</b><br>${last.name} — ${last.score}/${last.total} точки (${last.percent}%)<br>
      <small>${last.date}</small>`;
 }
 
 // ===============================
-// ПРОДЪЛЖАВАНЕ
+// ПРОДЪЛЖАВАНЕ (прескача лобито — правилата вече са видени)
 // ===============================
 const saved = JSON.parse(localStorage.getItem('progress'));
 if (saved && saved.idx < questions.length) {
@@ -262,13 +342,18 @@ continueBtn.onclick = () => {
   idx = saved.idx;
   score = saved.score;
 
+  const savedHistory = JSON.parse(localStorage.getItem('gameHistory'));
+  gameHistory = (Array.isArray(savedHistory) && savedHistory.length === questions.length)
+    ? savedHistory
+    : new Array(questions.length).fill(null);
+
   startScreen.style.display = "none";
   quizDiv.style.display = "block";
   renderQuestion(idx);
 };
 
 // ===============================
-// FIRESTORE ЗАПИС
+// FIRESTORE ЗАПИС (само регистрация на влизане, без резултати в реално време)
 // ===============================
 async function registerPlayerInFirestore() {
   await setDoc(
@@ -282,7 +367,7 @@ async function registerPlayerInFirestore() {
 }
 
 // ===============================
-// СТАРТ
+// СТАРТ -> ЛОБИ (30 сек. запознаване с правилата) -> ВЪПРОСИ
 // ===============================
 startBtn.onclick = async () => {
   try { bgMusic.play(); } catch(e){}
@@ -301,20 +386,50 @@ startBtn.onclick = async () => {
   await registerPlayerInFirestore();
 
   localStorage.removeItem("progress");
-
-  startScreen.style.display = "none";
-  quizDiv.style.display = "block";
+  localStorage.removeItem("gameHistory");
 
   idx = 0;
   score = 0;
+  gameHistory = new Array(questions.length).fill(null);
 
-  renderQuestion(0);
+  startScreen.style.display = "none";
+  showLobby();
 };
 
+function showLobby() {
+  waitingScreen.style.display = "block";
+  let secondsLeft = LOBBY_SECONDS;
+
+  lobbyTimerDiv.classList.remove("warning");
+  lobbySecondsSpan.textContent = `${secondsLeft} сек.`;
+
+  clearInterval(lobbyTimer);
+  lobbyTimer = setInterval(() => {
+    secondsLeft--;
+    lobbySecondsSpan.textContent = `${secondsLeft} сек.`;
+
+    if (secondsLeft <= 5) lobbyTimerDiv.classList.add("warning");
+
+    if (secondsLeft <= 0) {
+      clearInterval(lobbyTimer);
+      startQuizFromLobby();
+    }
+  }, 1000);
+}
+
+function startQuizFromLobby() {
+  clearInterval(lobbyTimer);
+  waitingScreen.style.display = "none";
+  quizDiv.style.display = "block";
+  renderQuestion(idx);
+}
+
+skipLobbyBtn.onclick = startQuizFromLobby;
+
 // ===============================
-// ТАЙМЕР
+// ТАЙМЕР ЗА ВЪПРОС (20 сек., приема callback при изтичане)
 // ===============================
-function startTimer() {
+function startTimer(onTimeout) {
   clearInterval(timer);
   timeLeft = 20;
 
@@ -329,9 +444,7 @@ function startTimer() {
 
     if (timeLeft <= 0) {
       clearInterval(timer);
-      lockAnswers();
-      status.textContent = "⏰ Времето изтече!";
-      nextBtn.disabled = false;
+      onTimeout();
     }
   }, 1000);
 }
@@ -376,11 +489,12 @@ function renderQuestion(i) {
 
       const correct = normalize(q.correct);
       const chosen = normalize(ans);
+      const isCorrect = chosen === correct;
 
-      if (chosen === correct) {
+      if (isCorrect) {
         btn.classList.add("correct");
         status.textContent = "✅ Верен отговор!";
-        score++;
+        score += pointsForIndex(i);
       } else {
         btn.classList.add("wrong");
         status.textContent = `❌ Грешно! Верният отговор е: ${q.correct}`;
@@ -389,13 +503,13 @@ function renderQuestion(i) {
         });
       }
 
-      gameHistory.push({
+      gameHistory[i] = {
         question: q.question,
         yourAnswer: ans,
         correctAnswer: q.correct,
-        correct: chosen === correct,
+        correct: isCorrect,
         explanation: q.explanation
-      });
+      };
 
       currentScoreDiv.textContent = `Текущ резултат: ${score} точки`;
       currentScoreDiv.style.display = "block";
@@ -411,12 +525,46 @@ function renderQuestion(i) {
         idx: i,
         score
       }));
+      localStorage.setItem("gameHistory", JSON.stringify(gameHistory));
     };
 
     answersDiv.appendChild(btn);
   });
 
-  startTimer();
+  startTimer(() => {
+    // ⏰ Времето изтече — записваме въпроса в историята като пропуснат
+    lockAnswers();
+    status.textContent = "⏰ Времето изтече!";
+
+    const correct = normalize(q.correct);
+    Array.from(answersDiv.children).forEach(b => {
+      if (normalize(b.textContent) === correct) b.classList.add("correct");
+    });
+
+    gameHistory[i] = {
+      question: q.question,
+      yourAnswer: null,
+      correctAnswer: q.correct,
+      correct: false,
+      explanation: q.explanation
+    };
+
+    currentScoreDiv.textContent = `Текущ резултат: ${score} точки`;
+    currentScoreDiv.style.display = "block";
+
+    explanationText.innerHTML = q.explanation;
+    explanationDiv.style.display = "block";
+
+    nextBtn.disabled = false;
+
+    localStorage.setItem("progress", JSON.stringify({
+      playerId,
+      name: playerName,
+      idx: i,
+      score
+    }));
+    localStorage.setItem("gameHistory", JSON.stringify(gameHistory));
+  });
 }
 
 // ===============================
@@ -439,11 +587,11 @@ function nextQuestionFromExplanation() {
 function finishGame() {
   clearInterval(timer);
 
-  const percent = Math.round(score / questions.length * 100);
+  const percent = Math.round(score / maxScore * 100);
 
   qText.innerHTML =
     `🏁 Край на играта, <b>${playerName}</b>!<br><br>
-    Резултат: <b>${score}</b> от <b>${questions.length}</b> (${percent}%).<br><br>`;
+    Резултат: <b>${score}</b> от <b>${maxScore}</b> точки (${percent}%).<br><br>`;
 
   answersDiv.innerHTML = "";
   nextBtn.disabled = true;
@@ -453,12 +601,13 @@ function finishGame() {
   localStorage.setItem("lastResult", JSON.stringify({
     name: playerName,
     score,
-    total: questions.length,
+    total: maxScore,
     percent,
     date: new Date().toLocaleString('bg-BG')
   }));
 
   localStorage.removeItem("progress");
+  localStorage.removeItem("gameHistory");
 
   qText.innerHTML += `
     <div style="display:flex; justify-content:center; gap:12px; margin-top:20px;">
@@ -472,7 +621,8 @@ function finishGame() {
 }
 
 // ===============================
-// ИСТОРИЯ
+// ИСТОРИЯ — подредена по номер на въпроса (1,2,3...),
+// показва ВСИЧКИ въпроси, независимо дали е отговорено на тях
 // ===============================
 function showHistoryScreen() {
   quizDiv.style.display = "none";
@@ -494,13 +644,27 @@ function showHistoryScreen() {
 
   historyDiv.innerHTML = "<h2>📘 История на играта</h2><br>";
 
-  gameHistory.forEach((h, i) => {
+  questions.forEach((q, i) => {
+    const h = gameHistory[i];
+    let answerLine, borderColor;
+
+    if (!h || h.yourAnswer === null) {
+      answerLine = `<span style="color:#aaaaaa; font-style:italic;">⬜ Не е отговорено</span>`;
+      borderColor = "#888";
+    } else if (h.correct) {
+      answerLine = `Твоят отговор: <span style="color:#2ecc71">${h.yourAnswer}</span> ✔`;
+      borderColor = "#2ecc71";
+    } else {
+      answerLine = `Твоят отговор: <span style="color:#e74c3c">${h.yourAnswer}</span> ✘`;
+      borderColor = "#e74c3c";
+    }
+
     historyDiv.innerHTML += `
-      <div style="margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid #444;">
-        <b>${i+1}. ${h.question}</b><br><br>
-        Твоят отговор: <span style="color:${h.correct?'#2ecc71':'#e74c3c'}">${h.yourAnswer}</span><br>
-        Верен отговор: <b style="color:#2ecc71">${h.correctAnswer}</b><br>
-        <div style="margin-top:10px;color:#ddd"><i>${h.explanation}</i></div>
+      <div style="margin-bottom:20px; padding:12px; border-left:6px solid ${borderColor}; background:rgba(255,255,255,0.04); border-radius:8px;">
+        <b>${i+1}. ${q.question}</b><br><br>
+        ${answerLine}<br>
+        Верен отговор: <b style="color:#2ecc71">${q.correct}</b><br>
+        <div style="margin-top:10px;color:#ddd"><i>${q.explanation || ""}</i></div>
       </div>
     `;
   });
@@ -517,6 +681,7 @@ function showHistoryScreen() {
 // ===============================
 function restartGame() {
   localStorage.removeItem("progress");
+  localStorage.removeItem("gameHistory");
   location.reload();
 }
 
