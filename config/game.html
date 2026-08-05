@@ -66,7 +66,6 @@
     font-weight: bold;
   }
 
-  /* LIVE "Отговорили:" списък */
   #answeredList {
     margin-top: 20px;
     text-align: left;
@@ -181,6 +180,12 @@
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
 
+  <!-- ⭐ ВГРАДЕНА КАРТИНКА В ЛОБИТО -->
+  <img id="lobby-image"
+       src="https://i.imgur.com/g7t259z.jpeg"
+       alt="Куиз Конфигуратор"
+       style="width:100%; max-width:260px; margin:15px auto; border-radius:12px; display:block; box-shadow:0 0 10px rgba(255,255,255,0.2);" />
+
   <h3 id="lobbyTitle">Стартов списък на играчите</h3>
   <p style="margin-top:10px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
   <div id="lobbyList">Още няма други играчи.</div>
@@ -190,7 +195,6 @@
   <div id="question"></div>
   <div id="answers" class="answers"></div>
 
-  <!-- ⭐ LIVE СПИСЪК КОЙ Е ОТГОВОРИЛ -->
   <div id="answeredList" style="display:none;">
     <strong>Отговорили:</strong>
     <div id="answeredNames"></div>
@@ -249,7 +253,7 @@ const firebaseConfig = {
   appId: "1:165208255580:web:b36744f0eb527b6571129"
 };
 
-const app = initializeApp(firebaseConfig);
+  const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let player = "";
