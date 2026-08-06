@@ -166,6 +166,11 @@
     color: #ffd100;
   }
 
+  #jokerBufferInfo {
+    margin-top: 15px;
+    text-align: left;
+  }
+
   </style>
 </head>
 
@@ -179,7 +184,7 @@
 
 <div id="start-screen">
   <p>Въведете Двете си имена:</p>
-  <input type="text" id="playerName" placeholder="Име ..." />
+  <input type="text" id="playerName" placeholder="Две имена..." />
   <button id="enterBtn">Влез в играта</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
@@ -217,9 +222,13 @@
     <button class="joker-btn" id="joker-doubleChance">💕 Двоен шанс</button>
     <button class="joker-btn" id="joker-doubled">✖️2 Удвояване</button>
     <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
-    <button class="joker-btn" id="joker-cashIn" style="display:none;">💰 Осребри</button>
+    <button class="joker-btn" id="joker-majority">👨‍👩‍👧‍👦 Мнозинство</button>
+    <button class="joker-btn" id="joker-specialist">🧠 Специалист</button>
+    <button class="joker-btn" id="joker-parasite" style="display:none;">🐛 Паразит</button>
+    <button class="joker-btn" id="joker-cashIn" disabled>💰 Осребри</button>
   </div>
   <div id="jokerStatus"></div>
+  <div id="jokerBufferInfo" style="display:none;"></div>
 </div>
 
 <div id="explanation" style="display:none;">
@@ -261,6 +270,8 @@ const waitingTitle   = document.getElementById("waitingTitle");
 const answeredList   = document.getElementById("answeredList");
 const answeredNames  = document.getElementById("answeredNames");
 const bgMusic        = document.getElementById("bg-music");
+const jokersPanel    = document.getElementById("jokers");
+const jokerBufferInfo= document.getElementById("jokerBufferInfo");
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
@@ -282,23 +293,24 @@ let episodeId     = null;
 let lobbyUnsub    = null;
 let lobbyEpisodeId= null;
 let answersUnsub  = null;
+let parasiteUnsub = null;
 
 // ===============================
-// ⭐ ЖОКЕРИ — състояние на играча за целия епизод
-// Всеки жокер е еднократен. "cashIn" (Осребри) се пази отделно от
-// "anyUsed" проверката, защото трябва да можем да го покажем, докато
-// никой ДРУГ жокер не е ползван.
+// ⭐ ЖОКЕРИ — състояние на играча за целия епизод (еднократни)
 // ===============================
 let playerJokers = {
   doubleChance: false, // 💕 Двоен шанс
   doubled: false,      // ✖️2 Удвояване
-  correction: false,   // 🔁 Поправка
+  correction: false,   // 🔁 Поправка (НЕ участва в проверката за Осребри)
   cashIn: false,       // 💰 Осребри
-  majority: false,     // 👨‍👩‍👧‍👦 Мнозинство   (следващ етап)
-  parasite: false,     // 🐛 Паразит        (следващ етап)
-  specialist: false    // 🧠 Специалист     (следващ етап)
+  majority: false,     // 👨‍👩‍👧‍👦 Мнозинство
+  parasite: false,     // 🐛 Паразит
+  specialist: false    // 🧠 Специалист
 };
 let jokersLoaded = false;
+
+// ⭐ флагове само за ТЕКУЩИЯ въпрос (кои жокери за буфер-фазата играчът е активирал)
+let currentQuestionJokerFlags = { index: -1, doubleChance: false, doubled: false, majority: false, specialist: false };
 
 async function ensureJokersLoaded() {
   if (jokersLoaded || !episodeId || !player) return;
@@ -316,27 +328,33 @@ function jokerStatusNote(msg) {
   if (el) el.textContent = msg;
 }
 
-function updateJokerButtonsUI(index) {
+function updateJokerButtonsUI(index, parasiteEligible) {
   const btnDouble     = document.getElementById("joker-doubleChance");
   const btnDoubled    = document.getElementById("joker-doubled");
   const btnCorrection = document.getElementById("joker-correction");
   const btnCashIn     = document.getElementById("joker-cashIn");
+  const btnMajority   = document.getElementById("joker-majority");
+  const btnSpecialist = document.getElementById("joker-specialist");
+  const btnParasite   = document.getElementById("joker-parasite");
 
-  btnDouble.disabled  = playerJokers.doubleChance;
-  btnDoubled.disabled = playerJokers.doubled;
+  btnDouble.disabled     = playerJokers.doubleChance;
+  btnDoubled.disabled    = playerJokers.doubled;
   btnCorrection.disabled = true; // се включва само след като играчът вече е отговорил
+  btnMajority.disabled   = playerJokers.majority;
+  btnSpecialist.disabled = playerJokers.specialist;
 
-  const anyOtherUsed =
-    playerJokers.doubleChance || playerJokers.doubled || playerJokers.correction ||
+  btnParasite.style.display = (parasiteEligible && !playerJokers.parasite) ? "inline-block" : "none";
+  btnParasite.disabled = playerJokers.parasite;
+
+  // ⭐ Поправка съзнателно НЕ участва в проверката за Осребри
+  const anyOtherUsedForCashIn =
+    playerJokers.doubleChance || playerJokers.doubled ||
     playerJokers.majority || playerJokers.parasite || playerJokers.specialist;
 
   const isLastQuestion = index === questions.length - 1;
 
-  if (isLastQuestion && !anyOtherUsed && !playerJokers.cashIn) {
-    btnCashIn.style.display = "inline-block";
-  } else {
-    btnCashIn.style.display = "none";
-  }
+  btnCashIn.style.display = "inline-block"; // винаги видим, само неактивен
+  btnCashIn.disabled = playerJokers.cashIn || !isLastQuestion || anyOtherUsedForCashIn;
 }
 
 document.getElementById("archiveBtn").onclick = () => {
@@ -463,6 +481,58 @@ function startAnswerListener(index) {
   );
 }
 
+// ===============================
+// ⭐ ВРЕМЕННО/КРАЙНО КЛАСИРАНЕ — обща функция (ползва се и за Паразит)
+// ===============================
+async function computeStandings() {
+  const playersSnap = await getDocs(
+    collection(db, "games", "lightning", "episodes", episodeId, "results")
+  );
+
+  const scores = {};
+
+  for (const playerDoc of playersSnap.docs) {
+    const name = playerDoc.id;
+    const answersSnap = await getDocs(
+      collection(db, "games", "lightning", "episodes", episodeId, "results", name, "answers")
+    );
+
+    let totalPoints = 0;
+    let totalTime   = 0;
+
+    answersSnap.forEach(ansDoc => {
+      const qIndex = Number(ansDoc.id);
+      const data   = ansDoc.data();
+      const q      = questions[qIndex];
+      if (!q) return;
+
+      const correctNorm = (q.correct || "").trim();
+      const chosen1 = (data.answer || "").trim();
+      const chosen2 = data.answer2 ? String(data.answer2).trim() : null;
+      const isCorrect = chosen1 === correctNorm || (chosen2 !== null && chosen2 === correctNorm);
+
+      if (isCorrect) {
+        let pts = qIndex < 10 ? 1 : (qIndex < 20 ? 2 : 3);
+        if (data.doubled) pts *= 2;
+        totalPoints += pts;
+      }
+
+      if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
+    });
+
+    const jokersData = playerDoc.data().jokers || {};
+    if (jokersData.cashIn) totalPoints += 5;
+
+    scores[name] = { points: totalPoints, time: totalTime };
+  }
+
+  return Object.entries(scores).sort((a, b) => {
+    if (b[1].points !== a[1].points) return b[1].points - a[1].points;
+    if (a[1].time   !== b[1].time)   return a[1].time   - b[1].time;
+    return a[0].localeCompare(b[0], "bg");
+  });
+}
+
 async function renderExplanation(index) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = "";
@@ -492,7 +562,6 @@ async function renderExplanation(index) {
       const data = ansDoc.data();
       const chosen = (data.answer || "").trim();
       if (counts[chosen] !== undefined) counts[chosen]++;
-      // ⭐ ако е ползван Двоен шанс, вторият отговор също се брои в статистиката
       if (data.answer2) {
         const chosen2 = String(data.answer2).trim();
         if (counts[chosen2] !== undefined) counts[chosen2]++;
@@ -521,56 +590,7 @@ async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
 
-  const playersSnap = await getDocs(
-    collection(db, "games", "lightning", "episodes", episodeId, "results")
-  );
-
-  const scores = {};
-
-  for (const playerDoc of playersSnap.docs) {
-    const playerName = playerDoc.id;
-    const answersSnap = await getDocs(
-      collection(db, "games", "lightning", "episodes", episodeId, "results", playerName, "answers")
-    );
-
-    let totalPoints = 0;
-    let totalTime   = 0;
-
-    answersSnap.forEach(ansDoc => {
-      const qIndex = Number(ansDoc.id);
-      const data   = ansDoc.data();
-      const q      = questions[qIndex];
-      if (!q) return;
-
-      const correctNorm = (q.correct || "").trim();
-      const chosen1 = (data.answer || "").trim();
-      const chosen2 = data.answer2 ? String(data.answer2).trim() : null;
-
-      // ⭐ Двоен шанс: верен, ако единият от двата маркирани отговора съвпада
-      const isCorrect = chosen1 === correctNorm || (chosen2 !== null && chosen2 === correctNorm);
-
-      if (isCorrect) {
-        let pts = qIndex < 10 ? 1 : (qIndex < 20 ? 2 : 3);
-        // ⭐ Удвояване: двойни точки за този въпрос
-        if (data.doubled) pts *= 2;
-        totalPoints += pts;
-      }
-
-      if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
-    });
-
-    // ⭐ Осребри: +5 точки бонус, ако играчът не е ползвал никой друг жокер
-    const jokersData = playerDoc.data().jokers || {};
-    if (jokersData.cashIn) totalPoints += 5;
-
-    scores[playerName] = { points: totalPoints, time: totalTime };
-  }
-
-  const sorted = Object.entries(scores).sort((a, b) => {
-    if (b[1].points !== a[1].points) return b[1].points - a[1].points;
-    if (a[1].time   !== b[1].time)   return a[1].time   - b[1].time;
-    return a[0].localeCompare(b[0], "bg");
-  });
+  const sorted = await computeStandings();
 
   rankingList.innerHTML = sorted.map(([name, obj], i) => {
     const pts    = obj.points;
@@ -616,27 +636,46 @@ async function applyPhaseImmediately(data) {
   if (phase === "question") {
     showOnly(quizDiv);
     globalTimer.style.display = "block";
+    jokersPanel.style.display = "flex";
+    jokerBufferInfo.style.display = "none";
+    jokerBufferInfo.innerHTML = "";
+    jokerStatusNote("");
+
+    if (parasiteUnsub) { parasiteUnsub(); parasiteUnsub = null; }
 
     const q = questions[index];
     if (!q) return;
 
     await ensureJokersLoaded();
 
+    currentQuestionJokerFlags = { index, doubleChance: false, doubled: false, majority: false, specialist: false };
+
     qText.textContent = `${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
     answeredNames.innerHTML = "";
     answeredList.style.display = "block";
-    jokerStatusNote("");
 
     startAnswerListener(index);
 
-    // ⭐ състояние на жокерите ЗА ТОЗИ конкретен въпрос
+    // ⭐ Паразит: определяме дали играчът е 4-ти или последен ПРЕДИ този въпрос
+    let parasiteEligibleThisQ = false;
+    let leaderNameThisQ = null;
+
+    if (index > 0 && !playerJokers.parasite) {
+      try {
+        const standings = await computeStandings();
+        if (standings.length > 1) {
+          leaderNameThisQ = standings[0][0];
+          const myRank = standings.findIndex(([n]) => n === player) + 1;
+          parasiteEligibleThisQ = (myRank === standings.length || myRank === 4) && leaderNameThisQ !== player;
+        }
+      } catch(e) {}
+    }
+
+    updateJokerButtonsUI(index, parasiteEligibleThisQ);
+
     let selectedAnswers = [];
     let answered = false;
-    let doubleChanceActiveThisQ = false;
-    let doubledActiveThisQ = false;
-
-    updateJokerButtonsUI(index);
 
     async function submitAnswer() {
       answered = true;
@@ -656,14 +695,13 @@ async function applyPhaseImmediately(data) {
         thinkingTime
       };
       if (selectedAnswers[1]) payload.answer2 = selectedAnswers[1];
-      if (doubledActiveThisQ) payload.doubled = true;
+      if (currentQuestionJokerFlags.doubled) payload.doubled = true;
 
       await setDoc(
         doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(index)),
         payload
       );
 
-      // ⭐ Поправка се отключва едва след като играчът вече е отговорил
       document.getElementById("joker-correction").disabled = playerJokers.correction;
     }
 
@@ -680,8 +718,7 @@ async function applyPhaseImmediately(data) {
         btn.classList.add("selected");
         selectedAnswers.push(ans);
 
-        // ⭐ ако е активиран Двоен шанс, чакаме до два избора преди да заключим
-        const needTwo = doubleChanceActiveThisQ;
+        const needTwo = currentQuestionJokerFlags.doubleChance;
         if (!needTwo || selectedAnswers.length >= 2) {
           Array.from(answersDiv.children).forEach(b => b.disabled = true);
           await submitAnswer();
@@ -693,18 +730,18 @@ async function applyPhaseImmediately(data) {
     // ⭐ ЖОКЕРИ — обработчици (преназначават се за всеки нов въпрос)
     document.getElementById("joker-doubleChance").onclick = () => {
       if (playerJokers.doubleChance || answered) return;
-      doubleChanceActiveThisQ = true;
+      currentQuestionJokerFlags.doubleChance = true;
       playerJokers.doubleChance = true;
       jokerStatusNote("💕 Двоен шанс активиран — маркирай два отговора за този въпрос!");
-      updateJokerButtonsUI(index);
+      updateJokerButtonsUI(index, parasiteEligibleThisQ);
     };
 
     document.getElementById("joker-doubled").onclick = () => {
       if (playerJokers.doubled || answered) return;
-      doubledActiveThisQ = true;
+      currentQuestionJokerFlags.doubled = true;
       playerJokers.doubled = true;
       jokerStatusNote("✖️2 Удвояване активирано — точките от този въпрос ще бъдат двойни!");
-      updateJokerButtonsUI(index);
+      updateJokerButtonsUI(index, parasiteEligibleThisQ);
     };
 
     document.getElementById("joker-correction").onclick = async () => {
@@ -731,11 +768,16 @@ async function applyPhaseImmediately(data) {
       );
 
       jokerStatusNote("🔁 Поправка използвана — избери отговор наново.");
-      updateJokerButtonsUI(index);
+      updateJokerButtonsUI(index, parasiteEligibleThisQ);
     };
 
     document.getElementById("joker-cashIn").onclick = async () => {
-      if (playerJokers.cashIn) return;
+      const anyOtherUsedForCashIn =
+        playerJokers.doubleChance || playerJokers.doubled ||
+        playerJokers.majority || playerJokers.parasite || playerJokers.specialist;
+      const isLastQuestion = index === questions.length - 1;
+      if (playerJokers.cashIn || !isLastQuestion || anyOtherUsedForCashIn) return;
+
       playerJokers.cashIn = true;
 
       await setDoc(
@@ -745,8 +787,202 @@ async function applyPhaseImmediately(data) {
       );
 
       jokerStatusNote("💰 Осребрени 5 точки бонус в крайното класиране!");
-      updateJokerButtonsUI(index);
+      updateJokerButtonsUI(index, parasiteEligibleThisQ);
     };
+
+    document.getElementById("joker-majority").onclick = async () => {
+      if (playerJokers.majority) return;
+      playerJokers.majority = true;
+      currentQuestionJokerFlags.majority = true;
+
+      try {
+        await setDoc(
+          doc(db, "games", "lightning", "episodes", episodeId, "jokerUsage", String(index)),
+          { majorityUsed: true },
+          { merge: true }
+        );
+      } catch(e) {}
+
+      await setDoc(
+        doc(db, "games", "lightning", "episodes", episodeId, "results", player),
+        { exists: true, jokers: playerJokers },
+        { merge: true }
+      );
+
+      jokerStatusNote("👨‍👩‍👧‍👦 Мнозинство активирано — след края на времето ще видиш процентите и ще имаш 10 сек. да решиш.");
+      updateJokerButtonsUI(index, parasiteEligibleThisQ);
+    };
+
+    document.getElementById("joker-specialist").onclick = async () => {
+      if (playerJokers.specialist) return;
+      playerJokers.specialist = true;
+      currentQuestionJokerFlags.specialist = true;
+
+      try {
+        await setDoc(
+          doc(db, "games", "lightning", "episodes", episodeId, "jokerUsage", String(index)),
+          { specialistUsed: true },
+          { merge: true }
+        );
+      } catch(e) {}
+
+      await setDoc(
+        doc(db, "games", "lightning", "episodes", episodeId, "results", player),
+        { exists: true, jokers: playerJokers },
+        { merge: true }
+      );
+
+      jokerStatusNote("🧠 Специалист активиран — след края на времето ще видиш препоръката им и ще имаш 10 сек. да решиш.");
+      updateJokerButtonsUI(index, parasiteEligibleThisQ);
+    };
+
+    document.getElementById("joker-parasite").onclick = async () => {
+      if (playerJokers.parasite || answered || !parasiteEligibleThisQ || !leaderNameThisQ) return;
+
+      playerJokers.parasite = true;
+      answered = true;
+      Array.from(answersDiv.children).forEach(b => b.disabled = true);
+
+      await setDoc(
+        doc(db, "games", "lightning", "episodes", episodeId, "results", player),
+        { exists: true, jokers: playerJokers },
+        { merge: true }
+      );
+
+      jokerStatusNote(`🐛 Паразит активиран — чакаме отговора на ${leaderNameThisQ}, за да го копираме…`);
+      updateJokerButtonsUI(index, parasiteEligibleThisQ);
+
+      const leaderRef = doc(db, "games", "lightning", "episodes", episodeId, "results", leaderNameThisQ, "answers", String(index));
+      parasiteUnsub = onSnapshot(leaderRef, async (snap) => {
+        if (snap.exists()) {
+          const leaderData = snap.data();
+          if (!leaderData.answer) return;
+
+          const thinkingTime = Date.now() - startTime;
+          await setDoc(
+            doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(index)),
+            { answer: leaderData.answer, correct: q.correct, explanation: q.explanation, timestamp: Date.now(), thinkingTime }
+          );
+
+          jokerStatusNote(`🐛 Копирано: "${leaderData.answer}" (отговорът на ${leaderNameThisQ})`);
+          if (parasiteUnsub) { parasiteUnsub(); parasiteUnsub = null; }
+        }
+      });
+    };
+
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "jokerBuffer") {
+    const q = questions[index];
+    if (!q) return;
+
+    showOnly(quizDiv);
+    globalTimer.style.display = "block";
+    jokersPanel.style.display = "none";
+    answeredList.style.display = "none";
+    jokerBufferInfo.style.display = "none";
+    jokerBufferInfo.innerHTML = "";
+
+    qText.textContent = `${index+1}. ${q.question}`;
+
+    const usingMajority   = currentQuestionJokerFlags.index === index && currentQuestionJokerFlags.majority;
+    const usingSpecialist = currentQuestionJokerFlags.index === index && currentQuestionJokerFlags.specialist;
+
+    if (!usingMajority && !usingSpecialist) {
+      answersDiv.innerHTML = "";
+
+      let note = "Кратка пауза преди обяснението…";
+      try {
+        const usageSnap = await getDoc(doc(db, "games", "lightning", "episodes", episodeId, "jokerUsage", String(index)));
+        if (usageSnap.exists()) {
+          const usage = usageSnap.data();
+          const parts = [];
+          if (usage.majorityUsed) parts.push("👨‍👩‍👧‍👦 Мнозинство");
+          if (usage.specialistUsed) parts.push("🧠 Специалист");
+          if (parts.length) note = `Използва се жокер ${parts.join(" и ")} за този въпрос — изчакваме.`;
+        }
+      } catch(e) {}
+
+      jokerStatusNote(note);
+      timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+      return;
+    }
+
+    // ⭐ Играчът ползва Мнозинство и/или Специалист за този въпрос
+    answersDiv.innerHTML = "";
+    jokerStatusNote("");
+
+    const counts = {};
+    q.answers.forEach(a => counts[a.trim()] = 0);
+    let total = 0;
+
+    try {
+      const playersSnap = await getDocs(collection(db, "games", "lightning", "episodes", episodeId, "results"));
+      for (const pDoc of playersSnap.docs) {
+        const ansSnap = await getDocs(collection(db, "games", "lightning", "episodes", episodeId, "results", pDoc.id, "answers"));
+        const ansDoc = ansSnap.docs.find(d => d.id === String(index));
+        if (ansDoc) {
+          const data = ansDoc.data();
+          if (data.answer) {
+            const chosen = String(data.answer).trim();
+            if (counts[chosen] !== undefined) { counts[chosen]++; total++; }
+          }
+        }
+      }
+    } catch(e) {}
+
+    let infoHtml = "";
+
+    if (usingMajority) {
+      infoHtml += `<p style="color:#ffd100; font-weight:bold; margin-bottom:8px;">👨‍👩‍👧‍👦 Мнението на публиката до момента:</p>`;
+      q.answers.forEach(a => {
+        const key = a.trim();
+        const pct = total ? Math.round((counts[key] || 0) / total * 100) : 0;
+        infoHtml += `<div class="stat-answer">${a}<span class="pct">${pct}%</span></div>`;
+      });
+    }
+
+    if (usingSpecialist) {
+      const correctNorm = (q.correct || "").trim();
+      const rawPct = total ? Math.round((counts[correctNorm] || 0) / total * 100) : 0;
+      const boosted = Math.min(100, rawPct + 30);
+      infoHtml += `<p style="color:#ffd100; font-weight:bold; margin:14px 0 8px;">🧠 Специалистите препоръчват:</p>
+        <div class="stat-answer correct">${q.correct}<span class="pct">${boosted}%</span></div>`;
+    }
+
+    jokerBufferInfo.innerHTML = infoHtml;
+    jokerBufferInfo.style.display = "block";
+
+    const seed = episodeId.length * 1000 + index;
+    const shuffled = seededShuffle(q.answers, seed);
+
+    shuffled.forEach(ans => {
+      const btn = document.createElement("button");
+      btn.textContent = ans;
+      btn.onclick = async () => {
+        Array.from(answersDiv.children).forEach(b => b.disabled = true);
+        btn.classList.add("selected");
+
+        const thinkingTime = Date.now() - startTime;
+        const payload = {
+          answer: ans,
+          correct: q.correct,
+          explanation: q.explanation,
+          timestamp: Date.now(),
+          thinkingTime
+        };
+        if (currentQuestionJokerFlags.doubled) payload.doubled = true;
+
+        await setDoc(
+          doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(index)),
+          payload
+        );
+        jokerStatusNote(`Избор потвърден: ${ans}`);
+      };
+      answersDiv.appendChild(btn);
+    });
 
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -755,6 +991,8 @@ async function applyPhaseImmediately(data) {
   if (phase === "explanation") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
+    jokersPanel.style.display = "none";
+    jokerBufferInfo.style.display = "none";
     renderExplanation(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -763,6 +1001,8 @@ async function applyPhaseImmediately(data) {
   if (phase === "ranking") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
+    jokersPanel.style.display = "none";
+    jokerBufferInfo.style.display = "none";
     renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
