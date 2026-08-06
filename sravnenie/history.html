@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История на играта – Буриданово магаре</title>
+  <style>
+    body {
+      background: #0a1a3a;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #7fffd4;
+      text-align: center;
+      margin-bottom: 5px;
+      text-shadow: 0 0 5px #00e5ff44;
+    }
+    #playerTitle {
+      text-align: center;
+      color: #ffd100;
+      font-size: 1.2em;
+      margin-bottom: 25px;
+    }
+    .question-block {
+      margin-bottom: 30px;
+      padding: 15px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      border-left: 6px solid #ffd100;
+    }
+    .question-block.correct-block {
+      border-left-color: #00e676;
+    }
+    .question-block.wrong-block {
+      border-left-color: #ff5252;
+    }
+    .question-block.skipped-block {
+      border-left-color: #888;
+      opacity: 0.7;
+    }
+    .label {
+      color: #7fffd4;
+      font-weight: bold;
+    }
+    .correct {
+      color: #00e676;
+      font-weight: bold;
+    }
+    .wrong {
+      color: #ff5252;
+      font-weight: bold;
+    }
+    .skipped {
+      color: #aaa;
+      font-style: italic;
+    }
+    .pancake-tag {
+      color: #ffd100;
+      font-weight: bold;
+    }
+    .explanation {
+      margin-top: 10px;
+      opacity: 0.85;
+    }
+    .backBtn {
+      display: block;
+      margin: 30px auto;
+      padding: 12px 30px;
+      background: #ffd100;
+      color: #003344;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.2em;
+      cursor: pointer;
+      font-weight: bold;
+      text-align: center;
+      width: 200px;
+    }
+    .backBtn:hover { background: #ffcc33; }
+    #summary {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 1.1em;
+      color: #aaddff;
+    }
+    #pointsSummary {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 1.3em;
+      color: #ffd100;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📘 История на играта — Буриданово магаре</h1>
+<div id="playerTitle"></div>
+<div id="pointsSummary"></div>
+<div id="summary">Зареждане...</div>
+<div id="content"></div>
+<button class="backBtn" onclick="window.history.back()">Назад</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const GAME_ID = "sravnenie";
+const BONUS_FOR_PERFECT = 3; // ⭐ трябва да съвпада с bonus-а в sravnenie.html
+
+const params    = new URLSearchParams(window.location.search);
+const episodeId = params.get("episodeId");
+const player    = params.get("player");
+
+const playerTitle   = document.getElementById("playerTitle");
+const summary       = document.getElementById("summary");
+const pointsSummary = document.getElementById("pointsSummary");
+const content       = document.getElementById("content");
+
+if (!episodeId || !player) {
+  summary.textContent = "Липсва информация за епизод или играч.";
+  throw new Error("Missing params");
+}
+
+playerTitle.textContent = "Играч: " + player;
+
+// ⭐ верен ли е отговорът - реално съвпада, или е "спасен" с Палачинка
+function isAnswerCorrect(data, q) {
+  if (data.guaranteed === true) return true;
+  const correctNorm = (q.correct || "").trim();
+  const chosen = (data.answer || "").trim();
+  return chosen === correctNorm;
+}
+
+async function loadHistory() {
+
+  // Зареждаме въпросите от questions.json
+  let questions = [];
+  try {
+    const res = await fetch("questions.json");
+    questions = await res.json();
+  } catch(e) {
+    summary.textContent = "Не мога да заредя въпросите.";
+    return;
+  }
+
+  // Зареждаме отговорите на играча от Firestore
+  let answers = {};
+  try {
+    const answersSnap = await getDocs(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers")
+    );
+    answersSnap.forEach(d => answers[d.id] = d.data());
+  } catch(e) {
+    summary.textContent = "Нямате история за този епизод.";
+    return;
+  }
+
+  if (Object.keys(answers).length === 0) {
+    summary.textContent = "Нямате записани отговори за този епизод.";
+    return;
+  }
+
+  // Статистика
+  let correct = 0, wrong = 0, skipped = 0, pancakeUsed = false;
+  questions.forEach((q, i) => {
+    const ans = answers[String(i)];
+    if (!ans) { skipped++; return; }
+    if (isAnswerCorrect(ans, q)) {
+      correct++;
+      if (ans.guaranteed) pancakeUsed = true;
+    } else {
+      wrong++;
+    }
+  });
+
+  const bonus = (correct === questions.length) ? BONUS_FOR_PERFECT : 0;
+  const totalPoints = correct + bonus;
+
+  pointsSummary.innerHTML = `🏁 Общо точки: ${totalPoints}` +
+    (bonus ? ` <span style="color:#00e676;">(включително бонус +${bonus} за 10/10)</span>` : "");
+
+  summary.innerHTML = `
+    Верни: <span style="color:#00e676;font-weight:bold;">${correct}</span> &nbsp;|&nbsp;
+    Грешни: <span style="color:#ff5252;font-weight:bold;">${wrong}</span> &nbsp;|&nbsp;
+    Пропуснати: <span style="color:#aaa;">${skipped}</span>
+    &nbsp; от общо ${questions.length} въпроса
+  `;
+
+  // Генерираме HTML за всички въпроси
+  let html = "";
+  questions.forEach((q, i) => {
+    const ans = answers[String(i)];
+    const yourAnswer = ans?.answer || null;
+    const correctAns = (q.correct || "").trim();
+    const explanation= q.explanation || "";
+
+    let statusClass = "skipped-block";
+    let statusText  = '<span class="skipped">⬜ Не е отговорено</span>';
+
+    if (yourAnswer !== null) {
+      const isCorrect = isAnswerCorrect(ans, q);
+      statusClass = isCorrect ? "correct-block" : "wrong-block";
+      statusText  = isCorrect
+        ? '<span class="correct">✔ Вярно</span>' + (ans.guaranteed ? ' <span class="pancake-tag">(🥞 Палачинка)</span>' : '')
+        : '<span class="wrong">✘ Грешно</span>';
+    }
+
+    html += `
+      <div class="question-block ${statusClass}">
+        <div class="label">${i + 1}. ${q.question}</div>
+        <div><span class="label">Твоят отговор:</span> ${yourAnswer ?? "—"}</div>
+        <div><span class="label">Верен отговор:</span> ${correctAns}</div>
+        <div style="margin-top:6px;">${statusText}</div>
+        ${explanation ? `<div class="explanation">${explanation}</div>` : ""}
+      </div>
+    `;
+  });
+
+  content.innerHTML = html;
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>
