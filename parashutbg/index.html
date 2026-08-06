@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🪂 Парашут БГ 🪂</title>
+
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 1000px; margin: 0 auto; padding: 20px;
+    background: #00264d;
+    color: #ffffff;
+  }
+
+  h1 {
+    text-align: center; color: #ffd100;
+    font-size: clamp(1.5em, 4vw, 2em);
+    margin: 10px auto 15px auto;
+    text-shadow: 0 0 5px #ffb400;
+  }
+
+  #start-screen, #waiting-screen, #explanation, #ranking {
+    width: 100%; max-width: 600px; text-align: center;
+    margin-top: 30px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 0 10px rgba(255,209,0,0.2);
+  }
+
+  #quiz {
+    width: 100%; max-width: 900px; text-align: center;
+    margin-top: 20px;
+  }
+
+  input[type="text"] {
+    padding: 10px; font-size: 1.1em; border-radius: 8px;
+    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+    text-align: center;
+  }
+
+  button {
+    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    border-radius: 8px; border: none;
+    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background:#ffcc33; }
+
+  #globalTimer {
+    text-align: center; font-weight: 800; margin: 10px 0;
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+  }
+  #globalTimer.warning { color: #ff4c4c; }
+
+  #question {
+    font-size: 1.5em; margin: 10px 0 16px 0; font-weight: 700;
+    color: #fff; background: rgba(255,209,0,0.15);
+    border: 2px solid #ffd100; border-radius: 12px;
+    padding: 10px 20px; display: inline-block;
+  }
+
+  #myPoints {
+    margin-top: 10px; font-size: 1.1em;
+    color: #ffd100; font-weight: bold;
+  }
+
+  /* ⭐ КАРТА */
+  #map-container {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #00509e;
+    cursor: crosshair;
+    touch-action: none;
+  }
+  #mapImage {
+    width: 100%;
+    height: auto;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  #mapOverlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    margin: 6px 0;
+    border-radius: 10px;
+    background: #333;
+    font-size: 1.1em;
+    text-align: left;
+  }
+  .stat-row.correct-answer { background: #2e7d32; font-weight: bold; justify-content: center; }
+  .stat-row .pts { color: #ffd100; font-weight: bold; }
+
+  .rank-item {
+    padding: 10px; margin: 8px 0;
+    border-radius: 10px; font-size: 1.2em; text-align: left;
+  }
+  .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
+  .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
+  .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
+
+  #historyBtn { margin-top: 20px; background: #00e5ff; color: #003344; }
+
+  #lobbyList {
+    margin-top: 10px; text-align: left;
+    max-height: 200px; overflow-y: auto; font-size: 0.95em;
+  }
+  #lobbyList div { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+  .myself {
+    background: #00e5ff55 !important;
+    border-left: 6px solid #00e5ff !important;
+    font-weight: 700; color: #fff !important;
+  }
+
+  #lobby-instructions {
+    text-align: left;
+    font-size: 1em;
+    line-height: 1.8;
+    color: #cce8ff;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+  #lobby-instructions strong { color: #ffd100; }
+  </style>
+</head>
+
+<body>
+
+
+<h1>Игри на Знания<br> 🪂 Гео-игра Парашут БГ 🪂 <br> 🪂 епизод 1 🪂</h1>
+<div id="globalTimer" style="display:none;">-</div>
+
+<div id="start-screen">
+  <p>Въведете име:</p>
+  <input type="text" id="playerName" placeholder="Две имена ..." />
+  <button id="enterBtn">Влез в играта</button>
+</div>
+
+<div id="waiting-screen" style="display:none;">
+  <h2 id="waitingTitle">Играта още не е започнала.</h2>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
+
+  <div id="lobby-instructions">
+    <p>Ще ви бъдат показани <strong id="totalObjCount">?</strong> обекта от картата на България.</p>
+    <p>За всеки обект кликвате върху картата там, където мислите, че се намира.</p>
+    <p>Време за отговор — <strong>20 секунди</strong> на обект.</p>
+    <p>Точкуване по отклонение: до 10км = <strong>10т.</strong>, до 20км = <strong>5т.</strong>, до 30км = <strong>3т.</strong>, до 60км = <strong>2т.</strong>, до 100км = <strong>1т.</strong>, над 100км = <strong>0т.</strong></p>
+    <p>При равни точки — печели по-краткото общо време за игра.</p>
+  </div>
+
+  <h3 style="margin-top:15px; color:#ffd100;">Играчи в лобито</h3>
+  <div id="lobbyList">Още няма други играчи.</div>
+</div>
+
+<div id="quiz" style="display:none;">
+  <div id="question"></div>
+  <div id="map-container">
+    <img id="mapImage" src="bulgaria.jpg" alt="Карта на България" draggable="false" />
+    <svg id="mapOverlay" viewBox="0 0 1800 1183" preserveAspectRatio="none"></svg>
+  </div>
+  <div id="myPoints"></div>
+</div>
+
+<div id="explanation" style="display:none;">
+  <h3>Резултати за обекта</h3>
+  <div id="map-container-expl" style="max-width:900px; margin:0 auto; position:relative;">
+    <img id="mapImageExpl" src="bulgaria.jpg" alt="Карта на България" style="width:100%; height:auto; display:block; border-radius:12px; border:2px solid #00509e;" />
+    <svg id="mapOverlayExpl" viewBox="0 0 1800 1183" preserveAspectRatio="none" style="position:absolute; top:0; left:0; width:100%; height:100%;"></svg>
+  </div>
+  <div id="statsBlock" style="max-width:600px; margin:16px auto 0 auto;"></div>
+</div>
+
+<div id="ranking" style="display:none;">
+  <h3 id="rankingTitle">Крайно класиране</h3>
+  <div id="rankingList"></div>
+  <button id="historyBtn" style="display:none;">История на играта</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, onSnapshot, setDoc, collection, getDocs, getDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+/* =========================================================
+   ⚠️ ЗАМЕНИ С ТВОЯ СОБСТВЕН FIREBASE ПРОЕКТ ЗА ПАРАШУТ БГ
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+const GAME_ID = "parashut_bg_live"; // колекция в Firestore
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+/* =========================================================
+   ⭐ КАЛИБРАЦИЯ НА КАРТАТА (bulgaria.jpg, 1800x1183 px)
+   Пресметната от 3 контролни точки: Видин, Варна, Бургас.
+   ========================================================= */
+const MAP_W = 1800, MAP_H = 1183;
+const COEF_LON = { a: 0.00379116, b: 0.00000355, c: 22.078205 };
+const COEF_LAT = { a: 0.00001928, b: -0.00278894, c: 44.385047 };
+
+function pixelToLatLon(x, y) {
+  const lon = COEF_LON.a * x + COEF_LON.b * y + COEF_LON.c;
+  const lat = COEF_LAT.a * x + COEF_LAT.b * y + COEF_LAT.c;
+  return { lat, lon };
+}
+
+// Обратна трансформация (lat,lon -> пиксел), за рисуване на вярната точка
+const M = [[COEF_LON.a, COEF_LON.b], [COEF_LAT.a, COEF_LAT.b]];
+const det = M[0][0]*M[1][1] - M[0][1]*M[1][0];
+const Minv = [[ M[1][1]/det, -M[0][1]/det], [-M[1][0]/det,  M[0][0]/det]];
+function latLonToPixel(lat, lon) {
+  const rx = lon - COEF_LON.c;
+  const ry = lat - COEF_LAT.c;
+  const x = Minv[0][0]*rx + Minv[0][1]*ry;
+  const y = Minv[1][0]*rx + Minv[1][1]*ry;
+  return { x, y };
+}
+
+/* =========================================================
+   ⭐ ТОЧКУВАНЕ - еднакво за всички обекти
+   ========================================================= */
+function calcPoints(distanceKm) {
+  if (distanceKm <= 10)  return 10;
+  if (distanceKm <= 20)  return 5;
+  if (distanceKm <= 30)  return 3;
+  if (distanceKm <= 60)  return 2;
+  if (distanceKm <= 100) return 1;
+  return 0;
+}
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* =========================================================
+   DOM
+   ========================================================= */
+const startScreen    = document.getElementById("start-screen");
+const waitingScreen  = document.getElementById("waiting-screen");
+const quizDiv        = document.getElementById("quiz");
+const explanationDiv = document.getElementById("explanation");
+const rankingDiv     = document.getElementById("ranking");
+
+const qText          = document.getElementById("question");
+const mapImage       = document.getElementById("mapImage");
+const mapOverlay     = document.getElementById("mapOverlay");
+const mapContainer   = document.getElementById("map-container");
+const myPoints       = document.getElementById("myPoints");
+const statsBlock     = document.getElementById("statsBlock");
+const mapImageExpl   = document.getElementById("mapImageExpl");
+const mapOverlayExpl = document.getElementById("mapOverlayExpl");
+const rankingList    = document.getElementById("rankingList");
+const rankingTitle   = document.getElementById("rankingTitle");
+const historyBtn     = document.getElementById("historyBtn");
+const lobbyList      = document.getElementById("lobbyList");
+const globalTimer    = document.getElementById("globalTimer");
+const waitingTitle   = document.getElementById("waitingTitle");
+const totalObjCount  = document.getElementById("totalObjCount");
+
+let player        = "";
+let objects       = [];
+let ready         = false;
+let timerInterval = null;
+let episodeId     = null;
+let hasAnswered   = false;
+let lobbyUnsub    = null;
+let lobbyEpisodeId= null;
+
+/* ⭐ Обектите за КОНКРЕТНИЯ епизод се четат от Firestore (host ги е избрал
+   на случаен принцип от пълния objects.json пул при старта), не от файла
+   директно - така всички играчи виждат едни и същи обекти в един и същи ред. */
+let objectsEpisodeId = null;
+
+async function ensureObjectsLoaded(ep) {
+  if (objectsEpisodeId === ep && objects.length) return;
+  const snap = await getDoc(doc(db, "games", GAME_ID, "episodes", ep));
+  objects = (snap.exists() && snap.data().objects) ? snap.data().objects : [];
+  objectsEpisodeId = ep;
+  totalObjCount.textContent = objects.length;
+}
+
+function showOnly(div) {
+  [startScreen, waitingScreen, quizDiv, explanationDiv, rankingDiv].forEach(d => d.style.display = "none");
+  div.style.display = "block";
+}
+
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  const dotsEl = document.getElementById("dots");
+  if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
+}, 400);
+
+function formatTime(totalSeconds) {
+  if (totalSeconds >= 60) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return `${m}:${String(s).padStart(2,"0")}`;
+  }
+  return String(totalSeconds);
+}
+
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  globalTimer.textContent = formatTime(remaining);
+  globalTimer.classList.toggle("warning", remaining <= 5);
+}
+
+function updateRankingTitle(index) {
+  const isLast = index >= objects.length - 1;
+  rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
+  historyBtn.style.display = isLast ? "block" : "none";
+}
+
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете име!");
+
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+
+  if (!episodeId) return;
+
+  await ensureObjectsLoaded(episodeId);
+
+  await setDoc(
+    doc(db, "games", GAME_ID, "episodes", episodeId, "lobby", player),
+    { joinedAt: Date.now() },
+    { merge: true }
+  );
+
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
+
+/* =========================================================
+   ⭐ Клик върху картата
+   ========================================================= */
+function getNaturalClickCoords(evt) {
+  const rect = mapImage.getBoundingClientRect();
+  const scaleX = mapImage.naturalWidth  / rect.width;
+  const scaleY = mapImage.naturalHeight / rect.height;
+  const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+  const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+  const x = (clientX - rect.left) * scaleX;
+  const y = (clientY - rect.top) * scaleY;
+  return { x, y };
+}
+
+function drawMarker(svg, x, y, color, label) {
+  const ns = "http://www.w3.org/2000/svg";
+  const c = document.createElementNS(ns, "circle");
+  c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 14);
+  c.setAttribute("fill", color); c.setAttribute("stroke", "#fff"); c.setAttribute("stroke-width", 3);
+  svg.appendChild(c);
+  if (label) {
+    const t = document.createElementNS(ns, "text");
+    t.setAttribute("x", x + 20); t.setAttribute("y", y + 6);
+    t.setAttribute("fill", color); t.setAttribute("font-size", "28");
+    t.setAttribute("font-weight", "bold"); t.setAttribute("stroke", "#fff");
+    t.setAttribute("stroke-width", "0.5"); t.setAttribute("paint-order", "stroke");
+    t.textContent = label;
+    svg.appendChild(t);
+  }
+}
+
+function drawLine(svg, x1, y1, x2, y2, color) {
+  const ns = "http://www.w3.org/2000/svg";
+  const l = document.createElementNS(ns, "line");
+  l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+  l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+  l.setAttribute("stroke", color); l.setAttribute("stroke-width", 4);
+  l.setAttribute("stroke-dasharray", "10,8");
+  svg.appendChild(l);
+}
+
+async function handleMapClick(evt, index, startTime) {
+  if (hasAnswered) return;
+  hasAnswered = true;
+
+  const { x, y } = getNaturalClickCoords(evt);
+  const { lat, lon } = pixelToLatLon(x, y);
+
+  const obj = objects[index];
+  const distKm = distanceKm(lat, lon, obj.lat, obj.lon);
+  const pts = calcPoints(distKm);
+  const thinkingTime = Date.now() - startTime;
+
+  mapOverlay.innerHTML = "";
+  drawMarker(mapOverlay, x, y, "#00e5ff", "Ти");
+
+  myPoints.textContent = `Отклонение: ${distKm.toFixed(1)} км → +${pts} т.`;
+
+  await setDoc(
+    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+    { exists: true },
+    { merge: true }
+  );
+  await setDoc(
+    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", String(index)),
+    {
+      guessLat: lat, guessLon: lon,
+      guessX: x, guessY: y,
+      distanceKm: distKm,
+      points: pts,
+      timestamp: Date.now(),
+      thinkingTime
+    }
+  );
+}
+
+/* =========================================================
+   ⭐ Обяснение (собствената линия на играча + класация по обект)
+   ========================================================= */
+async function renderExplanation(index) {
+  showOnly(explanationDiv);
+  statsBlock.innerHTML = "";
+  mapOverlayExpl.innerHTML = "";
+
+  const obj = objects[index];
+  if (!obj) return;
+
+  const { x: cx, y: cy } = latLonToPixel(obj.lat, obj.lon);
+  drawMarker(mapOverlayExpl, cx, cy, "#4caf50", obj.name);
+
+  // собствения отговор на играча (ако е отговорил)
+  const myAnsSnap = await getDocs(
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers")
+  );
+  const myAns = myAnsSnap.docs.find(d => d.id === String(index));
+  if (myAns) {
+    const d = myAns.data();
+    drawLine(mapOverlayExpl, d.guessX, d.guessY, cx, cy, "#00e5ff");
+    drawMarker(mapOverlayExpl, d.guessX, d.guessY, "#00e5ff", "Ти");
+  }
+
+  // класация по обект - текст за всички играчи
+  const playersSnap = await getDocs(
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results")
+  );
+  const results = [];
+  for (const playerDoc of playersSnap.docs) {
+    const pName = playerDoc.id;
+    const ansSnap = await getDocs(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", pName, "answers")
+    );
+    const ansDoc = ansSnap.docs.find(d => d.id === String(index));
+    if (ansDoc) {
+      const d = ansDoc.data();
+      results.push({ name: pName, distanceKm: d.distanceKm, points: d.points });
+    }
+  }
+  results.sort((a, b) => a.distanceKm - b.distanceKm);
+
+  let html = `<div class="stat-row correct-answer"><span>📍 Търсен обект: <strong>${obj.name}</strong></span></div>`;
+  results.forEach(r => {
+    const isMe = r.name === player;
+    html += `<div class="stat-row ${isMe ? "myself" : ""}">
+      <span>${r.name}: <strong>${r.distanceKm.toFixed(1)} км</strong></span>
+      <span class="pts">${r.points} т.</span>
+    </div>`;
+  });
+  statsBlock.innerHTML = html || "<p>Няма отговори.</p>";
+}
+
+/* =========================================================
+   ⭐ Класиране (по обект -> общо)
+   ========================================================= */
+async function renderRanking(index) {
+  showOnly(rankingDiv);
+  rankingList.innerHTML = "";
+
+  const playersSnap = await getDocs(
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results")
+  );
+  const scores = {};
+  for (const playerDoc of playersSnap.docs) {
+    const pName = playerDoc.id;
+    const answersSnap = await getDocs(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", pName, "answers")
+    );
+    let totalPoints = 0, totalTime = 0;
+    answersSnap.forEach(ansDoc => {
+      const d = ansDoc.data();
+      totalPoints += (d.points || 0);
+      if (typeof d.thinkingTime === "number") totalTime += d.thinkingTime;
+    });
+    scores[pName] = { points: totalPoints, time: totalTime };
+  }
+
+  const sorted = Object.entries(scores).sort((a, b) => {
+    if (b[1].points !== a[1].points) return b[1].points - a[1].points;
+    if (a[1].time   !== b[1].time)   return a[1].time   - b[1].time;
+    return a[0].localeCompare(b[0], "bg");
+  });
+
+  rankingList.innerHTML = sorted.map(([name, obj], i) => {
+    const pts    = obj.points;
+    const time   = (obj.time / 1000).toFixed(1);
+    const isLast = index >= objects.length - 1;
+    const isMe   = name === player;
+    let cls = "", medal = "";
+    if (i === 0) { cls = "gold";   medal = "🥇"; }
+    else if (i === 1) { cls = "silver"; medal = "🥈"; }
+    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+    const timeText = isLast ? ` (време: ${time} сек)` : "";
+    return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+      ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
+    </div>`;
+  }).join("");
+
+  updateRankingTitle(index);
+}
+
+/* =========================================================
+   ⭐ Фази
+   ========================================================= */
+let lastPhaseSnapshot = null;
+
+function applyPhaseImmediately(data) {
+  const { index, phase, duration } = data;
+  const startTime = data.startTime?.toMillis?.() ?? data.startTime ?? Date.now();
+  if (timerInterval) clearInterval(timerInterval);
+
+  if (phase === "lobby") {
+    showOnly(waitingScreen);
+    globalTimer.style.display = "none";
+    waitingTitle.textContent = "Играта още не е започнала.";
+    return;
+  }
+
+  if (phase === "prestart") {
+    showOnly(waitingScreen);
+    waitingTitle.textContent = "Играта започва след:";
+    globalTimer.style.display = "block";
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "question") {
+    showOnly(quizDiv);
+    globalTimer.style.display = "block";
+
+    const obj = objects[index];
+    if (!obj) return;
+
+    qText.textContent = `${index+1}. ${obj.name}`;
+    mapOverlay.innerHTML = "";
+    myPoints.textContent = "";
+    hasAnswered = false;
+
+    mapContainer.onclick = (e) => handleMapClick(e, index, startTime);
+
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "explanation") {
+    globalTimer.style.display = "block";
+    renderExplanation(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "ranking") {
+    globalTimer.style.display = "block";
+    renderRanking(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+}
+
+onSnapshot(doc(db, "games", GAME_ID, "state", "current"), async snap => {
+  if (!snap.exists()) return;
+  const data = snap.data();
+  lastPhaseSnapshot = data;
+  episodeId = data.episodeId;
+  if (!episodeId) return;
+
+  await ensureObjectsLoaded(episodeId);
+
+  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
+    if (lobbyUnsub) lobbyUnsub();
+    lobbyEpisodeId = episodeId;
+    lobbyUnsub = onSnapshot(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "lobby"),
+      lobbySnap => {
+        const names = lobbySnap.docs.map(d => d.id);
+        lobbyList.innerHTML = names.length
+          ? names.map(n => `<div>${n}</div>`).join("")
+          : "Още няма други играчи.";
+      }
+    );
+  }
+
+  if (!ready) return;
+  applyPhaseImmediately(data);
+});
+</script>
+
+</body>
+</html>
