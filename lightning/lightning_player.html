@@ -893,7 +893,7 @@ async function applyPhaseImmediately(data) {
     if (!usingMajority && !usingSpecialist) {
       answersDiv.innerHTML = "";
 
-      let note = "Кратка пауза преди обяснението…";
+      let note = "Кратка пауза - преброяване на отговорите";
       try {
         const usageSnap = await getDoc(doc(db, "games", "lightning", "episodes", episodeId, "jokerUsage", String(index)));
         if (usageSnap.exists()) {
@@ -936,7 +936,7 @@ async function applyPhaseImmediately(data) {
     let infoHtml = "";
 
     if (usingMajority) {
-      infoHtml += `<p style="color:#ffd100; font-weight:bold; margin-bottom:8px;">👨‍👩‍👧‍👦 Мнението на публиката до момента:</p>`;
+      infoHtml += `<p style="color:#ffd100; font-weight:bold; margin-bottom:8px;">👨‍👩‍👧‍👦 Как маркираха играчите до момента:</p>`;
       q.answers.forEach(a => {
         const key = a.trim();
         const pct = total ? Math.round((counts[key] || 0) / total * 100) : 0;
