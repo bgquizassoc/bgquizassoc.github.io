@@ -176,7 +176,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 52⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ случаен епизод⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -184,7 +184,7 @@
 
 <div id="start-screen">
   <p>Въведете Двете си имена:</p>
-  <input type="text" id="playerName" placeholder="Две имена..." />
+  <input type="text" id="playerName" placeholder="Две имена ..." />
   <button id="enterBtn">Влез в играта</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
@@ -219,12 +219,12 @@
 
   <!-- ⭐ ЖОКЕРИ -->
   <div id="jokers" class="jokers-panel">
-    <button class="joker-btn" id="joker-doubleChance">💕 Двоен шанс</button>
-    <button class="joker-btn" id="joker-doubled">✖️2 Удвояване</button>
-    <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
+    <button class="joker-btn" id="joker-doubleChance">💕 Двоен шанс</button>   
     <button class="joker-btn" id="joker-majority">👨‍👩‍👧‍👦 Мнозинство</button>
     <button class="joker-btn" id="joker-specialist">🧠 Специалист</button>
     <button class="joker-btn" id="joker-parasite" style="display:none;">🐛 Паразит</button>
+      <button class="joker-btn" id="joker-doubled">✖️2 Удвояване</button>
+      <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
     <button class="joker-btn" id="joker-cashIn" disabled>💰 Осребри</button>
   </div>
   <div id="jokerStatus"></div>
@@ -346,9 +346,9 @@ function updateJokerButtonsUI(index, parasiteEligible) {
   btnParasite.style.display = (parasiteEligible && !playerJokers.parasite) ? "inline-block" : "none";
   btnParasite.disabled = playerJokers.parasite;
 
-  // ⭐ Поправка съзнателно НЕ участва в проверката за Осребри
+  // ⭐ Поправка и Удвояване съзнателно НЕ участват в проверката за Осребри
   const anyOtherUsedForCashIn =
-    playerJokers.doubleChance || playerJokers.doubled ||
+    playerJokers.doubleChance ||
     playerJokers.majority || playerJokers.parasite || playerJokers.specialist;
 
   const isLastQuestion = index === questions.length - 1;
@@ -773,7 +773,7 @@ async function applyPhaseImmediately(data) {
 
     document.getElementById("joker-cashIn").onclick = async () => {
       const anyOtherUsedForCashIn =
-        playerJokers.doubleChance || playerJokers.doubled ||
+        playerJokers.doubleChance ||
         playerJokers.majority || playerJokers.parasite || playerJokers.specialist;
       const isLastQuestion = index === questions.length - 1;
       if (playerJokers.cashIn || !isLastQuestion || anyOtherUsedForCashIn) return;
