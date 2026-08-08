@@ -187,7 +187,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ случаен епизод 2 за днес⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ епизод 92 (повторение)⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -226,12 +226,12 @@
 
   <!-- ⭐ ЖОКЕРИ -->
   <div id="jokers" class="jokers-panel">
-    <button class="joker-btn" id="joker-doubleChance">💕 Двоен шанс</button>    
+    <button class="joker-btn" id="joker-doubleChance">💕 Двоен шанс</button>
     <button class="joker-btn" id="joker-majority">👨‍👩‍👧‍👦 Мнозинство</button>
     <button class="joker-btn" id="joker-specialist">🧠 Специалист</button>
     <button class="joker-btn" id="joker-bullets">🔅 Патрондаш (5)</button>
-    <button class="joker-btn" id="joker-doubled">✖️2 Удвояване</button>
-     <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
+     <button class="joker-btn" id="joker-doubled">✖️2 Удвояване</button>
+        <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
     <button class="joker-btn" id="joker-cashIn" disabled>💰 Осребри</button>
   </div>
   <div id="jokerStatus"></div>
@@ -347,7 +347,7 @@ function computeCashInBonus() {
   if (!playerJokers.doubleChance) bonus += 1;
   if (!playerJokers.majority) bonus += 1;
   if (!playerJokers.specialist) bonus += 1;
-  bonus += playerJokers.bullets;
+  bonus += playerJokers.bullets * 0.61;
   return bonus;
 }
 
@@ -611,7 +611,7 @@ async function renderRanking(index) {
   const sorted = await computeStandings();
 
   rankingList.innerHTML = sorted.map(([name, obj], i) => {
-    const pts    = obj.points;
+    const pts    = Math.round(obj.points * 100) / 100;
     const time   = (obj.time / 1000).toFixed(1);
     const isLast = index >= questions.length - 1;
     const isMe   = name === player;
