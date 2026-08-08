@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <title>🪂 Парашут БГ 🪂</title>
 
   <style>
@@ -13,7 +13,7 @@
     display: flex; flex-direction: column;
     align-items: center; justify-content: flex-start;
     font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
-    max-width: 1000px; margin: 0 auto; padding: 20px;
+    max-width: 1300px; margin: 0 auto; padding: 20px;
     background: #00264d;
     color: #ffffff;
   }
@@ -74,13 +74,13 @@
   #map-container {
     position: relative;
     width: 100%;
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto;
     border-radius: 12px;
     overflow: hidden;
     border: 2px solid #00509e;
     cursor: crosshair;
-    touch-action: none;
+    touch-action: pinch-zoom;
   }
   #mapImage {
     width: 100%;
@@ -143,18 +143,34 @@
     border-radius: 10px;
   }
   #lobby-instructions strong { color: #ffd100; }
+
+  /* ⭐ Намек за завъртане на телефона хоризонтално - показва се
+     само на тесни (телефонни) екрани в портретна ориентация */
+  #rotate-hint {
+    display: none;
+    background: #ffd10022;
+    border: 2px solid #ffd100;
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin-bottom: 14px;
+    font-weight: bold;
+    text-align: center;
+  }
+  @media (max-width: 640px) and (orientation: portrait) {
+    #rotate-hint { display: block; }
+  }
   </style>
 </head>
 
 <body>
 
+<h1>🪂 Гео-игра<br>Парашут БГ 🪂</h1>
 
-<h1>Игри на Знания<br> 🪂 Гео-игра Парашут БГ 🪂 <br> 🪂 епизод 1 🪂</h1>
 <div id="globalTimer" style="display:none;">-</div>
 
 <div id="start-screen">
   <p>Въведете име:</p>
-  <input type="text" id="playerName" placeholder="Две имена ..." />
+  <input type="text" id="playerName" placeholder="Име ..." />
   <button id="enterBtn">Влез в играта</button>
 </div>
 
@@ -167,6 +183,7 @@
     <p>За всеки обект кликвате върху картата там, където мислите, че се намира.</p>
     <p>Време за отговор — <strong>20 секунди</strong> на обект.</p>
     <p>Точкуване по отклонение: до 10км = <strong>10т.</strong>, до 20км = <strong>5т.</strong>, до 30км = <strong>3т.</strong>, до 60км = <strong>2т.</strong>, до 100км = <strong>1т.</strong>, над 100км = <strong>0т.</strong></p>
+    <p>📱 На телефон можете да приближите картата, като раздалечите два пръста (pinch-zoom), преди да посочите отговора си.</p>
     <p>При равни точки — печели по-краткото общо време за игра.</p>
   </div>
 
@@ -175,17 +192,22 @@
 </div>
 
 <div id="quiz" style="display:none;">
+  <div id="rotate-hint">📱 Завърти телефона хоризонтално ↔️ за по-голяма карта!</div>
   <div id="question"></div>
   <div id="map-container">
     <img id="mapImage" src="bulgaria.jpg" alt="Карта на България" draggable="false" />
     <svg id="mapOverlay" viewBox="0 0 1800 1183" preserveAspectRatio="none"></svg>
   </div>
   <div id="myPoints"></div>
+  <div id="answeredList" style="display:none; max-width:600px; margin:16px auto 0 auto; text-align:left; background:rgba(255,255,255,0.05); padding:12px; border-radius:10px;">
+    <strong>Отговориха:</strong>
+    <div id="answeredNames"></div>
+  </div>
 </div>
 
 <div id="explanation" style="display:none;">
   <h3>Резултати за обекта</h3>
-  <div id="map-container-expl" style="max-width:900px; margin:0 auto; position:relative;">
+  <div id="map-container-expl" style="max-width:1200px; margin:0 auto; position:relative;">
     <img id="mapImageExpl" src="bulgaria.jpg" alt="Карта на България" style="width:100%; height:auto; display:block; border-radius:12px; border:2px solid #00509e;" />
     <svg id="mapOverlayExpl" viewBox="0 0 1800 1183" preserveAspectRatio="none" style="position:absolute; top:0; left:0; width:100%; height:100%;"></svg>
   </div>
@@ -221,40 +243,51 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
 /* =========================================================
-   ⭐ КАЛИБРАЦИЯ НА КАРТАТА (bulgaria.jpg, 1800x1183 px)
-   Пресметната от 3 контролни точки: Видин, Варна, Бургас.
+   ⭐ КАРТА И КАЛИБРАЦИЯ - вече се четат динамично от епизода
+   (различни игри/карти могат да имат различна калибрация)
    ========================================================= */
-const MAP_W = 1800, MAP_H = 1183;
-const COEF_LON = { a: 0.00379116, b: 0.00000355, c: 22.078205 };
-const COEF_LAT = { a: 0.00001928, b: -0.00278894, c: 44.385047 };
+let mapConfig = null; // { image, width, height, coefLon:{a,b,c}, coefLat:{a,b,c} }
 
 function pixelToLatLon(x, y) {
-  const lon = COEF_LON.a * x + COEF_LON.b * y + COEF_LON.c;
-  const lat = COEF_LAT.a * x + COEF_LAT.b * y + COEF_LAT.c;
+  const L = mapConfig.coefLon, T = mapConfig.coefLat;
+  const lon = L.a * x + L.b * y + L.c;
+  const lat = T.a * x + T.b * y + T.c;
   return { lat, lon };
 }
 
-// Обратна трансформация (lat,lon -> пиксел), за рисуване на вярната точка
-const M = [[COEF_LON.a, COEF_LON.b], [COEF_LAT.a, COEF_LAT.b]];
-const det = M[0][0]*M[1][1] - M[0][1]*M[1][0];
-const Minv = [[ M[1][1]/det, -M[0][1]/det], [-M[1][0]/det,  M[0][0]/det]];
 function latLonToPixel(lat, lon) {
-  const rx = lon - COEF_LON.c;
-  const ry = lat - COEF_LAT.c;
-  const x = Minv[0][0]*rx + Minv[0][1]*ry;
-  const y = Minv[1][0]*rx + Minv[1][1]*ry;
+  const L = mapConfig.coefLon, T = mapConfig.coefLat;
+  const det = L.a * T.b - L.b * T.a;
+  const rx = lon - L.c;
+  const ry = lat - T.c;
+  const x = ( T.b * rx - L.b * ry) / det;
+  const y = (-T.a * rx + L.a * ry) / det;
   return { x, y };
+}
+
+function applyMapConfig(cfg) {
+  mapConfig = cfg;
+  mapImage.src = cfg.image;
+  mapImageExpl.src = cfg.image;
+  const vb = `0 0 ${cfg.width} ${cfg.height}`;
+  mapOverlay.setAttribute("viewBox", vb);
+  mapOverlayExpl.setAttribute("viewBox", vb);
 }
 
 /* =========================================================
    ⭐ ТОЧКУВАНЕ - еднакво за всички обекти
    ========================================================= */
 function calcPoints(distanceKm) {
-  if (distanceKm <= 10)  return 10;
-  if (distanceKm <= 20)  return 5;
-  if (distanceKm <= 30)  return 3;
-  if (distanceKm <= 60)  return 2;
-  if (distanceKm <= 100) return 1;
+  const ranges = (mapConfig && mapConfig.scoringRanges) || [
+    { maxKm: 10,  points: 10 },
+    { maxKm: 20,  points: 5  },
+    { maxKm: 30,  points: 3  },
+    { maxKm: 60,  points: 2  },
+    { maxKm: 100, points: 1  }
+  ];
+  for (const r of ranges) {
+    if (distanceKm <= r.maxKm) return r.points;
+  }
   return 0;
 }
 
@@ -292,6 +325,8 @@ const lobbyList      = document.getElementById("lobbyList");
 const globalTimer    = document.getElementById("globalTimer");
 const waitingTitle   = document.getElementById("waitingTitle");
 const totalObjCount  = document.getElementById("totalObjCount");
+const answeredList   = document.getElementById("answeredList");
+const answeredNames  = document.getElementById("answeredNames");
 
 let player        = "";
 let objects       = [];
@@ -301,6 +336,7 @@ let episodeId     = null;
 let hasAnswered   = false;
 let lobbyUnsub    = null;
 let lobbyEpisodeId= null;
+let answersUnsub  = null;
 
 /* ⭐ Обектите за КОНКРЕТНИЯ епизод се четат от Firestore (host ги е избрал
    на случаен принцип от пълния objects.json пул при старта), не от файла
@@ -310,7 +346,9 @@ let objectsEpisodeId = null;
 async function ensureObjectsLoaded(ep) {
   if (objectsEpisodeId === ep && objects.length) return;
   const snap = await getDoc(doc(db, "games", GAME_ID, "episodes", ep));
-  objects = (snap.exists() && snap.data().objects) ? snap.data().objects : [];
+  const data = snap.exists() ? snap.data() : {};
+  objects = data.objects || [];
+  if (data.mapConfig) applyMapConfig(data.mapConfig);
   objectsEpisodeId = ep;
   totalObjCount.textContent = objects.length;
 }
@@ -389,15 +427,15 @@ function getNaturalClickCoords(evt) {
 function drawMarker(svg, x, y, color, label) {
   const ns = "http://www.w3.org/2000/svg";
   const c = document.createElementNS(ns, "circle");
-  c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 14);
-  c.setAttribute("fill", color); c.setAttribute("stroke", "#fff"); c.setAttribute("stroke-width", 3);
+  c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 20);
+  c.setAttribute("fill", color); c.setAttribute("stroke", "#fff"); c.setAttribute("stroke-width", 5);
   svg.appendChild(c);
   if (label) {
     const t = document.createElementNS(ns, "text");
-    t.setAttribute("x", x + 20); t.setAttribute("y", y + 6);
-    t.setAttribute("fill", color); t.setAttribute("font-size", "28");
+    t.setAttribute("x", x + 28); t.setAttribute("y", y + 8);
+    t.setAttribute("fill", color); t.setAttribute("font-size", "36");
     t.setAttribute("font-weight", "bold"); t.setAttribute("stroke", "#fff");
-    t.setAttribute("stroke-width", "0.5"); t.setAttribute("paint-order", "stroke");
+    t.setAttribute("stroke-width", "0.8"); t.setAttribute("paint-order", "stroke");
     t.textContent = label;
     svg.appendChild(t);
   }
@@ -408,9 +446,40 @@ function drawLine(svg, x1, y1, x2, y2, color) {
   const l = document.createElementNS(ns, "line");
   l.setAttribute("x1", x1); l.setAttribute("y1", y1);
   l.setAttribute("x2", x2); l.setAttribute("y2", y2);
-  l.setAttribute("stroke", color); l.setAttribute("stroke-width", 4);
-  l.setAttribute("stroke-dasharray", "10,8");
+  l.setAttribute("stroke", color); l.setAttribute("stroke-width", 12);
+  l.setAttribute("stroke-dasharray", "26,16");
+  l.setAttribute("stroke-linecap", "round");
   svg.appendChild(l);
+}
+
+/* ⭐ Списък "кой вече е отговорил" - live, по време на въпроса */
+function startAnswerListener(index) {
+  if (answersUnsub) answersUnsub();
+  answeredNames.innerHTML = "";
+  answeredList.style.display = "block";
+
+  answersUnsub = onSnapshot(
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results"),
+    resultsSnap => {
+      resultsSnap.forEach(playerDoc => {
+        const pName = playerDoc.id;
+        onSnapshot(
+          doc(db, "games", GAME_ID, "episodes", episodeId, "results", pName, "answers", String(index)),
+          ansDoc => {
+            if (ansDoc.exists()) {
+              const already = Array.from(answeredNames.children).some(d => d.dataset.player === pName);
+              if (!already) {
+                const div = document.createElement("div");
+                div.dataset.player = pName;
+                div.textContent = pName + " отговори";
+                answeredNames.appendChild(div);
+              }
+            }
+          }
+        );
+      });
+    }
+  );
 }
 
 async function handleMapClick(evt, index, startTime) {
@@ -588,6 +657,8 @@ function applyPhaseImmediately(data) {
     myPoints.textContent = "";
     hasAnswered = false;
 
+    startAnswerListener(index);
+
     mapContainer.onclick = (e) => handleMapClick(e, index, startTime);
 
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
@@ -596,6 +667,7 @@ function applyPhaseImmediately(data) {
 
   if (phase === "explanation") {
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     renderExplanation(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -603,6 +675,7 @@ function applyPhaseImmediately(data) {
 
   if (phase === "ranking") {
     globalTimer.style.display = "block";
+    answeredList.style.display = "none";
     renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
