@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <title>⚡ Игри на Знания - Светкавичен куиз ⚡</title>
 
   <style>
@@ -13,7 +13,11 @@
     display: flex; flex-direction: column;
     align-items: center; justify-content: flex-start;
     font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
-    max-width: 900px; margin: 0 auto; padding: 20px;
+    max-width: 900px; margin: 0 auto;
+    padding-top: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
     background: #00264d; color: #ffffff;
   }
 
@@ -140,9 +144,10 @@
   .jokers-panel {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     justify-content: center;
     margin-top: 22px;
+    margin-bottom: 10px;
   }
 
   .joker-btn {
@@ -182,7 +187,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ случаен епизод⚡</h1>
+<h1>Игри на Знания<br>⚡ Светкавичен куиз ⚡<br>⚡ случаен епизод 2 за днес⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -218,23 +223,24 @@
 <div id="quiz" style="display:none;">
   <div id="question"></div>
   <div id="answers" class="answers"></div>
-  <div id="answeredList" style="display:none;">
-    <strong>Отговорили:</strong>
-    <div id="answeredNames"></div>
-  </div>
 
   <!-- ⭐ ЖОКЕРИ -->
   <div id="jokers" class="jokers-panel">
-    <button class="joker-btn" id="joker-doubleChance">💕 Двоен шанс</button>  
+    <button class="joker-btn" id="joker-doubleChance">💕 Двоен шанс</button>    
     <button class="joker-btn" id="joker-majority">👨‍👩‍👧‍👦 Мнозинство</button>
     <button class="joker-btn" id="joker-specialist">🧠 Специалист</button>
     <button class="joker-btn" id="joker-bullets">🔅 Патрондаш (5)</button>
     <button class="joker-btn" id="joker-doubled">✖️2 Удвояване</button>
-    <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
+     <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
     <button class="joker-btn" id="joker-cashIn" disabled>💰 Осребри</button>
   </div>
   <div id="jokerStatus"></div>
   <div id="jokerBufferInfo" style="display:none;"></div>
+
+  <div id="answeredList" style="display:none;">
+    <strong>Отговорили:</strong>
+    <div id="answeredNames"></div>
+  </div>
 </div>
 
 <div id="explanation" style="display:none;">
