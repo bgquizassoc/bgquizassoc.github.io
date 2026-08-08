@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>🪂 Парашут БГ 🪂</title>
+  <title>🪂 Гео-игра Парашут  🪂</title>
 
   <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -144,6 +144,18 @@
   }
   #lobby-instructions strong { color: #ffd100; }
 
+  #lobby-image {
+    width: 100%;
+    max-height: 350px;
+    object-fit: contain;
+    border-radius: 12px;
+    margin-bottom: 15px;
+  }
+
+  #historyBtn, #archiveBtn {
+    margin-top: 20px; background: #00e5ff; color: #003344;
+  }
+
   /* ⭐ Намек за завъртане на телефона хоризонтално - показва се
      само на тесни (телефонни) екрани в портретна ориентация */
   #rotate-hint {
@@ -164,19 +176,24 @@
 
 <body>
 
-<h1>🪂 Гео-игра<br>Парашут БГ 🪂</h1>
+<h1>Игри на Знания<br>🪂 Гео-игра Парашут 🪂<br>🪂 епизод 1 (България) 🪂</h1>
+
+<audio id="bg-music" src="dance.mp3" loop preload="auto"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
 
 <div id="start-screen">
-  <p>Въведете име:</p>
-  <input type="text" id="playerName" placeholder="Име ..." />
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="playerName" placeholder="Две имена ..." />
   <button id="enterBtn">Влез в играта</button>
+  <button id="archiveBtn">Архив класирания</button>
 </div>
 
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
+
+  <img id="lobby-image" src="https://i.imgur.com/iEq8wS4.jpeg" alt="Гео-игра Парашут" />
 
   <div id="lobby-instructions">
     <p>Ще ви бъдат показани <strong id="totalObjCount">?</strong> обекта от картата на България.</p>
@@ -327,6 +344,7 @@ const waitingTitle   = document.getElementById("waitingTitle");
 const totalObjCount  = document.getElementById("totalObjCount");
 const answeredList   = document.getElementById("answeredList");
 const answeredNames  = document.getElementById("answeredNames");
+const bgMusic        = document.getElementById("bg-music");
 
 let player        = "";
 let objects       = [];
@@ -389,6 +407,10 @@ function updateRankingTitle(index) {
   historyBtn.style.display = isLast ? "block" : "none";
 }
 
+document.getElementById("archiveBtn").onclick = () => {
+  window.location.href = "archive.html";
+};
+
 document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
   if (!player) return alert("Въведете име!");
@@ -396,6 +418,11 @@ document.getElementById("enterBtn").onclick = async () => {
   ready = true;
   showOnly(waitingScreen);
   globalTimer.style.display = "none";
+
+  if (bgMusic) {
+    bgMusic.volume = 0.35;
+    bgMusic.play().catch(() => {});
+  }
 
   if (!episodeId) return;
 
