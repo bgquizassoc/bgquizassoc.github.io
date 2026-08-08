@@ -31,6 +31,14 @@
 </div>
 
 <div class="field-row">
+  <label>Игра / JSON пул:</label>
+  <select id="poolSelect">
+    <option value="parashutbg/objects.json">Парашут БГ (градове)</option>
+    <option value="licnostibg/personalities.json">Личности БГ (родни градове)</option>
+  </select>
+</div>
+
+<div class="field-row">
   <label>Брой обекти в тази игра:</label>
   <input type="number" id="objCount" value="30" min="1">
 </div>
@@ -74,8 +82,43 @@ const RANK       = 15000;
 
 let pool = [];
 
-async function loadPool() {
-  const res = await fetch("parashutbg/objects.json");
+/* ⭐ Всеки JSON пул носи собствена карта + калибрация.
+   Личности БГ засега преизползва картата на България -
+   когато добавиш Европа, просто добавяш нов запис тук. */
+const MAP_CONFIGS = {
+  "parashutbg/objects.json": {
+    image: "parashutbg/bulgaria.jpg",
+    width: 1800, height: 1183,
+    coefLon: { a: 0.00379116, b: 0.00000355, c: 22.078205 },
+    coefLat: { a: 0.00001928, b: -0.00278894, c: 44.385047 },
+    scoringRanges: [
+      { maxKm: 10,  points: 10 },
+      { maxKm: 20,  points: 5  },
+      { maxKm: 30,  points: 3  },
+      { maxKm: 60,  points: 2  },
+      { maxKm: 100, points: 1  }
+    ]
+  },
+  "licnostibg/personalities.json": {
+    image: "parashutbg/bulgaria.jpg",
+    width: 1800, height: 1183,
+    coefLon: { a: 0.00379116, b: 0.00000355, c: 22.078205 },
+    coefLat: { a: 0.00001928, b: -0.00278894, c: 44.385047 },
+    scoringRanges: [
+      { maxKm: 10,  points: 10 },
+      { maxKm: 20,  points: 5  },
+      { maxKm: 30,  points: 3  },
+      { maxKm: 60,  points: 2  },
+      { maxKm: 100, points: 1  }
+    ]
+  }
+  // ⭐ Когато добавим Европа: нов запис тук с нейна image/width/height/
+  // coefLon/coefLat И собствен scoringRanges, изчислен по мащабния
+  // множител спрямо България (виж обяснението в чата).
+};
+
+async function loadPool(poolFile) {
+  const res = await fetch(poolFile);
   pool = await res.json();
 }
 
@@ -124,14 +167,17 @@ document.getElementById("startBtn").onclick = async () => {
   const startTimeRaw = document.getElementById("startTime").value;
   const objCount = parseInt(document.getElementById("objCount").value, 10) || 30;
   const mode = document.getElementById("mode").value;
+  const poolFile = document.getElementById("poolSelect").value;
 
   if (!ep) return alert("Въведи име на епизод!");
   if (!startTimeRaw) return alert("Избери час за старт!");
 
-  await loadPool();
-  if (!pool.length) return alert("objects.json е празен или не се зареди!");
+  await loadPool(poolFile);
+  if (!pool.length) return alert("Избраният JSON пул е празен или не се зареди!");
 
   const selected = pickObjects(objCount, mode);
+  const mapConfig = MAP_CONFIGS[poolFile];
+  if (!mapConfig) return alert("Няма зададена карта/калибрация за избрания пул!");
 
   const [hh, mm] = startTimeRaw.split(":").map(Number);
   const now = new Date();
@@ -147,7 +193,7 @@ document.getElementById("startBtn").onclick = async () => {
   // ще четат точно този списък, в точно този ред.
   await setDoc(
     doc(db, "games", GAME_ID, "episodes", ep),
-    { objects: selected, createdAt: Date.now(), mode },
+    { objects: selected, mapConfig, createdAt: Date.now(), mode },
     { merge: false }
   );
 
