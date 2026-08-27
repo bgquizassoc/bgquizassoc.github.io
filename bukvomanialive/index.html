@@ -171,6 +171,58 @@
     border-left: 6px solid #00e5ff !important;
     font-weight: 700; color: #fff !important;
   }
+
+  /* ⭐ ЛОБИ */
+  #lobby-image {
+    width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 12px;
+    margin-bottom: 15px;
+  }
+
+  #lobby-instructions {
+    text-align: left;
+    font-size: 1em;
+    line-height: 1.8;
+    color: #cce8ff;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+  #lobby-instructions p { margin-bottom: 6px; }
+  #lobby-instructions strong { color: #ffd100; }
+
+  /* ⭐ ЖОКЕРИ */
+  .jokers-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 22px;
+    margin-bottom: 10px;
+  }
+  .joker-btn {
+    background: #0d47a1;
+    color: #ffffff;
+    border: 2px solid #1565c0;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 1.05em;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 0;
+  }
+  .joker-btn:hover:not(:disabled) { background:#1565c0; transform: scale(1.03); }
+  .joker-btn:disabled { opacity: 0.35; cursor: not-allowed; background:#555; border-color:#555; }
+  #jokerStatus {
+    margin-top: 12px;
+    min-height: 20px;
+    font-size: 1.1em;
+    color: #ffd100;
+    font-weight: bold;
+  }
   </style>
 </head>
 
@@ -192,6 +244,21 @@
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
+
+  <img id="lobby-image" src="https://i.imgur.com/pmIhEXf.jpeg" alt="Куиз Буквомания" />
+
+  <div id="lobby-instructions">
+    <p>Очакват ви 30 отворени въпроса с нарастваща степен на трудност</p>
+    <p>Отговаря се с изписване на първа буква, от това, което сте си намислили.</p>
+    <p>Ако се пита за име на човек, пише се фамилната му буква, ако е обект или термин, пише се първата буква на първата дума.</p>
+    <p>Пример: За Стара планина пишем С, за Иван Вазов пишем В.</p>
+    <p>Ако се пита нещо различно - във въпроса ще пише (Търси се еди какво си......</p>
+    <p>Време за мислене и отговор — <strong>20 секунди</strong> на въпрос</p>
+    <p>Точкуване — първите 10 въпроса - <strong>по 1 точка</strong>, вторите 10 - <strong>по 2 точки</strong>, последните 10 носят по <strong>3 точки</strong>.</p>
+    <p>При равенство в точките се гледа общото време за целия куиз.</p>
+    <p>По време на играта имате достъп до жокер <strong>Втора сричка</strong> — еднократен за цялата игра.</p>
+  </div>
+
   <h3 id="lobbyTitle">Стартов списък на играчите</h3>
   <p style="margin-top:10px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
   <div id="lobbyList">Още няма други играчи.</div>
@@ -206,6 +273,13 @@
            placeholder="?" />
     <button id="submitBtn">Изпрати</button>
   </div>
+
+  <!-- ⭐ ЖОКЕРИ -->
+  <div id="jokers" class="jokers-panel">
+    <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Втора сричка</button>
+  </div>
+  <div id="jokerStatus"></div>
+
   <div id="answeredList" style="display:none;">
     <strong>Отговорили:</strong>
     <div id="answeredNames"></div>
@@ -230,6 +304,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebas
 import {
   getFirestore, doc, onSnapshot, setDoc, collection, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const GAME_ID = "bukvomania";
 
 const startScreen    = document.getElementById("start-screen");
 const waitingScreen  = document.getElementById("waiting-screen");
@@ -274,6 +350,34 @@ let episodeId     = null;
 let lobbyUnsub    = null;
 let lobbyEpisodeId= null;
 let answersUnsub  = null;
+
+// ===============================
+// ⭐ ЖОКЕР — Втора сричка (еднократен за целия епизод)
+// ===============================
+let playerJokers = { syllable2: false };
+let jokersLoaded = false;
+
+async function ensureJokersLoaded() {
+  if (jokersLoaded || !episodeId || !player) return;
+  jokersLoaded = true;
+  try {
+    const snap = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player));
+    if (snap.exists() && snap.data().jokers) {
+      playerJokers = { ...playerJokers, ...snap.data().jokers };
+    }
+  } catch(e) {}
+}
+
+function jokerStatusNote(msg) {
+  const el = document.getElementById("jokerStatus");
+  if (el) el.textContent = msg;
+}
+
+function updateJokerButtonUI(q) {
+  const btn = document.getElementById("joker-syllable2");
+  const hasSyllable = !!(q && q.syllable2 && q.syllable2.trim());
+  btn.style.display = (hasSyllable && !playerJokers.syllable2) ? "inline-block" : "none";
+}
 
 /* ⭐ Транслитерация */
 const LATIN_TO_CYRILLIC = {
@@ -369,10 +473,12 @@ document.getElementById("enterBtn").onclick = async () => {
   if (!episodeId) return;
 
   await setDoc(
-    doc(db, "games", "bukvomania", "episodes", episodeId, "lobby", player),
+    doc(db, "games", GAME_ID, "episodes", episodeId, "lobby", player),
     { joinedAt: Date.now() },
     { merge: true }
   );
+
+  await ensureJokersLoaded();
 
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
@@ -390,7 +496,7 @@ async function submitAnswer(index, startTime) {
   submitBtn.disabled = true;
 
   await setDoc(
-    doc(db, "games", "bukvomania", "episodes", episodeId, "results", player),
+    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
     { exists: true },
     { merge: true }
   );
@@ -398,7 +504,7 @@ async function submitAnswer(index, startTime) {
   const thinkingTime = Date.now() - startTime;
 
   await setDoc(
-    doc(db, "games", "bukvomania", "episodes", episodeId, "results", player, "answers", String(index)),
+    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", String(index)),
     {
       answer: typed,
       correct: (q.letter || "").toUpperCase(),
@@ -416,12 +522,12 @@ function startAnswerListener(index) {
   answeredList.style.display = "block";
 
   answersUnsub = onSnapshot(
-    collection(db, "games", "bukvomania", "episodes", episodeId, "results"),
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results"),
     resultsSnap => {
       resultsSnap.forEach(playerDoc => {
         const pName = playerDoc.id;
         onSnapshot(
-          doc(db, "games", "bukvomania", "episodes", episodeId, "results", pName, "answers", String(index)),
+          doc(db, "games", GAME_ID, "episodes", episodeId, "results", pName, "answers", String(index)),
           ansDoc => {
             if (ansDoc.exists()) {
               const already = Array.from(answeredNames.children).some(d => d.dataset.player === pName);
@@ -452,13 +558,13 @@ async function renderExplanation(index) {
   explanationText.textContent = q.explanation || "";
 
   const playersSnap = await getDocs(
-    collection(db, "games", "bukvomania", "episodes", episodeId, "results")
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results")
   );
 
   const counts = {};
   for (const playerDoc of playersSnap.docs) {
     const ansSnap = await getDocs(
-      collection(db, "games", "bukvomania", "episodes", episodeId, "results", playerDoc.id, "answers")
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", playerDoc.id, "answers")
     );
     const ansDoc = ansSnap.docs.find(d => d.id === String(index));
     if (ansDoc) {
@@ -493,7 +599,7 @@ async function renderRanking(index) {
   rankingList.innerHTML = "";
 
   const playersSnap = await getDocs(
-    collection(db, "games", "bukvomania", "episodes", episodeId, "results")
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results")
   );
 
   const scores = {};
@@ -501,7 +607,7 @@ async function renderRanking(index) {
   for (const playerDoc of playersSnap.docs) {
     const playerName = playerDoc.id;
     const answersSnap = await getDocs(
-      collection(db, "games", "bukvomania", "episodes", episodeId, "results", playerName, "answers")
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", playerName, "answers")
     );
 
     let totalPoints = 0;
@@ -579,12 +685,17 @@ function applyPhaseImmediately(data) {
     const q = questions[index];
     if (!q) return;
 
+    ensureJokersLoaded().then(() => updateJokerButtonUI(q));
+
     qText.textContent = `${index+1}. ${q.question}`;
 
     letterInput.value = "";
     letterInput.disabled = false;
     letterInput.classList.remove("submitted");
     submitBtn.disabled = false;
+
+    jokerStatusNote("");
+    updateJokerButtonUI(q);
 
     answeredNames.innerHTML = "";
     answeredList.style.display = "block";
@@ -597,6 +708,24 @@ function applyPhaseImmediately(data) {
     };
     letterInput.oninput = () => {
       letterInput.value = letterInput.value.slice(0, 1).toUpperCase();
+    };
+
+    document.getElementById("joker-syllable2").onclick = async () => {
+      if (playerJokers.syllable2) return;
+      const syll = (q.syllable2 || "").trim();
+      if (!syll) return;
+
+      playerJokers.syllable2 = true;
+      jokerStatusNote(`🔤 Втора сричка: "${syll}"`);
+      updateJokerButtonUI(q);
+
+      try {
+        await setDoc(
+          doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+          { exists: true, jokers: playerJokers },
+          { merge: true }
+        );
+      } catch(e) {}
     };
 
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
@@ -620,7 +749,7 @@ function applyPhaseImmediately(data) {
   }
 }
 
-onSnapshot(doc(db, "games", "bukvomania", "state", "current"), async snap => {
+onSnapshot(doc(db, "games", GAME_ID, "state", "current"), async snap => {
   if (!snap.exists()) return;
 
   const data = snap.data();
@@ -632,7 +761,7 @@ onSnapshot(doc(db, "games", "bukvomania", "state", "current"), async snap => {
     if (lobbyUnsub) lobbyUnsub();
     lobbyEpisodeId = episodeId;
     lobbyUnsub = onSnapshot(
-      collection(db, "games", "bukvomania", "episodes", episodeId, "lobby"),
+      collection(db, "games", GAME_ID, "episodes", episodeId, "lobby"),
       lobbySnap => {
         const names = lobbySnap.docs.map(d => d.id);
         lobbyList.innerHTML = names.length
