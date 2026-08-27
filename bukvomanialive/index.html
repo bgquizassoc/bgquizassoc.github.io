@@ -236,7 +236,7 @@
 
 <div id="start-screen">
   <p>Въведете Двете си имена:</p>
-  <input type="text" id="playerName" placeholder="Име ..." />
+  <input type="text" id="playerName" placeholder="Имена ..." />
   <button id="enterBtn">Влез в играта</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
@@ -672,7 +672,7 @@ function applyPhaseImmediately(data) {
 
   if (phase === "prestart") {
     showOnly(waitingScreen);
-    waitingTitle.textContent = "Играта започва след:";
+    waitingTitle.textContent = "Играта започва след таймера:";
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
