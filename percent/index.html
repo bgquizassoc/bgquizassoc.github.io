@@ -527,7 +527,7 @@ function startAnswerListener(index) {
 }
 
 // ===============================
-// ⭐ ФОРМУЛА ЗА ТОЧКИ: 1 т. база + бонус скорост + бонус рядкост
+// ⭐ ФОРМУЛА ЗА ТОЧКИ: 1 т. база + бонус скорост + бонус надмощие
 // ===============================
 
 // Бонус за скорост: 1.0 т. до 10-тата сек., после -0.1 на всяка следваща
@@ -538,7 +538,7 @@ function speedBonus(thinkingTimeMs) {
   return Math.round((20 - bucket) / 10 * 10) / 10;
 }
 
-// Бонус за рядкост: (100 - % познали въпроса измежду реално отговорилите) / 100
+// Бонус за надмощие: (100 - % познали въпроса измежду реално отговорилите) / 100
 function pctBonus(pctCorrect) {
   return Math.round((100 - pctCorrect)) / 100;
 }
@@ -756,7 +756,7 @@ async function renderQRanking(index) {
       const sBonus = typeof p.data.thinkingTime === "number" ? speedBonus(p.data.thinkingTime) : 0;
       const pBonus = pctBonus(stats.pctCorrect);
       const doubledText = p.data.doubled ? " ×2" : "";
-      breakdown = `1 + ${sBonus.toFixed(1)} (скорост) + ${pBonus.toFixed(2)} (рядкост)${doubledText} = ${p.points} т. · ${seconds} сек.`;
+      breakdown = `1 + ${sBonus.toFixed(1)} (скорост) + ${pBonus.toFixed(2)} (надмощие)${doubledText} = ${p.points} т. · ${seconds} сек.`;
     } else {
       breakdown = `0 т. · ${seconds} сек.`;
     }
