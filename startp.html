@@ -26,7 +26,7 @@
 </style>
 </head>
 <body>
-<h1>📈 Старт на Куиз Процент 3</h1>
+<h1>📈 Старт на Куиз Процент</h1>
 
 <div class="field-row">
   <label>Име на епизод:</label>
@@ -102,7 +102,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ⭐ проверяваме дали НЯКОЙ играч е ползвал Мнозинство/Специалист за този въпрос
+// ⭐ проверяваме дали НЯКОЙ играч е ползвал Мнозинство/Специалист/Шпионин за този въпрос
 async function getJokerUsage(ep, index) {
   try {
     const snap = await getDoc(doc(db, "games", "percent", "episodes", ep, "jokerUsage", String(index)));
@@ -123,7 +123,7 @@ async function runGame(ep) {
     // ⭐ буферната фаза се вкарва САМО ако е реално ползван жокер за този въпрос —
     // иначе минаваме директно към обяснение, без излишно чакане за всички
     const usage = await getJokerUsage(ep, i);
-    if (usage.majorityUsed || usage.specialistUsed) {
+    if (usage.majorityUsed || usage.specialistUsed || usage.spyUsed) {
       await setState(ep, i, "jokerBuffer", JOKER_BUFFER);
       await sleep(JOKER_BUFFER);
     }
