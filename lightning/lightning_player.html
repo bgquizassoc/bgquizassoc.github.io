@@ -100,6 +100,10 @@
   .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
   .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
 
+  .rank-breakdown {
+    display: block; font-size: 0.8em; opacity: 0.85; margin-top: 3px;
+  }
+
   #historyBtn, #archiveBtn {
     margin-top: 20px; background: #00e5ff; color: #003344;
   }
@@ -182,6 +186,22 @@
     text-align: left;
   }
 
+  #spyTargetPicker {
+    margin-top: 12px;
+    text-align: left;
+  }
+  #spyTargetPicker .spy-title {
+    color: #ffd100;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  .spy-target-btn {
+    display: block; width: 100%; margin: 8px 0; padding: 12px;
+    border: none; border-radius: 10px; cursor: pointer;
+    font-size: 1.05em; background: #4a148c; color: #fff;
+  }
+  .spy-target-btn:hover { background: #6a1fb5; }
+
   </style>
 </head>
 
@@ -212,17 +232,15 @@
   <p>⚡Време за мислене и отговор — <strong>20 секунди </strong> на въпрос.</p>
   <p>⚡Точкуване — първите 10 въпроса - <strong> по 1 точка</strong>, вторите 10 - <strong> по 2 точки</strong>, последните 10 носят <strong> по 3 точки. </strong>.</p>
   <p>⚡При равенство в точките се гледа общото време за целия куиз.</p>
-  <p>⚡По време на играта имате достъп до няколко <strong>жокера</strong> — всеки от тях може да се ползва само веднъж за целия епизод.</p>
+  <p>⚡По време на играта имате достъп до няколко <strong>жокера</strong> — всеки от тях може да се ползва само веднъж за целия епизод, с изключение на <strong>🔁 Поправка</strong>, която е с неограничена употреба (сменяй отговора си, докато не изтече времето).</p>
      <p>⚡Всеки един жокер или бонус се ползва преди да се натисне някой от отговорите.</p>
     <p>⚡Описание на жокерите: ⚡</p>
     <p>💕Двоен шанс - имате възможност да маркирате два отговора, ако маркирате един и времето Ви изтече, се зачита грешен отговор, защото системата очаква два отговора</p>
     <p>👨‍👩‍👧‍👦Мнозинство - след изтичане на 20-те секунди общо време, само за Вас текат нови 10 секунди за мислене, през което време под Вашите отговори се появява информация за всеки отговор какъв % доверие е събрал и вие преценявате какво да натиснете</p>
-    <p>🧠Специалист - отново имате 10 секунди допълнително време, но тук специалистът дава само един отговор в проценти, отново изписан под вашите отговори. Виждайки тази информация, трябва да изберете някакъв отговор:</p>
+    <p>🔎Шпионин - показва ви списък с първите 20 играчи в класирането (подредени по азбучен ред за лесно намиране). Избирате кого да шпионирате и през допълнителните 10 секунди виждате какво е отговорил той на текущия въпрос (ако вече е отговорил в нормалните 20 сек.) — и тогава решавате сами какво да отговорите. Ако шпионираният все още се колебае (например ползва свой жокер), вместо неговия отговор ще видите какво мисли мнозинството дотук — жокерът се брои за използван.</p>
     <p>🔅Патрондаш - имате 5 патрона, използването на всеки един от тях премахва един от отговорите. Може да използвате патроните на различни или на един и същ въпрос.</p>
     <p>✖️2 Бонус Удвояване. Ако сте много сигурен в отговора си, може да натиснете Удвои и след това отговора си и така точките Ви от този въпрос ще се удвоят.</p>
-    <p>💰Бонус Осребри. В присъствените куизове ще се осребрява автоматично, но тук трябва да се сещате вие да го направите.</p>
-    <p>⚡Осребри се появява по време на последния въпрос и ако имате неизползвани жокери ги "продавате" за по 1 точка, а останалите патрони по 0,61 точки, които се начисляват към крайния Ви резултат.</p>
-    <p>⚡⚡⚡Очаквайте новия бонус 🔎 ШПИОНИН ⚡⚡⚡ </p>
+    <p>📈Ако не използвате някой от еднократните жокери (Двоен шанс, Мнозинство, Шпионин) или патрони от Патрондаш, накрая автоматично получавате бонус точки за неизползваните — по 1 точка за всеки неизползван еднократен жокер и по 0,2 точки за всеки оставащ патрон.</p>
     
    
 </div>
@@ -240,13 +258,13 @@
   <div id="jokers" class="jokers-panel">
     <button class="joker-btn" id="joker-doubleChance">💕 Двоен шанс</button>
     <button class="joker-btn" id="joker-majority">👨‍👩‍👧‍👦 Мнозинство</button>
-    <button class="joker-btn" id="joker-specialist">🧠 Специалист</button>
     <button class="joker-btn" id="joker-bullets">🔅 Патрондаш (5)</button>
      <button class="joker-btn" id="joker-doubled">✖️2 Удвояване</button>
         <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
-    <button class="joker-btn" id="joker-cashIn" disabled>💰 Осребри</button>
+    <button class="joker-btn" id="joker-spy">🔎 Шпионин</button>
   </div>
   <div id="jokerStatus"></div>
+  <div id="spyTargetPicker" style="display:none;"></div>
   <div id="jokerBufferInfo" style="display:none;"></div>
 
   <div id="answeredList" style="display:none;">
@@ -296,6 +314,7 @@ const answeredNames  = document.getElementById("answeredNames");
 const bgMusic        = document.getElementById("bg-music");
 const jokersPanel    = document.getElementById("jokers");
 const jokerBufferInfo= document.getElementById("jokerBufferInfo");
+const spyTargetPicker= document.getElementById("spyTargetPicker");
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
@@ -323,18 +342,17 @@ let answersUnsub  = null;
 // ===============================
 let playerJokers = {
   doubleChance: false, // 💕 Двоен шанс (еднократен)
-  doubled: false,      // ✖️2 Удвояване (еднократен)
-  correction: false,   // 🔁 Поправка (еднократен, НЕ участва в Осребри)
+  doubled: false,      // ✖️2 Удвояване (еднократен, НЕ участва в бонуса за неизползвани)
+  correction: 0,       // 🔁 Поправка — брой ползвания (НЕОГРАНИЧЕНА, само за статистика; НЕ участва в бонуса)
   majority: false,     // 👨‍👩‍👧‍👦 Мнозинство (еднократен)
-  specialist: false,   // 🧠 Специалист (еднократен)
-  bullets: 5,           // 🔅 Патрондаш — споделен резерв патрони за целия епизод
-  cashIn: false,        // 💰 Осребри — вече ползвано ли е
-  cashInBonus: 0         // 💰 колко точки е донесло Осребри (= оставащите патрони в момента на клика)
+  spy: false,           // 🔎 Шпионин (еднократен)
+  bullets: 5           // 🔅 Патрондаш — споделен резерв патрони за целия епизод
 };
 let jokersLoaded = false;
+let questionPhaseStartTime = null; // ⭐ реалното начало на 20-те сек. на въпроса — пази се и по време на jokerBuffer фазата
 
 // ⭐ флагове само за ТЕКУЩИЯ въпрос (кои жокери за буфер-фазата играчът е активирал)
-let currentQuestionJokerFlags = { index: -1, doubleChance: false, doubled: false, majority: false, specialist: false };
+let currentQuestionJokerFlags = { index: -1, doubleChance: false, doubled: false, majority: false, spy: false, spyTarget: null };
 
 async function ensureJokersLoaded() {
   if (jokersLoaded || !episodeId || !player) return;
@@ -352,39 +370,37 @@ function jokerStatusNote(msg) {
   if (el) el.textContent = msg;
 }
 
-// ⭐ Осребри — колко точки би донесло в момента: 1 т. за всеки НЕизползван
-// Двоен шанс / Мнозинство / Специалист, + 1 т. за всеки оставащ патрон
-function computeCashInBonus() {
+// ⭐ Автоматичен бонус в крайното класиране за НЕизползваните еднократни
+// жокери (Двоен шанс / Мнозинство / Шпионин) — по 1 т. всеки, плюс по 0,2 т.
+// за всеки оставащ патрон от Патрондаш. Начислява се автоматично на всички
+// играчи при крайното класиране, без нужда от клик. Удвояване и Поправка
+// НЕ участват в бонуса.
+function computeUnusedJokerBonus(jokers) {
+  const j = jokers || {};
   let bonus = 0;
-  if (!playerJokers.doubleChance) bonus += 1;
-  if (!playerJokers.majority) bonus += 1;
-  if (!playerJokers.specialist) bonus += 1;
-  bonus += playerJokers.bullets * 0.61;
-  return bonus;
+  if (!j.doubleChance) bonus += 1;
+  if (!j.majority) bonus += 1;
+  if (!j.spy) bonus += 1;
+  bonus += (typeof j.bullets === "number" ? j.bullets : 0) * 0.2;
+  return Math.round(bonus * 100) / 100;
 }
 
 function updateJokerButtonsUI(index) {
   const btnDouble     = document.getElementById("joker-doubleChance");
   const btnDoubled    = document.getElementById("joker-doubled");
   const btnCorrection = document.getElementById("joker-correction");
-  const btnCashIn     = document.getElementById("joker-cashIn");
   const btnMajority   = document.getElementById("joker-majority");
-  const btnSpecialist = document.getElementById("joker-specialist");
   const btnBullets    = document.getElementById("joker-bullets");
+  const btnSpy        = document.getElementById("joker-spy");
 
   btnDouble.disabled     = playerJokers.doubleChance;
   btnDoubled.disabled    = playerJokers.doubled;
   btnCorrection.disabled = true; // се включва само след като играчът вече е отговорил
   btnMajority.disabled   = playerJokers.majority;
-  btnSpecialist.disabled = playerJokers.specialist;
+  btnSpy.disabled         = playerJokers.spy;
 
   btnBullets.textContent = `🔅 Патрондаш (${playerJokers.bullets})`;
   btnBullets.disabled = playerJokers.bullets <= 0;
-
-  const isLastQuestion = index === questions.length - 1;
-  const potentialBonus = computeCashInBonus();
-  btnCashIn.style.display = "inline-block"; // винаги видим, само неактивен
-  btnCashIn.disabled = playerJokers.cashIn || !isLastQuestion || potentialBonus <= 0;
 }
 
 document.getElementById("archiveBtn").onclick = () => {
@@ -514,14 +530,16 @@ function startAnswerListener(index) {
 // ===============================
 // ⭐ ВРЕМЕННО/КРАЙНО КЛАСИРАНЕ
 // ===============================
-async function computeStandings() {
+async function computeStandings(isFinal) {
   const playersSnap = await getDocs(
     collection(db, "games", "lightning", "episodes", episodeId, "results")
   );
 
   const scores = {};
 
-  for (const playerDoc of playersSnap.docs) {
+  // ⭐ Паралелно (не последователно) четене на отговорите на всеки играч —
+  // при много играчи е значително по-бързо от последователни изчаквания.
+  const perPlayer = await Promise.all(playersSnap.docs.map(async playerDoc => {
     const name = playerDoc.id;
     const answersSnap = await getDocs(
       collection(db, "games", "lightning", "episodes", episodeId, "results", name, "answers")
@@ -551,10 +569,16 @@ async function computeStandings() {
     });
 
     const jokersData = playerDoc.data().jokers || {};
-    totalPoints += jokersData.cashInBonus || 0;
+    if (isFinal) {
+      totalPoints += computeUnusedJokerBonus(jokersData);
+    }
 
-    scores[name] = { points: totalPoints, time: totalTime };
-  }
+    return { name, points: Math.round(totalPoints * 100) / 100, time: totalTime, jokersData };
+  }));
+
+  perPlayer.forEach(({ name, points, time, jokersData }) => {
+    scores[name] = { points, time, jokersData };
+  });
 
   return Object.entries(scores).sort((a, b) => {
     if (b[1].points !== a[1].points) return b[1].points - a[1].points;
@@ -620,20 +644,26 @@ async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
 
-  const sorted = await computeStandings();
+  const isLast = index >= questions.length - 1;
+  const sorted = await computeStandings(isLast);
 
   rankingList.innerHTML = sorted.map(([name, obj], i) => {
     const pts    = Math.round(obj.points * 100) / 100;
     const time   = (obj.time / 1000).toFixed(1);
-    const isLast = index >= questions.length - 1;
     const isMe   = name === player;
     let cls = "", medal = "";
     if (i === 0) { cls = "gold";   medal = "🥇"; }
     else if (i === 1) { cls = "silver"; medal = "🥈"; }
     else if (i === 2) { cls = "bronze"; medal = "🥉"; }
     const timeText = isLast ? ` (време: ${time} сек)` : "";
+    let bonusText = "";
+    if (isLast) {
+      const bonus = computeUnusedJokerBonus(obj.jokersData);
+      if (bonus > 0) bonusText = `<span class="rank-breakdown">вкл. +${bonus} т. бонус за неизползвани жокери/патрони</span>`;
+    }
     return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
       ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
+      ${bonusText}
     </div>`;
   }).join("");
 
@@ -669,6 +699,8 @@ async function applyPhaseImmediately(data) {
     jokersPanel.style.display = "flex";
     jokerBufferInfo.style.display = "none";
     jokerBufferInfo.innerHTML = "";
+    spyTargetPicker.style.display = "none";
+    spyTargetPicker.innerHTML = "";
     jokerStatusNote("");
 
     const q = questions[index];
@@ -676,7 +708,8 @@ async function applyPhaseImmediately(data) {
 
     await ensureJokersLoaded();
 
-    currentQuestionJokerFlags = { index, doubleChance: false, doubled: false, majority: false, specialist: false };
+    questionPhaseStartTime = startTime;
+    currentQuestionJokerFlags = { index, doubleChance: false, doubled: false, majority: false, spy: false, spyTarget: null };
 
     qText.textContent = `${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
@@ -714,7 +747,8 @@ async function applyPhaseImmediately(data) {
         payload
       );
 
-      document.getElementById("joker-correction").disabled = playerJokers.correction;
+      // ⭐ Поправка вече е неограничена — остава активна след всеки отговор
+      document.getElementById("joker-correction").disabled = false;
     }
 
     const seed = episodeId.length * 1000 + index;
@@ -757,8 +791,10 @@ async function applyPhaseImmediately(data) {
     };
 
     document.getElementById("joker-correction").onclick = async () => {
-      if (playerJokers.correction || !answered) return;
-      playerJokers.correction = true;
+      // ⭐ Поправка вече е с неограничена употреба — единственото условие е
+      // играчът вече да е отговорил на текущия въпрос.
+      if (!answered) return;
+      playerJokers.correction = (playerJokers.correction || 0) + 1;
       answered = false;
       selectedAnswers = [];
 
@@ -781,25 +817,7 @@ async function applyPhaseImmediately(data) {
         { merge: true }
       );
 
-      jokerStatusNote("🔁 Поправка използвана — избери отговор наново.");
-      updateJokerButtonsUI(index);
-    };
-
-    document.getElementById("joker-cashIn").onclick = async () => {
-      const isLastQuestion = index === questions.length - 1;
-      const bonus = computeCashInBonus();
-      if (playerJokers.cashIn || !isLastQuestion || bonus <= 0) return;
-
-      playerJokers.cashIn = true;
-      playerJokers.cashInBonus = bonus;
-
-      await setDoc(
-        doc(db, "games", "lightning", "episodes", episodeId, "results", player),
-        { exists: true, jokers: playerJokers },
-        { merge: true }
-      );
-
-      jokerStatusNote(`💰 Осребрени ${bonus} т. от неизползваните жокери и патрони в крайното класиране!`);
+      jokerStatusNote("🔁 Поправка използвана — избери отговор наново. Можеш да я ползваш пак, ако размислиш отново.");
       updateJokerButtonsUI(index);
     };
 
@@ -826,15 +844,20 @@ async function applyPhaseImmediately(data) {
       updateJokerButtonsUI(index);
     };
 
-    document.getElementById("joker-specialist").onclick = async () => {
-      if (playerJokers.specialist) return;
-      playerJokers.specialist = true;
-      currentQuestionJokerFlags.specialist = true;
+    // ⭐ 🔎 Шпионин — за разлика от Мнозинство, тук само АКТИВИРА жокера в
+    // нормалните 20 сек. Самият избор на цел за шпиониране се случва в
+    // бонус-буфера (овъртайма), за да остане достатъчно време за търсене на
+    // играча и решение.
+    document.getElementById("joker-spy").onclick = async () => {
+      if (playerJokers.spy || answered) return;
+      playerJokers.spy = true;
+      currentQuestionJokerFlags.spy = true;
+      currentQuestionJokerFlags.spyTarget = null;
 
       try {
         await setDoc(
           doc(db, "games", "lightning", "episodes", episodeId, "jokerUsage", String(index)),
-          { specialistUsed: true },
+          { spyUsed: true },
           { merge: true }
         );
       } catch(e) {}
@@ -845,7 +868,7 @@ async function applyPhaseImmediately(data) {
         { merge: true }
       );
 
-      jokerStatusNote("🧠 Специалист активиран — след края на времето ще видиш препоръката им и ще имаш 10 сек. да решиш.");
+      jokerStatusNote("🔎 Шпионин активиран — през бонус времето ще избереш кого да шпионираш.");
       updateJokerButtonsUI(index);
     };
 
@@ -892,13 +915,15 @@ async function applyPhaseImmediately(data) {
     answeredList.style.display = "none";
     jokerBufferInfo.style.display = "none";
     jokerBufferInfo.innerHTML = "";
+    spyTargetPicker.style.display = "none";
+    spyTargetPicker.innerHTML = "";
 
     qText.textContent = `${index+1}. ${q.question}`;
 
-    const usingMajority   = currentQuestionJokerFlags.index === index && currentQuestionJokerFlags.majority;
-    const usingSpecialist = currentQuestionJokerFlags.index === index && currentQuestionJokerFlags.specialist;
+    const usingMajority = currentQuestionJokerFlags.index === index && currentQuestionJokerFlags.majority;
+    const usingSpy       = currentQuestionJokerFlags.index === index && currentQuestionJokerFlags.spy;
 
-    if (!usingMajority && !usingSpecialist) {
+    if (!usingMajority && !usingSpy) {
       answersDiv.innerHTML = "";
 
       let note = "Кратка пауза преди обяснението…";
@@ -908,7 +933,7 @@ async function applyPhaseImmediately(data) {
           const usage = usageSnap.data();
           const parts = [];
           if (usage.majorityUsed) parts.push("👨‍👩‍👧‍👦 Мнозинство");
-          if (usage.specialistUsed) parts.push("🧠 Специалист");
+          if (usage.spyUsed) parts.push("🔎 Шпионин");
           if (parts.length) note = `Използва се жокер ${parts.join(" и ")} за този въпрос — изчакваме.`;
         }
       } catch(e) {}
@@ -918,28 +943,144 @@ async function applyPhaseImmediately(data) {
       return;
     }
 
-    // ⭐ Играчът ползва Мнозинство и/или Специалист за този въпрос
+    // ⭐ Общ рендер на бутоните за отговор (ползва се и от Мнозинство веднага,
+    // и от Шпионин — след като играчът избере кого да шпионира).
+    function renderJokerAnswerButtons() {
+      answersDiv.innerHTML = "";
+      const seed = episodeId.length * 1000 + index;
+      const shuffled = seededShuffle(q.answers, seed);
+
+      shuffled.forEach(ans => {
+        const btn = document.createElement("button");
+        btn.textContent = ans;
+        btn.onclick = async () => {
+          Array.from(answersDiv.children).forEach(b => b.disabled = true);
+          btn.classList.add("selected");
+
+          const thinkingTime = Date.now() - (questionPhaseStartTime || startTime);
+          const payload = {
+            answer: ans,
+            correct: q.correct,
+            explanation: q.explanation,
+            timestamp: Date.now(),
+            thinkingTime
+          };
+          if (currentQuestionJokerFlags.doubled) payload.doubled = true;
+
+          await setDoc(
+            doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(index)),
+            payload
+          );
+          jokerStatusNote(`Избор потвърден: ${ans}`);
+        };
+        answersDiv.appendChild(btn);
+      });
+    }
+
+    // ⭐ Паралелно (не последователно) четене на текущите отговори на ВСИЧКИ
+    // играчи по този въпрос — за % при Мнозинство и за fallback при Шпионин.
+    async function fetchCurrentQuestionCounts() {
+      const counts = {};
+      q.answers.forEach(a => counts[a.trim()] = 0);
+      let total = 0;
+      try {
+        const playersSnap = await getDocs(collection(db, "games", "lightning", "episodes", episodeId, "results"));
+        const docs = await Promise.all(playersSnap.docs.map(pDoc =>
+          getDoc(doc(db, "games", "lightning", "episodes", episodeId, "results", pDoc.id, "answers", String(index)))
+        ));
+        docs.forEach(d => {
+          if (d.exists() && d.data().answer) {
+            const chosen = String(d.data().answer).trim();
+            if (counts[chosen] !== undefined) { counts[chosen]++; total++; }
+          }
+        });
+      } catch(e) {}
+      return { counts, total };
+    }
+
+    if (usingSpy) {
+      // ⭐ Шпионин: изборът на цел се случва ТУК, в буфера — за да остане
+      // целият буфер за търсене на играча, разкриване на отговора му и
+      // решение за собствен отговор.
+      jokerStatusNote("");
+      spyTargetPicker.innerHTML = `<div class="spy-title">🔎 Зареждам списък с играчи...</div>`;
+      spyTargetPicker.style.display = "block";
+
+      const MAX_SPY_TARGETS = 20;
+      let candidates = [];
+      try {
+        const standings = await computeStandings(false);
+        candidates = standings
+          .map(([name]) => name)
+          .filter(n => n !== player)
+          .slice(0, MAX_SPY_TARGETS)
+          .sort((a, b) => a.localeCompare(b, "bg"));
+      } catch(e) {}
+
+      if (candidates.length === 0) {
+        spyTargetPicker.innerHTML = `<div class="spy-title">🔎 Няма други играчи за шпиониране в момента.</div>`;
+      } else {
+        spyTargetPicker.innerHTML = `<div class="spy-title">🔎 Избери кого да шпионираш:</div>`;
+        candidates.forEach(name => {
+          const btn = document.createElement("button");
+          btn.className = "spy-target-btn";
+          btn.textContent = name;
+          btn.onclick = async () => {
+            Array.from(spyTargetPicker.querySelectorAll("button")).forEach(b => b.disabled = true);
+            spyTargetPicker.innerHTML = `<div class="spy-title">🔎 Проверявам какво е играл(а) ${name}...</div>`;
+
+            let spyTargetAnswered = false, spyTargetAnswer = null;
+            try {
+              const ansDoc = await getDoc(doc(db, "games", "lightning", "episodes", episodeId, "results", name, "answers", String(index)));
+              if (ansDoc.exists() && ansDoc.data().answer) {
+                spyTargetAnswered = true;
+                spyTargetAnswer = ansDoc.data().answer;
+              }
+            } catch(e) {}
+
+            let infoHtml = "";
+            if (spyTargetAnswered) {
+              infoHtml = `<p style="color:#ffd100; font-weight:bold; margin:14px 0 8px;">🔎 Шпионирайки ${name}, разбра, че е избрал(а):</p>
+                <div class="stat-answer">${spyTargetAnswer}</div>`;
+            } else {
+              // ⭐ Шпионираният все още не е отговорил (напр. ползва свой
+              // жокер) — жокерът остава използван, но вместо празна
+              // информация му даваме отговора на мнозинството измежду вече
+              // отговорилите играчи.
+              const { counts, total } = await fetchCurrentQuestionCounts();
+              let topAnswer = null, topPct = -1;
+              Object.entries(counts).forEach(([key, c]) => {
+                const pct = total ? Math.round((c / total) * 100) : 0;
+                if (pct > topPct) { topPct = pct; topAnswer = key; }
+              });
+              if (topAnswer && total > 0) {
+                infoHtml = `<p style="color:#ffd100; font-weight:bold; margin:14px 0 8px;">🔎 Шпионирайки ${name}:</p>
+                  <div class="stat-answer">"Колебая се, но мисля отговор ${topAnswer}..."</div>`;
+              } else {
+                infoHtml = `<p style="color:#ffd100; font-weight:bold; margin:14px 0 8px;">🔎 Шпионирайки ${name}:</p>
+                  <div class="stat-answer">"Колебая се и още не знам..."</div>`;
+              }
+            }
+
+            spyTargetPicker.style.display = "none";
+            spyTargetPicker.innerHTML = "";
+            jokerBufferInfo.innerHTML = infoHtml;
+            jokerBufferInfo.style.display = "block";
+            renderJokerAnswerButtons();
+          };
+          spyTargetPicker.appendChild(btn);
+        });
+      }
+
+      timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+      return;
+    }
+
+    // ⭐ Играчът ползва Мнозинство за този въпрос
     answersDiv.innerHTML = "";
     jokerStatusNote("");
 
-    const counts = {};
-    q.answers.forEach(a => counts[a.trim()] = 0);
-    let total = 0;
-
-    try {
-      const playersSnap = await getDocs(collection(db, "games", "lightning", "episodes", episodeId, "results"));
-      for (const pDoc of playersSnap.docs) {
-        const ansSnap = await getDocs(collection(db, "games", "lightning", "episodes", episodeId, "results", pDoc.id, "answers"));
-        const ansDoc = ansSnap.docs.find(d => d.id === String(index));
-        if (ansDoc) {
-          const data = ansDoc.data();
-          if (data.answer) {
-            const chosen = String(data.answer).trim();
-            if (counts[chosen] !== undefined) { counts[chosen]++; total++; }
-          }
-        }
-      }
-    } catch(e) {}
+    const { counts, total } = await fetchCurrentQuestionCounts();
 
     let infoHtml = "";
 
@@ -952,45 +1093,10 @@ async function applyPhaseImmediately(data) {
       });
     }
 
-    if (usingSpecialist) {
-      const correctNorm = (q.correct || "").trim();
-      const rawPct = total ? Math.round((counts[correctNorm] || 0) / total * 100) : 0;
-      const boosted = Math.min(100, rawPct + 30);
-      infoHtml += `<p style="color:#ffd100; font-weight:bold; margin:14px 0 8px;">🧠 Специалистите препоръчват:</p>
-        <div class="stat-answer correct">${q.correct}<span class="pct">${boosted}%</span></div>`;
-    }
-
     jokerBufferInfo.innerHTML = infoHtml;
     jokerBufferInfo.style.display = "block";
 
-    const seed = episodeId.length * 1000 + index;
-    const shuffled = seededShuffle(q.answers, seed);
-
-    shuffled.forEach(ans => {
-      const btn = document.createElement("button");
-      btn.textContent = ans;
-      btn.onclick = async () => {
-        Array.from(answersDiv.children).forEach(b => b.disabled = true);
-        btn.classList.add("selected");
-
-        const thinkingTime = Date.now() - startTime;
-        const payload = {
-          answer: ans,
-          correct: q.correct,
-          explanation: q.explanation,
-          timestamp: Date.now(),
-          thinkingTime
-        };
-        if (currentQuestionJokerFlags.doubled) payload.doubled = true;
-
-        await setDoc(
-          doc(db, "games", "lightning", "episodes", episodeId, "results", player, "answers", String(index)),
-          payload
-        );
-        jokerStatusNote(`Избор потвърден: ${ans}`);
-      };
-      answersDiv.appendChild(btn);
-    });
+    renderJokerAnswerButtons();
 
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
