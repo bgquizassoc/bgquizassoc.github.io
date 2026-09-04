@@ -285,15 +285,39 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 // ===============================
-// ⚠️ СКЕЛЕТ — placeholder данни, докато чакаме реалния JSON
+// ⭐ РЕАЛНИТЕ 30 ТЕМИ
 // ===============================
 const TOPICS = [
-  "Архитектура","Астрономия","География","География на България","Изкуство",
-  "Изкуство на България","История","История на България","Кино","Кино от България",
-  "Космос","Кулинария","Литература","Литература от България","Математика",
-  "Медицина","Митология","Музика","Музика от България","Наука",
-  "Религия","Спорт","Спорт на България","Техника","Физика",
-  "Философия","Флора и Фауна","Футбол","Футбол на България","Химия"
+  "Архитектура",
+  "География",
+  "География БГ",
+  "Изкуство",
+  "История",
+  "История БГ",
+  "Кино",
+  "Кино БГ",
+  "Космос",
+  "Кулинария",
+  "Литература",
+  "Литература БГ",
+  "Математика",
+  "Медицина",
+  "Митология",
+  "Музика",
+  "Музика БГ",
+  "Наука",
+  "Опера и балет",
+  "Религия",
+  "Сериали",
+  "Спорт",
+  "Спорт БГ",
+  "Техника",
+  "Физика",
+  "Философия",
+  "Флора и Фауна",
+  "Футбол",
+  "Футбол БГ",
+  "Химия"
 ];
 
 const startScreen     = document.getElementById("start-screen");
@@ -413,13 +437,25 @@ document.getElementById("enterBtn").onclick = async () => {
 };
 
 // ===============================
-// ⭐ 5-ОТГОВОРНА МЕХАНИКА — кликане по ред на увереност
-// Всеки клик веднага се записва във Firestore (по образец на Чифтосването),
-// за да могат другите играчи да виждат "Х — 3/5 подредени" на живо.
+// ⭐ ВИЗУАЛИЗАЦИЯ НА ТЕМИТЕ
 // ===============================
-let currentSlotId  = null;   // уникален идентификатор на текущия въпрос (не е задължително числов индекс)
-let currentAnswers = [];     // текущите 5 отговора (разбъркани)
-let rankedSoFar    = [];     // отговорите, кликнати досега, по ред
+function renderTopics() {
+  topicsGrid.innerHTML = "";
+  TOPICS.forEach(topic => {
+    const div = document.createElement("div");
+    div.className = "topic-item";
+    div.textContent = topic;
+    topicsGrid.appendChild(div);
+  });
+}
+renderTopics();
+
+// ===============================
+// ⭐ 5-ОТГОВОРНА МЕХАНИКА — кликане по ред на увереност
+// ===============================
+let currentSlotId  = null;
+let currentAnswers = [];
+let rankedSoFar    = [];
 let questionLocked = false;
 
 function renderAnswerButtons(q, startTime, slotId, docPath) {
@@ -488,7 +524,7 @@ async function saveRanking(docPath, thinkingTime) {
 }
 
 correctionBtn.onclick = () => {
-  if (questionLocked && rankedSoFar.length < 5) return; // вече заключено (5/5) — Поправка вече не важи тук по избор на дизайн, виж бележка
+  if (questionLocked && rankedSoFar.length < 5) return;
   rankedSoFar = [];
   questionLocked = false;
   rankingProgress.textContent = `Подредени: 0 / 5`;
@@ -516,6 +552,7 @@ function pointsForRanking(ranking, correct) {
 // ===============================
 // ⭐ Live "Отговорили" — брой подредени отговори, обновява се на всеки клик
 // ===============================
+
 function startAnswerListener(slotId) {
   if (answersUnsub) answersUnsub();
   answeredNames.innerHTML = "";
