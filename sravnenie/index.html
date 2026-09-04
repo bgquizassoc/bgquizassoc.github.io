@@ -2,8 +2,8 @@
 <html lang="bg">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>⚖️ Куиз Твърдение или сравнение ⚖️</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>  ⚖️ Куиз Твърдение или сравнение ⚖️ </title>
 
   <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13,7 +13,11 @@
     display: flex; flex-direction: column;
     align-items: center; justify-content: flex-start;
     font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
-    max-width: 900px; margin: 0 auto; padding: 20px;
+    max-width: 900px; margin: 0 auto;
+    padding-top: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
     background: #00264d; color: #ffffff;
   }
 
@@ -52,6 +56,17 @@
   #globalTimer.warning { color: #ff4c4c; }
 
   #question { font-size: 1.6em; margin: 20px 0; font-weight: 600; }
+  #decadeTag {
+    display: inline-block;
+    background: rgba(255,209,0,0.15);
+    color: #ffd100;
+    border: 1px solid #ffd100;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.85em;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
 
   .answers button {
     display: block; width: 100%; margin: 10px 0; padding: 18px;
@@ -61,6 +76,11 @@
 
   .answers button.selected {
     background: #00e5ff; color: #003344; font-weight: bold;
+  }
+  .answers button.eliminated {
+    opacity: 0.3;
+    text-decoration: line-through;
+    cursor: not-allowed;
   }
 
   #answeredList {
@@ -100,8 +120,6 @@
     margin-top: 20px; background: #00e5ff; color: #003344;
   }
 
-  #lobbyTitle { margin-top: 20px; font-weight: 600; }
-
   #lobbyList {
     margin-top: 10px; text-align: left;
     max-height: 200px; overflow-y: auto; font-size: 0.95em;
@@ -140,9 +158,10 @@
   .jokers-panel {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     justify-content: center;
     margin-top: 22px;
+    margin-bottom: 10px;
   }
 
   .joker-btn {
@@ -166,20 +185,25 @@
     color: #ffd100;
   }
 
+  #jokerBufferInfo {
+    margin-top: 15px;
+    text-align: left;
+  }
+
   </style>
 </head>
 
 <body>
 
 <h1>Игри на Знания  <br> ⚖️ Твърдение или сравнение ⚖️ <br>епизод 1</h1>
-
-<audio id="bg-music" src="dance.mp3" loop preload="auto"></audio>
+  
+<audio id="bg-music" src="despa.mp3" loop preload="auto"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
 
 <div id="start-screen">
   <p>Въведете Двете си имена:</p>
-  <input type="text" id="playerName" placeholder="Две имена ..." />
+  <input type="text" id="playerName" placeholder="Име ..." />
   <button id="enterBtn">Влез в играта</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
@@ -188,18 +212,21 @@
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
 
-  <img id="lobby-image" src="https://i.imgur.com/pjkY1GH.jpeg" alt="Твърдение или сравнение" />
+  <img id="lobby-image" src="https://i.imgur.com/pjkY1GH.jpeg" alt="Буриданово магаре" />
 
  <div id="lobby-instructions">
-  <p>⭐ Очакват ви 10 твърдения/сравнения oт 10 различни области — възможните отговори са само <strong> два </strong>.</p>
-  <p>⭐ Отговаря се с натискане на бутон върху единия от двата отговора.</p>
-  <p>⭐ Време за мислене и отговор — <strong>30 секунди</strong> на въпрос.</p>
-  <p>⭐ Точкуване — всеки верен отговор носи <strong>2 точки</strong>. Ако познаете <strong>всичките твърдения/сравнения </strong>, получавате бонус от <strong>+3 точки</strong>.</p>
-  <p>⭐ В този кръг разполагате с жокер 🥞 <strong>Палачинка</strong> (гарантира верен отговор, дори ако отговора Ви е грешен - обръща се като палачинка, но трябва да го натиснете преди да отговорите</p>
- <p>⭐ С жокер 🥞 <strong>Палачинка</strong>  може да си запазите победната серия. Ако не го използвате, в края на играта автоматично се осребрява и печелите <strong>+1 точка</strong> към крайното класиране</p>
-  <p>⭐ Разполагате и с бутон 🔁 Поправка</strong>, която е с неограничена употреба (може да сменяте отговора си, докато не изтече времето).</p>
-   
-   
+  <p>⭐ Очакват ви 30 твърдения / сравнения — възможните отговори са само <strong> два </strong>.</p>
+  <p>⭐ Време за отговор — <strong>15 секунди</strong> на въпрос. Всеки верен отговор носи <strong>1 точка</strong>.</p>
+  <p>⭐ Играта е разделена на <strong>три десетки</strong>, всяка със свой собствен жокер:</p>
+    <p>⭐ Играта е разделена на <strong>три десетки</strong>, всяка със свой собствен жокер:</p>
+   <p> ⭐ Всички жокери се ползват преди да отговорите на въпроса!</p>
+  <p>&nbsp;&nbsp;• Въпроси 1–10 → 🥞 Жокер <strong>Палачинка</strong> (гарантира верен отговор, дори ако отговора Ви е грешен - обръща се като палачинка, но трябва да го натиснете преди да отговорите.</p>
+  <p>&nbsp;&nbsp;• Въпроси 11–20 → 👨‍👩‍👧‍👦 Жокер <strong>Мнозинство</strong> (виждате какво са отговорили другите и имате 15 сек. време за вашия отговор.</p>
+  <p>&nbsp;&nbsp;• Въпроси 21–30 → 🧠 Жокер <strong>Специалист</strong> (препоръка с процент увереност)</p>
+  <p>🔁 <strong>Поправка</strong> е достъпна през цялата игра — но може да я ползвате <strong> само веднъж </strong> общо.</p>
+  <p> ⭐ БОНУС: Ако познаете <strong>всичките 10</strong> въпроса от дадена десетка, получавате бонус от <strong>+3 точки</strong> за нея — общо до 3 пъти по 3 точки. Затова са жокерите - за да си съхраните победната серия.</p>
+  <p>⭐ На последния въпрос се отключва 💰 <strong>Осребри</strong>, ако все пак не искате да ползвате жокери - всеки неизползван ви носи <strong> по 1 точка </strong> в крайното класиране..</p>
+  <p>⭐ При равенство в точките се гледа общото време за целия куиз.</p>
 </div>
 
   <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
@@ -210,17 +237,22 @@
 <div id="quiz" style="display:none;">
   <div id="question"></div>
   <div id="answers" class="answers"></div>
-  <div id="answeredList" style="display:none;">
-    <strong>Отговорили:</strong>
-    <div id="answeredNames"></div>
-  </div>
 
   <!-- ⭐ ЖОКЕРИ -->
   <div id="jokers" class="jokers-panel">
     <button class="joker-btn" id="joker-pancake">🥞 Палачинка</button>
+    <button class="joker-btn" id="joker-majority">👨‍👩‍👧‍👦 Мнозинство</button>
+    <button class="joker-btn" id="joker-specialist">🧠 Специалист</button>
     <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
+    <button class="joker-btn" id="joker-cashIn" disabled>💰 Осребри</button>
   </div>
   <div id="jokerStatus"></div>
+  <div id="jokerBufferInfo" style="display:none;"></div>
+
+  <div id="answeredList" style="display:none;">
+    <strong>Отговорили:</strong>
+    <div id="answeredNames"></div>
+  </div>
 </div>
 
 <div id="explanation" style="display:none;">
@@ -256,12 +288,13 @@ const rankingList    = document.getElementById("rankingList");
 const rankingTitle   = document.getElementById("rankingTitle");
 const historyBtn     = document.getElementById("historyBtn");
 const lobbyList      = document.getElementById("lobbyList");
-const lobbyTitle     = document.getElementById("lobbyTitle");
 const globalTimer    = document.getElementById("globalTimer");
 const waitingTitle   = document.getElementById("waitingTitle");
 const answeredList   = document.getElementById("answeredList");
 const answeredNames  = document.getElementById("answeredNames");
 const bgMusic        = document.getElementById("bg-music");
+const jokersPanel    = document.getElementById("jokers");
+const jokerBufferInfo= document.getElementById("jokerBufferInfo");
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
@@ -275,8 +308,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
-const GAME_ID = "sravnenie";
-const BONUS_FOR_PERFECT = 3; // ⭐ бонус, ако всичките 10 въпроса са верни
+const GAME_ID = "sravnenie30";
+const DECADE_BONUS = 3; // ⭐ бонус за перфектна десетка (10/10)
 
 let player        = "";
 let questions     = [];
@@ -288,14 +321,20 @@ let lobbyEpisodeId= null;
 let answersUnsub  = null;
 
 // ===============================
-// ⭐ ЖОКЕРИ — само двата, еднократни за целия епизод
+// ⭐ ЖОКЕРИ — състояние на играча за целия епизод
 // ===============================
 let playerJokers = {
-  pancake: false,    // 🥞 Палачинка
-  correction: false  // 🔁 Поправка
+  pancake: false,     // 🥞 Палачинка (само в 1-ва десетка)
+  majority: false,    // 👨‍👩‍👧‍👦 Мнозинство (само във 2-ра десетка)
+  specialist: false,  // 🧠 Специалист (само в 3-та десетка)
+  correction: false,  // 🔁 Поправка (цялата игра, 1 ползване)
+  cashIn: false,       // 💰 Осребри
+  cashInBonus: 0        // 💰 колко точки е донесло
 };
 let jokersLoaded = false;
-let currentQuestionJokerFlags = { index: -1, pancake: false };
+let currentQuestionJokerFlags = { index: -1, pancake: false, majority: false, specialist: false };
+
+function decadeOf(qIndex) { return Math.floor(qIndex / 10); }
 
 async function ensureJokersLoaded() {
   if (jokersLoaded || !episodeId || !player) return;
@@ -313,9 +352,33 @@ function jokerStatusNote(msg) {
   if (el) el.textContent = msg;
 }
 
-function updateJokerButtonsUI() {
-  document.getElementById("joker-pancake").disabled = playerJokers.pancake;
-  document.getElementById("joker-correction").disabled = true; // се включва само след отговор
+// ⭐ Осребри — 1 т. за всеки НЕизползван Палачинка/Мнозинство/Специалист
+function computeCashInBonus() {
+  let bonus = 0;
+  if (!playerJokers.pancake) bonus += 1;
+  if (!playerJokers.majority) bonus += 1;
+  if (!playerJokers.specialist) bonus += 1;
+  return bonus;
+}
+
+function updateJokerButtonsUI(index) {
+  const decade = decadeOf(index);
+  const btnPancake    = document.getElementById("joker-pancake");
+  const btnMajority   = document.getElementById("joker-majority");
+  const btnSpecialist = document.getElementById("joker-specialist");
+  const btnCorrection = document.getElementById("joker-correction");
+  const btnCashIn     = document.getElementById("joker-cashIn");
+
+  btnPancake.style.display    = (decade === 0 && !playerJokers.pancake)    ? "inline-block" : "none";
+  btnMajority.style.display   = (decade === 1 && !playerJokers.majority)   ? "inline-block" : "none";
+  btnSpecialist.style.display = (decade === 2 && !playerJokers.specialist) ? "inline-block" : "none";
+
+  btnCorrection.disabled = true; // се включва само след като играчът вече е отговорил
+
+  const isLastQuestion = index === questions.length - 1;
+  const bonus = computeCashInBonus();
+  btnCashIn.style.display = "inline-block";
+  btnCashIn.disabled = playerJokers.cashIn || !isLastQuestion || bonus <= 0;
 }
 
 document.getElementById("archiveBtn").onclick = () => {
@@ -324,7 +387,7 @@ document.getElementById("archiveBtn").onclick = () => {
 
 historyBtn.onclick = () => {
   if (!episodeId) return;
-  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+  window.location.href = `history30.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
 
 async function loadQuestions() {
@@ -442,7 +505,7 @@ function startAnswerListener(index) {
   );
 }
 
-// ⭐ верен ли е отговорът - или реално съвпада, или е "спасен" с Палачинка
+// ⭐ верен ли е отговорът - реално съвпада, или е "спасен" с Палачинка
 function isAnswerCorrect(data, q) {
   if (data.guaranteed === true) return true;
   const correctNorm = (q.correct || "").trim();
@@ -465,6 +528,7 @@ async function computeStandings() {
 
     let correctCount = 0;
     let totalTime = 0;
+    const correctByDecade = [0, 0, 0];
 
     answersSnap.forEach(ansDoc => {
       const qIndex = Number(ansDoc.id);
@@ -472,12 +536,21 @@ async function computeStandings() {
       const q      = questions[qIndex];
       if (!q) return;
 
-      if (isAnswerCorrect(data, q)) correctCount++;
+      if (isAnswerCorrect(data, q)) {
+        correctCount++;
+        const d = decadeOf(qIndex);
+        if (d >= 0 && d < 3) correctByDecade[d]++;
+      }
       if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
     });
 
     let totalPoints = correctCount;
-    if (correctCount === questions.length) totalPoints += BONUS_FOR_PERFECT;
+    for (let d = 0; d < 3; d++) {
+      if (correctByDecade[d] === 10) totalPoints += DECADE_BONUS;
+    }
+
+    const jokersData = playerDoc.data().jokers || {};
+    totalPoints += jokersData.cashInBonus || 0;
 
     scores[name] = { points: totalPoints, time: totalTime };
   }
@@ -545,7 +618,7 @@ async function renderRanking(index) {
   const sorted = await computeStandings();
 
   rankingList.innerHTML = sorted.map(([name, obj], i) => {
-    const pts    = obj.points;
+    const pts    = Math.round(obj.points * 100) / 100;
     const time   = (obj.time / 1000).toFixed(1);
     const isLast = index >= questions.length - 1;
     const isMe   = name === player;
@@ -588,6 +661,9 @@ async function applyPhaseImmediately(data) {
   if (phase === "question") {
     showOnly(quizDiv);
     globalTimer.style.display = "block";
+    jokersPanel.style.display = "flex";
+    jokerBufferInfo.style.display = "none";
+    jokerBufferInfo.innerHTML = "";
     jokerStatusNote("");
 
     const q = questions[index];
@@ -595,16 +671,19 @@ async function applyPhaseImmediately(data) {
 
     await ensureJokersLoaded();
 
-    currentQuestionJokerFlags = { index, pancake: false };
+    currentQuestionJokerFlags = { index, pancake: false, majority: false, specialist: false };
 
-    qText.textContent = `${index+1}. ${q.question}`;
+    const decade = decadeOf(index);
+    const decadeLabel = decade === 0 ? "Десетка 1 — 🥞 Палачинка" : decade === 1 ? "Десетка 2 — 👨‍👩‍👧‍👦 Мнозинство" : "Десетка 3 — 🧠 Специалист";
+    qText.innerHTML = `<span id="decadeTag">${decadeLabel}</span><br>${index+1}. ${q.question}`;
     answersDiv.innerHTML = "";
     answeredNames.innerHTML = "";
     answeredList.style.display = "block";
 
     startAnswerListener(index);
-    updateJokerButtonsUI();
+    updateJokerButtonsUI(index);
 
+    let selectedAnswers = [];
     let answered = false;
 
     async function submitAnswer(ans) {
@@ -651,11 +730,57 @@ async function applyPhaseImmediately(data) {
 
     // ⭐ ЖОКЕРИ
     document.getElementById("joker-pancake").onclick = () => {
-      if (playerJokers.pancake || answered) return;
+      if (playerJokers.pancake || answered || decadeOf(index) !== 0) return;
       currentQuestionJokerFlags.pancake = true;
       playerJokers.pancake = true;
-      jokerStatusNote("🥞 Палачинка активирана — който и от двата отговора да маркирате, ще се счита за вярно!");
-      updateJokerButtonsUI();
+      jokerStatusNote("🥞 Палачинка активирана — каквото и от двата отговора да маркираш, ще се счита за вярно!");
+      updateJokerButtonsUI(index);
+    };
+
+    document.getElementById("joker-majority").onclick = async () => {
+      if (playerJokers.majority || decadeOf(index) !== 1) return;
+      playerJokers.majority = true;
+      currentQuestionJokerFlags.majority = true;
+
+      try {
+        await setDoc(
+          doc(db, "games", GAME_ID, "episodes", episodeId, "jokerUsage", String(index)),
+          { majorityUsed: true },
+          { merge: true }
+        );
+      } catch(e) {}
+
+      await setDoc(
+        doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+        { exists: true, jokers: playerJokers },
+        { merge: true }
+      );
+
+      jokerStatusNote("👨‍👩‍👧‍👦 Мнозинство активирано — след края на времето ще видиш процентите и ще имаш 10 сек. да решиш.");
+      updateJokerButtonsUI(index);
+    };
+
+    document.getElementById("joker-specialist").onclick = async () => {
+      if (playerJokers.specialist || decadeOf(index) !== 2) return;
+      playerJokers.specialist = true;
+      currentQuestionJokerFlags.specialist = true;
+
+      try {
+        await setDoc(
+          doc(db, "games", GAME_ID, "episodes", episodeId, "jokerUsage", String(index)),
+          { specialistUsed: true },
+          { merge: true }
+        );
+      } catch(e) {}
+
+      await setDoc(
+        doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+        { exists: true, jokers: playerJokers },
+        { merge: true }
+      );
+
+      jokerStatusNote("🧠 Специалист активиран — след края на времето ще видиш препоръката им и ще имаш 10 сек. да решиш.");
+      updateJokerButtonsUI(index);
     };
 
     document.getElementById("joker-correction").onclick = async () => {
@@ -681,8 +806,138 @@ async function applyPhaseImmediately(data) {
       );
 
       jokerStatusNote("🔁 Поправка използвана — избери отговор наново.");
-      updateJokerButtonsUI();
+      updateJokerButtonsUI(index);
     };
+
+    document.getElementById("joker-cashIn").onclick = async () => {
+      const isLastQuestion = index === questions.length - 1;
+      const bonus = computeCashInBonus();
+      if (playerJokers.cashIn || !isLastQuestion || bonus <= 0) return;
+
+      playerJokers.cashIn = true;
+      playerJokers.cashInBonus = bonus;
+
+      await setDoc(
+        doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+        { exists: true, jokers: playerJokers },
+        { merge: true }
+      );
+
+      jokerStatusNote(`💰 Осребрени ${bonus} т. от неизползваните жокери!`);
+      updateJokerButtonsUI(index);
+    };
+
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "jokerBuffer") {
+    const q = questions[index];
+    if (!q) return;
+
+    showOnly(quizDiv);
+    globalTimer.style.display = "block";
+    jokersPanel.style.display = "none";
+    answeredList.style.display = "none";
+    jokerBufferInfo.style.display = "none";
+    jokerBufferInfo.innerHTML = "";
+
+    qText.textContent = `${index+1}. ${q.question}`;
+
+    const usingMajority   = currentQuestionJokerFlags.index === index && currentQuestionJokerFlags.majority;
+    const usingSpecialist = currentQuestionJokerFlags.index === index && currentQuestionJokerFlags.specialist;
+
+    if (!usingMajority && !usingSpecialist) {
+      answersDiv.innerHTML = "";
+
+      let note = "Кратка пауза преди обяснението…";
+      try {
+        const usageSnap = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "jokerUsage", String(index)));
+        if (usageSnap.exists()) {
+          const usage = usageSnap.data();
+          const parts = [];
+          if (usage.majorityUsed) parts.push("👨‍👩‍👧‍👦 Мнозинство");
+          if (usage.specialistUsed) parts.push("🧠 Специалист");
+          if (parts.length) note = `Използва се жокер ${parts.join(" и ")} за този въпрос — изчакваме.`;
+        }
+      } catch(e) {}
+
+      jokerStatusNote(note);
+      timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+      return;
+    }
+
+    answersDiv.innerHTML = "";
+    jokerStatusNote("");
+
+    const counts = {};
+    q.answers.forEach(a => counts[a.trim()] = 0);
+    let total = 0;
+
+    try {
+      const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
+      for (const pDoc of playersSnap.docs) {
+        const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
+        const ansDoc = ansSnap.docs.find(d => d.id === String(index));
+        if (ansDoc) {
+          const data = ansDoc.data();
+          if (data.answer) {
+            const chosen = String(data.answer).trim();
+            if (counts[chosen] !== undefined) { counts[chosen]++; total++; }
+          }
+        }
+      }
+    } catch(e) {}
+
+    let infoHtml = "";
+
+    if (usingMajority) {
+      infoHtml += `<p style="color:#ffd100; font-weight:bold; margin-bottom:8px;">👨‍👩‍👧‍👦 Как маркираха играчите до момента:</p>`;
+      q.answers.forEach(a => {
+        const key = a.trim();
+        const pct = total ? Math.round((counts[key] || 0) / total * 100) : 0;
+        infoHtml += `<div class="stat-answer">${a}<span class="pct">${pct}%</span></div>`;
+      });
+    }
+
+    if (usingSpecialist) {
+      const correctNorm = (q.correct || "").trim();
+      const rawPct = total ? Math.round((counts[correctNorm] || 0) / total * 100) : 0;
+      const boosted = Math.min(100, rawPct + 30);
+      infoHtml += `<p style="color:#ffd100; font-weight:bold; margin:14px 0 8px;">🧠 Специалистите препоръчват:</p>
+        <div class="stat-answer correct">${q.correct}<span class="pct">${boosted}%</span></div>`;
+    }
+
+    jokerBufferInfo.innerHTML = infoHtml;
+    jokerBufferInfo.style.display = "block";
+
+    const seed = episodeId.length * 1000 + index;
+    const shuffled = seededShuffle(q.answers, seed);
+
+    shuffled.forEach(ans => {
+      const btn = document.createElement("button");
+      btn.textContent = ans;
+      btn.onclick = async () => {
+        Array.from(answersDiv.children).forEach(b => b.disabled = true);
+        btn.classList.add("selected");
+
+        const thinkingTime = Date.now() - startTime;
+        const payload = {
+          answer: ans,
+          correct: q.correct,
+          explanation: q.explanation,
+          timestamp: Date.now(),
+          thinkingTime
+        };
+
+        await setDoc(
+          doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", String(index)),
+          payload
+        );
+        jokerStatusNote(`Избор потвърден: ${ans}`);
+      };
+      answersDiv.appendChild(btn);
+    });
 
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -691,6 +946,8 @@ async function applyPhaseImmediately(data) {
   if (phase === "explanation") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
+    jokersPanel.style.display = "none";
+    jokerBufferInfo.style.display = "none";
     renderExplanation(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -699,6 +956,8 @@ async function applyPhaseImmediately(data) {
   if (phase === "ranking") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
+    jokersPanel.style.display = "none";
+    jokerBufferInfo.style.display = "none";
     renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
