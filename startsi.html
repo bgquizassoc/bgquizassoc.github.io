@@ -24,7 +24,7 @@
 
 <div class="field-row">
   <label>Име на епизод:</label>
-  <input id="ep" placeholder="пример: izbor1">
+  <input id="ep" placeholder="пример: ep01-05">
 </div>
 
 <div class="field-row">
@@ -96,16 +96,19 @@ async function loadData() {
   log(`Заредени ${warmup.length} загряващи + ${pool.length} в пула, ${AREAS.length} области.`);
 }
 
+// ⭐ ПИШЕМ state ВЪТРЕ В ЕПИЗОДА, КАКТО КЛИЕНТЪТ ГО ЧЕТЕ
 async function setState(ep, phase, duration, extra = {}) {
   await setDoc(
-    doc(db, "games", GAME_ID, "state", "current"),
+    doc(db, "games", GAME_ID, "episodes", ep, "state", "current"),
     { episodeId: ep, phase, startTime: Date.now(), duration, ...extra },
     { merge: false }
   );
 }
 
-async function resetState() {
-  try { await deleteDoc(doc(db, "games", GAME_ID, "state", "current")); } catch(e) {}
+async function resetState(ep) {
+  try {
+    await deleteDoc(doc(db, "games", GAME_ID, "episodes", ep, "state", "current"));
+  } catch(e) {}
 }
 
 function pointsForRanking(ranking, correct) {
@@ -308,7 +311,7 @@ document.getElementById("startBtn").onclick = async () => {
   document.getElementById("startBtn").disabled = true;
   document.getElementById("startBtn").textContent = "Играта тече…";
 
-  await resetState();
+  await resetState(ep);
   await setState(ep, "lobby", LOBBY_TIME, {});
   log(`Лоби (10 сек.) → престарт → старт в ${startTimeRaw}`);
 
