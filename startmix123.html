@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<title>Старт на Куиз Микс 123</title>
+<style>
+  body { background:#001a33; color:white; text-align:center; padding:40px; font-family:Arial; }
+  button {
+    padding:15px 30px; font-size:1.4em; border:none; border-radius:10px;
+    background:#ffd100; color:#111; font-weight:bold; cursor:pointer;
+  }
+  input { padding:10px; font-size:1.2em; border-radius:8px; border:none; margin-bottom:20px; width:200px; text-align:center; }
+  .field-row { margin: 10px 0; font-size: 1.1em; }
+  .field-row label { display: inline-block; width: 220px; text-align: right; margin-right: 10px; }
+  #log {
+    margin-top: 30px; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;
+    background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px;
+    font-size: 0.9em; line-height: 1.6; max-height: 400px; overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+<h1>🎬 Старт на Куиз Микс 123</h1>
+
+<div class="field-row">
+  <label>Име на епизод:</label>
+  <input id="ep" placeholder="пример: mix1">
+</div>
+
+<div class="field-row">
+  <label>Час за старт на играта:</label>
+  <input type="time" id="startTime">
+</div>
+
+<br>
+<button id="startBtn">СТАРТ</button>
+
+<div id="log"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, deleteDoc, getDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const GAME_ID = "quizmix123";
+
+// ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) =====
+const LOBBY_TIME  = 10000;   // 10 сек. общо лоби (вход с код)
+
+const LOBBY_TIME1 = 60000;   // 60 сек. обяснение за кръг 1
+const Q1          = 30000;   // време за въпрос, кръг 1
+const EXPL1       = 15000;   // време за обяснение
+const RANK1       = 15000;   // време за класиране
+
+const LOBBY_TIME2 = 60000;   // 60 сек. обяснение за кръг 2
+const Q2          = 40000;   // време за въпрос, кръг 2
+const JOKER_BUFFER2 = 15000; // буфер за Мнозинство/Шпионин (само когато е реално ползван)
+const EXPL2       = 15000;
+const RANK2       = 15000;
+
+const LOBBY_TIME3 = 60000;   // 60 сек. обяснение за кръг 3
+const Q3          = 50000;   // време за въпрос, кръг 3
+const EXPL3       = 15000;
+const RANK3       = 15000;
+
+const RANK4        = 30000;  // финално класиране (по-дълго, отделна музика)
+
+let questions1 = [], questions2 = [], questions3 = [];
+
+function log(msg) {
+  const el = document.getElementById("log");
+  const line = document.createElement("div");
+  line.textContent = `[${new Date().toLocaleTimeString('bg-BG')}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  console.log(msg);
+}
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+async function loadAllQuestions() {
+  const [r1, r2, r3] = await Promise.all([
+    fetch("mix123/questions1.json").then(r => r.json()),
+    fetch("mix123/questions2.json").then(r => r.json()),
+    fetch("mix123/questions3.json").then(r => r.json())
+  ]);
+  questions1 = r1; questions2 = r2; questions3 = r3;
+  log(`Заредени въпроси: кръг1=${questions1.length}, кръг2=${questions2.length}, кръг3=${questions3.length}`);
+}
+
+async function setState(ep, phase, duration, extra = {}) {
+  await setDoc(
+    doc(db, "games", GAME_ID, "state", "current"),
+    { episodeId: ep, phase, startTime: Date.now(), duration, ...extra },
+    { merge: false }
+  );
+}
+
+async function resetState() {
+  try { await deleteDoc(doc(db, "games", GAME_ID, "state", "current")); } catch(e) {}
+}
+
+// ⭐ проверяваме дали НЯКОЙ играч е ползвал Мнозинство/Шпионин за конкретен въпрос от кръг 2
+async function getJokerUsage(ep, round, index) {
+  try {
+    const snap = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "jokerUsage", `r${round}-${index}`));
+    return snap.exists() ? snap.data() : {};
+  } catch(e) {
+    return {};
+  }
+}
+
+// ⭐ Изпълнява един цял кръг: обяснение → 10 въпроса (question[→buffer]→explanation→ranking)
+async function runRound(ep, round, questions, Q, EXPL, RANK, introTime, jokerBuffer) {
+  log(`=== Кръг ${round}: обяснение (${introTime/1000} сек.) ===`);
+  await setState(ep, "roundIntro", introTime, { round });
+  await sleep(introTime);
+
+  for (let i = 0; i < questions.length; i++) {
+    log(`Кръг ${round}, въпрос ${i+1}/${questions.length}`);
+
+    await setState(ep, "question", Q, { round, index: i });
+    await sleep(Q);
+
+    if (jokerBuffer) {
+      const usage = await getJokerUsage(ep, round, i);
+      if (usage.majorityUsed || usage.spyUsed) {
+        await setState(ep, "jokerBuffer", JOKER_BUFFER2, { round, index: i });
+        await sleep(JOKER_BUFFER2);
+      }
+    }
+
+    await setState(ep, "explanation", EXPL, { round, index: i });
+    await sleep(EXPL);
+
+    await setState(ep, "ranking", RANK, { round, index: i, isFinal: false });
+    await sleep(RANK);
+  }
+}
+
+async function runGame(ep) {
+  await loadAllQuestions();
+
+  await runRound(ep, 1, questions1, Q1, EXPL1, RANK1, LOBBY_TIME1, false);
+  await runRound(ep, 2, questions2, Q2, EXPL2, RANK2, LOBBY_TIME2, true);
+  await runRound(ep, 3, questions3, Q3, EXPL3, RANK3, LOBBY_TIME3, false);
+
+  log("Играта приключи — финално класиране.");
+  await setState(ep, "finalRanking", RANK4, { isFinal: true });
+}
+
+document.getElementById("startBtn").onclick = async () => {
+  const ep = document.getElementById("ep").value.trim();
+  const startTimeRaw = document.getElementById("startTime").value;
+
+  if (!ep) return alert("Въведи име на епизод!");
+  if (!startTimeRaw) return alert("Избери час за старт!");
+
+  const [hh, mm] = startTimeRaw.split(":").map(Number);
+  const now = new Date();
+  let startAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0).getTime();
+  if (startAt <= Date.now()) startAt += 24 * 60 * 60 * 1000;
+
+  const prestartDuration = startAt - Date.now() - LOBBY_TIME;
+  if (prestartDuration < 0) return alert("Избраният час е твърде близо! Избери по-късен час.");
+
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("startBtn").textContent = "Играта тече…";
+
+  await resetState();
+  await setState(ep, "lobby", LOBBY_TIME, {});
+  log(`Лоби (10 сек.) → престарт → старт в ${startTimeRaw}`);
+
+  await sleep(LOBBY_TIME);
+  await setState(ep, "prestart", prestartDuration, {});
+  await sleep(prestartDuration);
+
+  log("Играта започва!");
+  await runGame(ep);
+};
+</script>
+</body>
+</html>
