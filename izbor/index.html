@@ -200,9 +200,9 @@
 
 <body>
 
-<h1>🧠 Куиз Избор<br><span style="font-size:0.6em;">Ти избираш 1</span></h1>
+<h1>🧠 Куиз Избор<br><span style="font-size:0.6em;">Ти избираш</span></h1>
 
-<audio id="bg-music" src="despa.mp3" loop preload="auto"></audio>
+<audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
 
@@ -216,7 +216,6 @@
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
-    <img id="lobby-image" src="https://i.imgur.com/WEbh5YM.jpeg" alt="Куиз Избор - ти избираш! " />
   <div id="lobby-instructions">
     <p>Първите <strong>10 въпроса</strong> са загряващи, от различни области.</p>
     <p>Всеки въпрос има <strong>5 отговора</strong> — кликаш ги по ред на увереност (1-ви клик = "най-вероятно вярно"). Точки според позицията на верния отговор в твоята подредба: <strong>6 / 4 / 3 / 2 / 1</strong>, или 0 при пропуснат въпрос.</p>
@@ -285,39 +284,15 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 // ===============================
-// ⭐ РЕАЛНИТЕ 30 ТЕМИ
+// ⚠️ СКЕЛЕТ — placeholder данни, докато чакаме реалния JSON
 // ===============================
 const TOPICS = [
-  "Архитектура",
-  "География",
-  "География БГ",
-  "Изкуство",
-  "История",
-  "История БГ",
-  "Кино",
-  "Кино БГ",
-  "Космос",
-  "Кулинария",
-  "Литература",
-  "Литература БГ",
-  "Математика",
-  "Медицина",
-  "Митология",
-  "Музика",
-  "Музика БГ",
-  "Наука",
-  "Опера и балет",
-  "Религия",
-  "Сериали",
-  "Спорт",
-  "Спорт БГ",
-  "Техника",
-  "Физика",
-  "Философия",
-  "Флора и Фауна",
-  "Футбол",
-  "Футбол БГ",
-  "Химия"
+  "Архитектура","Астрономия","География","География БГ","Изкуство",
+  "История","История БГ","Кино","Кино БГ","Космос",
+  "Кулинария","Литература","Литература БГ","Математика","Медицина",
+  "Митология","Музика","Музика БГ","Наука","Опера и балет",
+  "Религия","Сериали","Спорт","Спорт БГ","Техника",
+  "Физика","Флора и Фауна","Футбол","Футбол БГ","Химия"
 ];
 
 const startScreen     = document.getElementById("start-screen");
@@ -412,7 +387,7 @@ document.getElementById("archiveBtn").onclick = () => window.location.href = "ar
 
 historyBtn.onclick = () => {
   if (!episodeId) return;
-  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+  window.location.href = `history-izbor.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
 
 document.getElementById("enterBtn").onclick = async () => {
@@ -437,29 +412,19 @@ document.getElementById("enterBtn").onclick = async () => {
 };
 
 // ===============================
-// ⭐ ВИЗУАЛИЗАЦИЯ НА ТЕМИТЕ
-// ===============================
-function renderTopics() {
-  topicsGrid.innerHTML = "";
-  TOPICS.forEach(topic => {
-    const div = document.createElement("div");
-    div.className = "topic-item";
-    div.textContent = topic;
-    topicsGrid.appendChild(div);
-  });
-}
-renderTopics();
-
-// ===============================
 // ⭐ 5-ОТГОВОРНА МЕХАНИКА — кликане по ред на увереност
+// Всеки клик веднага се записва във Firestore (по образец на Чифтосването),
+// за да могат другите играчи да виждат "Х — 3/5 подредени" на живо.
 // ===============================
-let currentSlotId  = null;
-let currentAnswers = [];
-let rankedSoFar    = [];
+let currentSlotId  = null;   // уникален идентификатор на текущия въпрос (не е задължително числов индекс)
+let currentAnswers = [];     // текущите 5 отговора (разбъркани)
+let rankedSoFar    = [];     // отговорите, кликнати досега, по ред
 let questionLocked = false;
+let currentQuestionData = null; // ⭐ пазим самия въпрос, за да го запишем в answer документа (нужно на историята)
 
 function renderAnswerButtons(q, startTime, slotId, docPath) {
   currentSlotId  = slotId;
+  currentQuestionData = q;
   rankedSoFar    = [];
   questionLocked = false;
   answersDiv.innerHTML = "";
@@ -518,13 +483,13 @@ async function saveRanking(docPath, thinkingTime) {
     );
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", docPath),
-      { ranking: rankedSoFar, thinkingTime, timestamp: Date.now() }
+      { ranking: rankedSoFar, thinkingTime, timestamp: Date.now(), q: currentQuestionData }
     );
   } catch(e) {}
 }
 
 correctionBtn.onclick = () => {
-  if (questionLocked && rankedSoFar.length < 5) return;
+  if (questionLocked && rankedSoFar.length < 5) return; // вече заключено (5/5) — Поправка вече не важи тук по избор на дизайн, виж бележка
   rankedSoFar = [];
   questionLocked = false;
   rankingProgress.textContent = `Подредени: 0 / 5`;
@@ -552,7 +517,6 @@ function pointsForRanking(ranking, correct) {
 // ===============================
 // ⭐ Live "Отговорили" — брой подредени отговори, обновява се на всеки клик
 // ===============================
-
 function startAnswerListener(slotId) {
   if (answersUnsub) answersUnsub();
   answeredNames.innerHTML = "";
