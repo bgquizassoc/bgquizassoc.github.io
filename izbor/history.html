@@ -33,36 +33,17 @@
       background: rgba(255,255,255,0.06);
       border-left: 6px solid #ffd100;
     }
-    .question-block.correct-block {
-      border-left-color: #00e676;
-    }
-    .question-block.wrong-block {
-      border-left-color: #ff5252;
-    }
-    .question-block.skipped-block {
-      border-left-color: #888;
-      opacity: 0.7;
-    }
-    .label {
-      color: #7fffd4;
-      font-weight: bold;
-    }
-    .correct {
-      color: #00e676;
-      font-weight: bold;
-    }
-    .wrong {
-      color: #ff5252;
-      font-weight: bold;
-    }
-    .skipped {
-      color: #aaa;
-      font-style: italic;
-    }
-    .explanation {
-      margin-top: 10px;
-      opacity: 0.85;
-    }
+    .correct-block { border-left-color: #00e676; }
+    .wrong-block   { border-left-color: #ff5252; }
+    .skipped-block { border-left-color: #888; opacity: 0.7; }
+
+    .label { color: #7fffd4; font-weight: bold; }
+    .correct { color: #00e676; font-weight: bold; }
+    .wrong   { color: #ff5252; font-weight: bold; }
+    .skipped { color: #aaa; font-style: italic; }
+
+    .explanation { margin-top: 10px; opacity: 0.85; }
+
     .backBtn {
       display: block;
       margin: 30px auto;
@@ -78,6 +59,7 @@
       width: 200px;
     }
     .backBtn:hover { background: #ffcc33; }
+
     #summary {
       text-align: center;
       margin-bottom: 25px;
@@ -88,7 +70,7 @@
 </head>
 <body>
 
-<h1>📘 История на играта</h1>
+<h1>📘 История на играта – Куиз Избор</h1>
 <div id="playerTitle"></div>
 <div id="summary">Зареждане...</div>
 <div id="content"></div>
@@ -129,21 +111,24 @@ playerTitle.textContent = "Играч: " + player;
 
 async function loadHistory() {
 
-  // Зареждаме въпросите от questions.json
-  let questions = [];
+  // ⭐ Зареждаме warmup и pool въпросите
+  let warmup = [];
+  let pool   = [];
   try {
-    const res = await fetch("questions.json");
-    questions = await res.json();
+    const w = await fetch("izbor/warmup10.json");
+    const p = await fetch("izbor/questions-pool.json");
+    warmup = await w.json();
+    pool   = await p.json();
   } catch(e) {
     summary.textContent = "Не мога да заредя въпросите.";
     return;
   }
 
-  // Зареждаме отговорите на играча от Firestore
+  // ⭐ Зареждаме отговорите на играча от Firestore
   let answers = {};
   try {
     const answersSnap = await getDocs(
-      collection(db, "games", "lightning", "episodes", episodeId, "results", player, "answers")
+      collection(db, "games", "izbor", "episodes", episodeId, "results", player, "answers")
     );
     answersSnap.forEach(d => answers[d.id] = d.data());
   } catch(e) {
@@ -156,51 +141,96 @@ async function loadHistory() {
     return;
   }
 
-  // Статистика
-  let correct = 0, wrong = 0, skipped = 0;
-  questions.forEach((q, i) => {
-    const ans = answers[String(i)];
-    if (!ans) { skipped++; return; }
-    if ((ans.answer || "").trim() === (q.correct || "").trim()) correct++;
-    else wrong++;
+  // ⭐ Генерираме списък от slotId → въпрос
+  const allSlots = Object.keys(answers);
+
+  // ⭐ Взимаме state/current за динамичните въпроси (изборните)
+  let stateData = null;
+  try {
+    const s = await getDoc(doc(db, "games", "izbor", "state", "current"));
+    if (s.exists()) stateData = s.data();
+  } catch(e) {}
+
+  // ⭐ Събираме всички въпроси
+  const questionMap = {};
+
+  // Загряващи
+  warmup.forEach((q, i) => {
+    questionMap[`warmup-${i}`] = q;
   });
+
+  // Динамични изборни въпроси – взимаме ги от results/<player>/answers/<slotId>.q
+  for (const slotId of allSlots) {
+    const ans = answers[slotId];
+    if (ans && ans.q) {
+      questionMap[slotId] = ans.q;
+    }
+  }
+
+  // ⭐ Статистика
+  let correct = 0, wrong = 0, skipped = 0;
+
+  for (const slotId of allSlots) {
+    const q = questionMap[slotId];
+    const ans = answers[slotId];
+    if (!q || !ans) { skipped++; continue; }
+
+    const ranking = ans.ranking || [];
+    const correctAns = (q.correct || "").trim();
+    const pos = ranking.findIndex(a => (a || "").trim() === correctAns);
+
+    if (pos === -1) wrong++;
+    else correct++;
+  }
 
   summary.innerHTML = `
     Верни: <span style="color:#00e676;font-weight:bold;">${correct}</span> &nbsp;|&nbsp;
     Грешни: <span style="color:#ff5252;font-weight:bold;">${wrong}</span> &nbsp;|&nbsp;
     Пропуснати: <span style="color:#aaa;">${skipped}</span>
-    &nbsp; от общо ${questions.length} въпроса
+    &nbsp; от общо ${allSlots.length} въпроса
   `;
 
-  // Генерираме HTML за всички въпроси
+  // ⭐ Генерираме HTML за всички въпроси
   let html = "";
-  questions.forEach((q, i) => {
-    const ans = answers[String(i)];
-    const yourAnswer = ans?.answer || null;
-    const correct    = (q.correct || "").trim();
-    const explanation= q.explanation || "";
 
-    let statusClass = "skipped-block";
-    let statusText  = '<span class="skipped">⬜ Не е отговорено</span>';
+  for (const slotId of allSlots) {
+    const q = questionMap[slotId];
+    const ans = answers[slotId];
 
-    if (yourAnswer !== null) {
-      const isCorrect = yourAnswer.trim() === correct;
-      statusClass = isCorrect ? "correct-block" : "wrong-block";
-      statusText  = isCorrect
-        ? '<span class="correct">✔ Вярно</span>'
-        : '<span class="wrong">✘ Грешно</span>';
+    if (!q || !ans) {
+      html += `
+        <div class="question-block skipped-block">
+          <div class="label">${slotId}</div>
+          <div class="skipped">⬜ Не е отговорено</div>
+        </div>
+      `;
+      continue;
+    }
+
+    const ranking = ans.ranking || [];
+    const correctAns = (q.correct || "").trim();
+    const pos = ranking.findIndex(a => (a || "").trim() === correctAns);
+
+    let statusClass = "wrong-block";
+    let statusText  = `<span class="wrong">✘ Грешно</span>`;
+
+    if (pos === -1) {
+      statusClass = "wrong-block";
+    } else {
+      statusClass = "correct-block";
+      statusText  = `<span class="correct">✔ Вярно (позиция ${pos+1})</span>`;
     }
 
     html += `
       <div class="question-block ${statusClass}">
-        <div class="label">${i + 1}. ${q.question}</div>
-        <div><span class="label">Твоят отговор:</span> ${yourAnswer ?? "—"}</div>
-        <div><span class="label">Верен отговор:</span> ${correct}</div>
+        <div class="label">${slotId}: ${q.question}</div>
+        <div><span class="label">Подредба:</span> ${ranking.join(" → ") || "—"}</div>
+        <div><span class="label">Верен отговор:</span> ${correctAns}</div>
         <div style="margin-top:6px;">${statusText}</div>
-        ${explanation ? `<div class="explanation">${explanation}</div>` : ""}
+        ${q.explanation ? `<div class="explanation">${q.explanation}</div>` : ""}
       </div>
     `;
-  });
+  }
 
   content.innerHTML = html;
 }
