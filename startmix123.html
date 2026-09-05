@@ -93,9 +93,9 @@ function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 async function loadAllQuestions() {
   const [r1, r2, r3] = await Promise.all([
-    fetch("mix123/questions1.json").then(r => r.json()),
-    fetch("mix123/questions2.json").then(r => r.json()),
-    fetch("mix123/questions3.json").then(r => r.json())
+    fetch("quizmix123/questions1.json").then(r => r.json()),
+    fetch("quizmix123/questions2.json").then(r => r.json()),
+    fetch("quizmix123/questions3.json").then(r => r.json())
   ]);
   questions1 = r1; questions2 = r2; questions3 = r3;
   log(`Заредени въпроси: кръг1=${questions1.length}, кръг2=${questions2.length}, кръг3=${questions3.length}`);
