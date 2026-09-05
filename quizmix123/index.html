@@ -227,11 +227,11 @@
     <p>🧩 Преди всеки кръг има подробно обяснение за кръга и неговите жокери.</p>
     <p>🧩 Запознайте се преди да играете, а тук накратко:</p>
     <p>🧩 I кръг - Твърдение или сравнение.</p>
-    <p>🧩Време  - <strong>30 секунди </strong> Точки - <strong> по 2 </strong> за верен отговор.</p>
+    <p>🧩Време  - <strong>20 секунди </strong> Точки - <strong> по 2 </strong> за верен отговор.</p>
     <p>🧩 II кръг - Ако не го знаеш, уцели го.</p>
-    <p>🧩Време  - <strong>40 секунди </strong> Точки - <strong> по 3 </strong> за верен отговор.</p>
+    <p>🧩Време  - <strong>20 секунди </strong> Точки - <strong> по 3 </strong> за верен отговор.</p>
     <p>🧩 III кръг - Буквомания.</p>
-    <p>🧩Време  - <strong>50 секунди </strong> Точки - <strong> по 4 </strong> за верен отговор.</p>
+    <p>🧩Време  - <strong>20 секунди </strong> Точки - <strong> по 4 </strong> за верен отговор.</p>
     <p>🧩Ако отговорите правилно на всички въпроси в даден кръг, получвате <strong>  бонус от 3 точки </strong> , затова използвайте активно и разумно жокерите си, за да запазите безпогрешна серия.</p>
     <p>🧩Всеки неизползван жокер се осребрява в края на играта и печелите по 1 точка за всеки без Патрондаж (който не се осребрява)</p>
   </div>
@@ -447,7 +447,7 @@ document.getElementById("archiveBtn").onclick = () => { window.location.href = "
 
 historyBtn.onclick = () => {
   if (!episodeId) return;
-  window.location.href = `history-mix123.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
 
 async function loadAllQuestions() {
