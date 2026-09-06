@@ -20,7 +20,7 @@
 </style>
 </head>
 <body>
-<h1>🎬 Старт на Куиз Избор 1</h1>
+<h1>🎬 Старт на Куиз Избор</h1>
 
 <div class="field-row">
   <label>Име на епизод:</label>
@@ -59,8 +59,9 @@ const GAME_ID = "izbor";
 
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) =====
 const LOBBY_TIME        = 10000;
-const QUESTION_TIME     = 30000; // 30 сек. за размисъл
+const QUESTION_TIME     = 25000; // 30 сек. за размисъл
 const EXPLANATION_TIME  = 20000;
+const Q_RANKING_TIME    = 10000; // ⭐ ново — кратко класиране само по този въпрос
 const RANKING_TIME      = 12000;
 const CHOOSE_TIME       = 20000; // 20 сек. за избор на тема
 const REVEAL_TIME       = 5000;  // буфер за разкриване на избраната тема
@@ -237,6 +238,9 @@ async function runChoiceRound(ep, roundNumber, frozenRanking, usedQuestionKeys) 
     await setState(ep, "explanation", EXPLANATION_TIME, extra);
     await sleep(EXPLANATION_TIME);
 
+    await setState(ep, "qRanking", Q_RANKING_TIME, { slotId, correct: q.correct });
+    await sleep(Q_RANKING_TIME);
+
     await setState(ep, "ranking", RANKING_TIME, { isFinal: false });
     await sleep(RANKING_TIME);
   }
@@ -264,6 +268,9 @@ async function runGame(ep) {
 
     await setState(ep, "explanation", EXPLANATION_TIME, extra);
     await sleep(EXPLANATION_TIME);
+
+    await setState(ep, "qRanking", Q_RANKING_TIME, { slotId, correct: q.correct });
+    await sleep(Q_RANKING_TIME);
 
     await setState(ep, "ranking", RANKING_TIME, { isFinal: false });
     await sleep(RANKING_TIME);
