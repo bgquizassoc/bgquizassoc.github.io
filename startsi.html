@@ -20,7 +20,7 @@
 </style>
 </head>
 <body>
-<h1>🎬 Старт на Куиз Избор</h1>
+<h1>🎬 Старт на Куиз Избор 1</h1>
 
 <div class="field-row">
   <label>Име на епизод:</label>
@@ -60,10 +60,10 @@ const GAME_ID = "izbor";
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) =====
 const LOBBY_TIME        = 10000;
 const QUESTION_TIME     = 25000; // 30 сек. за размисъл
-const EXPLANATION_TIME  = 20000;
+const EXPLANATION_TIME  = 15000;
 const Q_RANKING_TIME    = 10000; // ⭐ ново — кратко класиране само по този въпрос
-const RANKING_TIME      = 15000;
-const CHOOSE_TIME       = 20000; // 20 сек. за избор на тема
+const RANKING_TIME      = 10000;
+const CHOOSE_TIME       = 15000; // 20 сек. за избор на тема
 const REVEAL_TIME       = 5000;  // буфер за разкриване на избраната тема
 const FINAL_RANKING_TIME= 30000;
 
@@ -150,10 +150,10 @@ async function computeFrozenRanking(ep) {
 
 // ⭐ Тегли произволен въпрос от дадена област, избягвайки вече ползвани в този епизод, ако е възможно
 function pickQuestionForArea(area, usedKeys) {
-  const candidates = pool.filter(q => q.area.trim() === area);
+  const candidates = pool.filter(q => q.area.trim() === area); // запазват реда си от pull.json
   const unused = candidates.filter(q => !usedKeys.has(q.question));
-  const chooseFrom = unused.length ? unused : candidates; // при изчерпване — позволяваме повторение
-  const picked = chooseFrom[Math.floor(Math.random() * chooseFrom.length)];
+  const chooseFrom = unused.length ? unused : candidates; // при изчерпване (>2 избора на тема) — позволяваме повторение
+  const picked = chooseFrom[0]; // ⭐ винаги първият неизползван по реда в pull.json, не на случаен принцип
   usedKeys.add(picked.question);
   return picked;
 }
