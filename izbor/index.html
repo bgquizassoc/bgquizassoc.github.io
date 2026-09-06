@@ -288,7 +288,7 @@
 <div id="ranking" style="display:none;">
   <h3 id="rankingTitle">Класиране</h3>
   <div id="rankingList"></div>
-  <button id="historyBtn" style="display:none;">Виж моята история</button>
+  <button id="historyBtn" style="display:none;">История на играта</button>
 </div>
 
 <script type="module">
@@ -407,7 +407,7 @@ document.getElementById("archiveBtn").onclick = () => window.location.href = "ar
 
 historyBtn.onclick = () => {
   if (!episodeId) return;
-  window.location.href = `history-izbor.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
 
 document.getElementById("enterBtn").onclick = async () => {
