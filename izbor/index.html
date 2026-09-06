@@ -29,7 +29,7 @@
   }
 
   #start-screen, #waiting-screen, #quiz, #choose-screen,
-  #sitout-screen, #explanation, #ranking {
+  #sitout-screen, #explanation, #qranking, #ranking {
     width: 100%; max-width: 700px; text-align: center;
     margin-top: 20px;
     background: rgba(255,255,255,0.05);
@@ -200,7 +200,7 @@
 
 <body>
 
-<h1>🧠 Куиз Избор<br><span style="font-size:0.6em;">Ти избираш</span></h1>
+<h1>🧩 Игри на Знания<br >Куиз Избор <br>епизод 1</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -212,6 +212,7 @@
   <button id="enterBtn">Влез в играта</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
+<img id="lobby-image" src="https://i.imgur.com/WEbh5YM.jpeg" alt="Куиз Избор" />
 
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
@@ -222,7 +223,7 @@
     <p>🔁 <strong>Поправка</strong> — неограничена, ресетва цялата ти подредба за въпроса.</p>
     <p>След въпрос 10 класирането се "замразява" и определя реда на избор на теми — от <strong>последния към първия</strong>.</p>
     <p>Всеки играч избира тема <strong>два пъти</strong>: първия път за въпрос, на който неговите точки се удвояват; втория път за въпрос, в който самият той не участва — за да затрудни останалите.</p>
-    <p>Време за размисъл — <strong>30 сек.</strong> на въпрос, <strong>20 сек.</strong> за избор на тема.</p>
+    <p>Време за размисъл — <strong>25 сек.</strong> на въпрос, <strong>20 сек.</strong> за избор на тема.</p>
   </div>
   <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
   <div id="lobbyList">Още няма други играчи.</div>
@@ -269,6 +270,12 @@
   <div id="statsBlock"></div>
   <h3 style="margin-top:20px;">Обяснение</h3>
   <div id="explanationText"></div>
+</div>
+
+<!-- ⭐ НОВО — кратко класиране само по този въпрос, преди общото временно класиране -->
+<div id="qranking" style="display:none;">
+  <h3 style="color:#ffd100;">Класиране за въпроса</h3>
+  <div id="qRankingList"></div>
 </div>
 
 <div id="ranking" style="display:none;">
@@ -325,6 +332,8 @@ const sitoutAnswers   = document.getElementById("sitoutAnswers");
 
 const statsBlock      = document.getElementById("statsBlock");
 const explanationText = document.getElementById("explanationText");
+const qRankingDiv     = document.getElementById("qranking");
+const qRankingList    = document.getElementById("qRankingList");
 const rankingList     = document.getElementById("rankingList");
 const rankingTitle    = document.getElementById("rankingTitle");
 const historyBtn      = document.getElementById("historyBtn");
@@ -354,7 +363,7 @@ let answersUnsub = null;
 
 function showOnly(div) {
   [startScreen, waitingScreen, quizDiv, chooseScreen,
-   sitoutScreen, explanationDiv, rankingDiv]
+   sitoutScreen, explanationDiv, qRankingDiv, rankingDiv]
     .forEach(d => d.style.display = "none");
   div.style.display = "block";
 }
@@ -657,6 +666,14 @@ async function applyPhaseImmediately(data) {
     return;
   }
 
+  if (phase === "qRanking") {
+    showOnly(qRankingDiv);
+    globalTimer.style.display = "block";
+    renderQRanking(data);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
   if (phase === "ranking") {
     showOnly(rankingDiv);
     globalTimer.style.display = "block";
@@ -698,6 +715,40 @@ function renderTopicsGrid(remainingTopics, interactive, highlightTopic, onPick) 
 
     topicsGrid.appendChild(btn);
   });
+}
+
+// ⭐ НОВО — кратко класиране само по текущия въпрос (точки, спечелени точно от него)
+async function renderQRanking(data) {
+  const slotIdStr = data.slotId;
+  qRankingList.innerHTML = "<p>Зареждане…</p>";
+  if (!slotIdStr) { qRankingList.innerHTML = "<p>Няма данни.</p>"; return; }
+
+  try {
+    const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
+    const rows = [];
+
+    for (const pDoc of playersSnap.docs) {
+      const name = pDoc.id;
+      const ansDoc = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", name, "answers", slotIdStr));
+      const pts = ansDoc.exists() ? (ansDoc.data().points || 0) : 0;
+      const answered = ansDoc.exists() && (ansDoc.data().ranking || []).length > 0;
+      rows.push({ name, pts, answered });
+    }
+
+    rows.sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name, "bg"));
+
+    qRankingList.innerHTML = rows.map((r, i) => {
+      const isMe = r.name === player;
+      let cls = "", medal = "";
+      if (i === 0 && r.pts > 0) { cls = "gold"; medal = "🥇"; }
+      else if (i === 1 && r.pts > 0) { cls = "silver"; medal = "🥈"; }
+      else if (i === 2 && r.pts > 0) { cls = "bronze"; medal = "🥉"; }
+      const label = r.answered ? `${r.pts} т. за този въпрос` : "не е отговорено";
+      return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">${i+1}. ${medal} ${r.name} — ${label}</div>`;
+    }).join("");
+  } catch(e) {
+    qRankingList.innerHTML = "<p>Грешка при зареждане.</p>";
+  }
 }
 
 async function renderExplanation(data) {
