@@ -176,6 +176,10 @@
     font-weight: 700; color: #fff !important;
   }
 
+  #lobby-image {
+    width: 100%; max-height: 400px; object-fit: contain;
+    border-radius: 12px; margin-bottom: 15px;
+  }
   #lobby-instructions {
     text-align: left; font-size: 0.98em; line-height: 1.7;
     color: #cce8ff; margin-bottom: 15px;
@@ -212,11 +216,13 @@
   <button id="enterBtn">Влез в играта</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
-<img id="lobby-image" src="https://i.imgur.com/WEbh5YM.jpeg" alt="Куиз Избор" />
-
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
-  <p>Моля, изчакайте таймера <span id="dots">...</span></p>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
+
+  <img id="lobby-image" src="https://i.imgur.com/WEbh5YM.jpeg" alt="Куиз Микс 123" />
+
+  
   <div id="lobby-instructions">
     <p>☑️ Първите <strong>10 въпроса</strong> са загряващи, от различни области, за натрупване на точки и определяне на класиране </p>
     <p>☑️ Всеки въпрос има <strong>5 отговора</strong> — кликате ги по ред на увереност (1-ви клик = "най-вероятно вярно"). Точки според позицията на верния отговор в твоята подредба: <strong>6 / 4 / 3 / 2 / 1</strong>, или 0 при пропуснат въпрос.</p>
@@ -572,7 +578,7 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "prestart") {
     showOnly(waitingScreen);
-    waitingTitle.textContent = "Играта започва след:";
+    waitingTitle.textContent = "Играта започва след таймера:";
     globalTimer.style.display = "block";
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
