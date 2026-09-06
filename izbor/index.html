@@ -134,13 +134,17 @@
     box-shadow: 0 0 10px rgba(0,229,255,0.5);
   }
   .topics-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(15, auto);
+    grid-auto-flow: column;
+    gap: 8px;
   }
   .topic-btn {
     padding: 12px 8px; font-size: 0.95em; text-align: center;
     background: #333; color: #fff; border-radius: 8px; margin: 0;
   }
-  .topic-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+  .topic-btn.burned { opacity: 0.2; cursor: not-allowed; text-decoration: line-through; }
+  .topic-btn.not-my-turn { cursor: default; }
   .topic-btn.chosen-now { background: #ffd100; color: #111; }
 
   #revealTopic {
@@ -442,6 +446,26 @@ let rankedSoFar    = [];     // отговорите, кликнати досе�
 let questionLocked = false;
 let currentQuestionData = null; // ⭐ пазим самия въпрос, за да го запишем в answer документа (нужно на историята)
 
+// ⭐ Детерминирано разбъркване — еднакво за всички клиенти (играчи + телевизор),
+// защото зависи само от episodeId и slotId, не от локален случаен генератор.
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+function seededShuffle(array, seed) {
+  const result = array.slice();
+  let s = seed;
+  for (let i = result.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const j = Math.floor((s / 233280) * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 function renderAnswerButtons(q, startTime, slotId, docPath) {
   currentSlotId  = slotId;
   currentQuestionData = q;
@@ -451,11 +475,8 @@ function renderAnswerButtons(q, startTime, slotId, docPath) {
   rankingProgress.textContent = `Подредени: 0 / 5`;
   correctionBtn.disabled = true;
 
-  const shuffled = [...q.answers];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
+  const seed = hashString(`${episodeId}-${slotId}`);
+  const shuffled = seededShuffle(q.answers, seed);
   currentAnswers = shuffled;
 
   shuffled.forEach(ans => {
@@ -601,7 +622,9 @@ async function applyPhaseImmediately(data) {
       showOnly(sitoutScreen);
       globalTimer.style.display = "block";
       sitoutQuestion.textContent = data.q?.question || "";
-      sitoutAnswers.innerHTML = (data.q?.answers || [])
+      const sitoutSeed = hashString(`${episodeId}-${data.slotId}`);
+      const sitoutShuffled = seededShuffle(data.q?.answers || [], sitoutSeed);
+      sitoutAnswers.innerHTML = sitoutShuffled
         .map(a => `<div class="stat-answer">${a}</div>`).join("");
       timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
       return;
@@ -611,13 +634,7 @@ async function applyPhaseImmediately(data) {
     globalTimer.style.display = "block";
 
     roundTag.textContent = data.roundLabel || "Загряващ въпрос";
-    if (data.chooserName) {
-      chooserTag.style.display = "inline-block";
-      const mult = data.chooserMultiplier === 2 ? " (×2 точки)" : "";
-      chooserTag.textContent = `Тема избрана от: ${data.chooserName}${mult}`;
-    } else {
-      chooserTag.style.display = "none";
-    }
+    chooserTag.style.display = "none";
 
     qText.textContent = data.q?.question || "";
     renderAnswerButtons(data.q, startTime, data.slotId, data.slotId);
@@ -715,13 +732,18 @@ function renderTopicsGrid(remainingTopics, interactive, highlightTopic, onPick) 
     btn.textContent = topic;
 
     const isUsed = !remaining.includes(topic);
-    if (isUsed) btn.disabled = true;
-    if (topic === highlightTopic) btn.classList.add("chosen-now");
+    const isHighlighted = topic === highlightTopic;
 
-    if (interactive && !isUsed) {
+    if (isHighlighted) {
+      btn.classList.add("chosen-now");
+      btn.disabled = true;
+    } else if (isUsed) {
+      btn.classList.add("burned");
+      btn.disabled = true;
+    } else if (interactive) {
       btn.onclick = () => onPick(topic, btn);
     } else {
-      btn.disabled = true;
+      btn.classList.add("not-my-turn");
     }
 
     topicsGrid.appendChild(btn);
@@ -767,34 +789,46 @@ async function renderExplanation(data) {
   if (!q) return;
   explanationText.textContent = q.explanation || "";
 
-  // ⭐ статистика: за колко играчи верният отговор е бил на 1-во/2-ро/... място
+  // ⭐ статистика: за колко от РЕАЛНО ОТГОВОРИЛИТЕ верният отговор е бил на 1-во/2-ро/... място
   try {
     const answersSnap = await getDocs(
       collection(db, "games", GAME_ID, "episodes", episodeId, "results")
     );
-    const posCounts = [0,0,0,0,0,0]; // индекс 0 = "не е отговорено", 1-5 = позиция
-    let total = 0;
+    const posCounts = [0, 0, 0, 0, 0]; // индекси 0-4 = позиции 1-во..5-то място
+    let answeredCount = 0;
+    let notAnsweredCount = 0;
 
     for (const pDoc of answersSnap.docs) {
       const ansSnap = await getDocs(
         collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers")
       );
       const ansDoc = ansSnap.docs.find(d => d.id === data.slotId);
-      total++;
-      if (ansDoc) {
-        const ranking = ansDoc.data().ranking || [];
-        const pos = ranking.findIndex(a => (a||"").trim() === (q.correct||"").trim());
-        posCounts[pos >= 0 ? pos + 1 : 0]++;
+      const ranking = ansDoc ? (ansDoc.data().ranking || []) : [];
+
+      if (ranking.length > 0) {
+        answeredCount++;
+        const pos = ranking.findIndex(a => (a || "").trim() === (q.correct || "").trim());
+        if (pos >= 0) posCounts[pos]++;
       } else {
-        posCounts[0]++;
+        notAnsweredCount++;
       }
     }
 
-    const labels = ["Не отговорили", "1-во място (6 т.)", "2-ро място (4 т.)", "3-то място (3 т.)", "4-то място (2 т.)", "5-то място (1 т.)"];
-    statsBlock.innerHTML = labels.map((label, i) => {
-      const pct = total ? Math.round(posCounts[i] / total * 100) : 0;
-      return `<div class="stat-answer ${i===1 ? "correct" : ""}">${label}<span class="pct">${pct}%</span></div>`;
+    const labels = ["1-во място (6 т.)", "2-ро място (4 т.)", "3-то място (3 т.)", "4-то място (2 т.)", "5-то място (1 т.)"];
+
+    let html = `<div style="padding:12px 14px; margin-bottom:14px; background:rgba(46,125,50,0.25); border:1px solid #2e7d32; border-radius:10px; font-weight:bold; font-size:1.1em;">✔ Верен отговор: ${q.correct}</div>`;
+
+    html += labels.map((label, i) => {
+      const pct = answeredCount ? Math.round(posCounts[i] / answeredCount * 100) : 0;
+      return `<div class="stat-answer ${i === 0 ? "correct" : ""}">${label}<span class="pct">${pct}%</span></div>`;
     }).join("");
+
+    if (notAnsweredCount > 0) {
+      const word = notAnsweredCount === 1 ? "играч" : "играча";
+      html += `<div class="stat-answer" style="opacity:0.6;">Не отговориха<span class="pct">${notAnsweredCount} ${word}</span></div>`;
+    }
+
+    statsBlock.innerHTML = html;
   } catch(e) {
     statsBlock.innerHTML = "";
   }
