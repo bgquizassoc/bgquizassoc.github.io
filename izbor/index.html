@@ -224,11 +224,11 @@
 
   
   <div id="lobby-instructions">
-    <p>☑️ Първите <strong>10 въпроса</strong> са загряващи, от различни области, за натрупване на точки и определяне на класиране </p>
+    <p>☑️ Първите <strong>10 въпроса</strong> са загряващи, от различни области, за натрупване на точки и определяне на реда за избор на тема.</p>
     <p>☑️ Всеки въпрос има <strong>5 отговора</strong> — кликате ги по ред на увереност (1-ви клик = "най-вероятно вярно"). Точки според позицията на верния отговор в твоята подредба: <strong>6 / 4 / 3 / 2 / 1</strong>, или 0 при пропуснат въпрос.</p>
-    <p>🔁 <strong>Поправка</strong> — неограничена, ресетва цялата подредба за въпроса.</p>
-    <p>☑️ След въпрос 10 класирането се "замразява" и определя реда на избор на теми — от <strong>последния към първия</strong>.</p>
-    <p>☑️ Всеки играч избира тема <strong>два пъти</strong>: първия път за въпрос, на който неговите точки се удвояват; втория път за въпрос, в който самият той не участва — за да затрудни останалите.</p>
+    <p>🔁 <strong>Поправкаta</strong> — неограничена, занулява цялата ви подредба за въпроса.</p>
+    <p>☑️ След въпрос 10 класирането се "замразява" и определя реда на избор на теми — от <strong>последния към първия в класирането</strong>.</p>
+    <p>☑️ Всеки играч избира тема <strong>два пъти</strong>:първия път избира тема, в която е силен и при верен отговор, точките му се <strong> удвоят </strong> за този въпрос, След като всички играчи се изредят, започва вторият избор пак отзад напред в класирането - Този път се стремите да изберете тема, която ще затрудни другите, като Вие не отговаряте на този въпрос, а сте само зрител.</p>
     <p>☑️ Време за размисъл — <strong>25 сек.</strong> на въпрос, <strong>20 сек.</strong> за избор на тема.</p>
   </div>
   <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
@@ -380,8 +380,13 @@ setInterval(() => {
   const dotsEl = document.getElementById("dots");
   if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
 }, 400);
-
 function formatTime(totalSeconds) {
+  if (totalSeconds >= 3600) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  }
   if (totalSeconds >= 60) {
     const m = Math.floor(totalSeconds / 60);
     const s = totalSeconds % 60;
@@ -389,7 +394,6 @@ function formatTime(totalSeconds) {
   }
   return String(totalSeconds);
 }
-
 function updateTimer(startTime, duration) {
   const now = Date.now();
   const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
