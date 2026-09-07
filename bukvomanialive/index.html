@@ -258,6 +258,7 @@
     <p>🅰️ Точкуване — първите 10 въпроса - <strong>по 1 точка</strong>, вторите 10 - <strong>по 2 точки</strong>, последните 10 носят по <strong>3 точки</strong>.</p>
     <p>🅰️ При равенство в точките се гледа общото време за целия куиз.</p>
     <p>🅰️ По време на играта имате достъп до жокер <strong>Втора сричка</strong> — еднократен за цялата игра.</p>
+    <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
   </div>
 
   <h3 id="lobbyTitle">Стартов списък на играчите</h3>
@@ -278,6 +279,7 @@
   <!-- ⭐ ЖОКЕРИ -->
   <div id="jokers" class="jokers-panel">
     <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Втора сричка</button>
+    <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
   </div>
   <div id="jokerStatus"></div>
 
@@ -303,7 +305,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, onSnapshot, setDoc, collection, getDocs, getDoc
+  getFirestore, doc, onSnapshot, setDoc, deleteDoc, collection, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const GAME_ID = "bukvomania";
@@ -355,7 +357,7 @@ let answersUnsub  = null;
 // ===============================
 // ⭐ ЖОКЕР — Втора сричка (еднократен за целия епизод)
 // ===============================
-let playerJokers = { syllable2: false };
+let playerJokers = { syllable2: false, correction: 0 };
 let jokersLoaded = false;
 
 async function ensureJokersLoaded() {
@@ -377,6 +379,7 @@ function jokerStatusNote(msg) {
 function updateJokerButtonUI(q) {
   const btn = document.getElementById("joker-syllable2");
   btn.style.display = playerJokers.syllable2 ? "none" : "inline-block";
+  document.getElementById("joker-correction").disabled = true;
 }
 
 /* ⭐ Транслитерация */
@@ -514,6 +517,8 @@ async function submitAnswer(index, startTime) {
       thinkingTime
     }
   );
+
+  document.getElementById("joker-correction").disabled = false;
 }
 
 function startAnswerListener(index) {
@@ -725,6 +730,31 @@ function applyPhaseImmediately(data) {
           { merge: true }
         );
       } catch(e) {}
+    };
+
+    document.getElementById("joker-correction").onclick = async () => {
+      if (submitBtn.disabled === false) return; // все още не е отговорил
+      playerJokers.correction = (playerJokers.correction || 0) + 1;
+
+      letterInput.value = "";
+      letterInput.disabled = false;
+      letterInput.classList.remove("submitted");
+      submitBtn.disabled = false;
+      document.getElementById("joker-correction").disabled = true;
+
+      try {
+        await deleteDoc(
+          doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", String(index))
+        );
+      } catch(e) {}
+
+      await setDoc(
+        doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+        { jokers: playerJokers },
+        { merge: true }
+      );
+
+      jokerStatusNote("🔁 Поправка използвана — въведи буквата наново.");
     };
 
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
