@@ -203,15 +203,15 @@
 
 <body>
 
-<h1>🧩 Игри на Знания 🧩 <br> 🧩 Куиз Микс 123 🧩 <br>епизод 1</h1>
+<h1>🧩 Игри на Знания<br>Куиз Микс 123<br>епизод 1 (повторение)</h1>
 
 <audio id="bg-music" src="games.mp3" loop preload="auto"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
 
 <div id="start-screen">
-  <p>Въведете Вашето ID:</p>
-  <input type="text" id="player-id" placeholder="въведи кода си..." />
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="player-id" placeholder="Име ..." />
   <button id="start-btn">Започни!</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
@@ -220,7 +220,7 @@
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
 
-  <img id="lobby-image" src="https://i.imgur.com/WEbh5YM.jpeg" alt="Куиз Микс 123" />
+  <img id="lobby-image" src="https://i.imgur.com/76DTHXj.jepg" alt="Куиз Микс 123" />
 
   <div id="lobby-instructions">
     <p>🧩 Очакват ви 3 кръга с по 10 въпроса от 10 различни области.</p>
@@ -294,7 +294,6 @@
   <button id="historyBtn" style="display:none;">История на играта</button>
 </div>
 
-<script src="players.js"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -447,7 +446,7 @@ document.getElementById("archiveBtn").onclick = () => { window.location.href = "
 
 historyBtn.onclick = () => {
   if (!episodeId) return;
-  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+  window.location.href = `history-mix123.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
 };
 
 async function loadAllQuestions() {
@@ -542,15 +541,13 @@ function isR2Correct(data, q) {
 }
 
 // ===============================
-// ВХОД (код от players.js — по образец на Спокойна игра)
+// ВХОД — свободно въвеждане на две имена (отворена версия, за повторение на играта)
 // ===============================
 startBtn.onclick = async () => {
-  const id = playerIdInput.value.trim();
-  if (!id) return alert("Въведете ID!");
-  if (!PLAYERS[id]) { alert("Невалидно ID!"); return; }
+  const name = playerIdInput.value.trim();
+  if (!name) return alert("Въведете две имена!");
 
-  playerId = id;
-  player   = PLAYERS[id];
+  player = name;
 
   await loadAllQuestions();
   ready = true;
@@ -1377,7 +1374,7 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "prestart") {
     showOnly(waitingScreen);
-    waitingTitle.textContent = "Играта започва след:";
+    waitingTitle.textContent = "Играта започва след таймера:";
     globalTimer.style.display = "block";
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
