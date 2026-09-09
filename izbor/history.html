@@ -116,7 +116,7 @@ async function loadHistory() {
   let pool   = [];
   try {
     const w = await fetch("izbor/warmup10.json");
-    const p = await fetch("izbor/questions-pool.json");
+    const p = await fetch("izbor/pull.json");
     warmup = await w.json();
     pool   = await p.json();
   } catch(e) {
