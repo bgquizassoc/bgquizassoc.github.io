@@ -186,6 +186,57 @@
     border-left: 6px solid #00e5ff !important;
     font-weight: 700; color: #fff !important;
   }
+
+  /* ⭐ ЛОБИ */
+  #lobby-image {
+    width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 12px;
+    margin-bottom: 15px;
+  }
+  #lobby-instructions {
+    text-align: left;
+    font-size: 1em;
+    line-height: 1.8;
+    color: #cce8ff;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+  #lobby-instructions p { margin-bottom: 6px; }
+  #lobby-instructions strong { color: #ffd100; }
+
+  /* ⭐ ЖОКЕРИ */
+  .jokers-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 22px;
+    margin-bottom: 10px;
+  }
+  .joker-btn {
+    background: #0d47a1;
+    color: #ffffff;
+    border: 2px solid #1565c0;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 1.05em;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 0;
+  }
+  .joker-btn:hover:not(:disabled) { background:#1565c0; transform: scale(1.03); }
+  .joker-btn:disabled { opacity: 0.35; cursor: not-allowed; background:#555; border-color:#555; }
+  #jokerStatus {
+    margin-top: 12px;
+    min-height: 20px;
+    font-size: 1.1em;
+    color: #ffd100;
+    font-weight: bold;
+  }
   </style>
 </head>
 
@@ -207,6 +258,21 @@
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
+
+  <img id="lobby-image" src="https://i.imgur.com/90Xs576.jpeg" alt="Куиз Фотомания" />
+
+  <div id="lobby-instructions">
+    <p>📷 Очакват ви въпроси, придружени със снимка, с нарастваща степен на трудност.</p>
+    <p>📷 Отговаря се с изписване на първа буква от това, което сте си намислили.</p>
+    <p>📷 Ако се пита за име на човек, пише се фамилната му буква; ако е обект или термин, пише се първата буква на първата дума.</p>
+    <p>📷 Пример: За Стара планина пишем С, за Иван Вазов пишем В.</p>
+    <p>📷 Ако се пита нещо различно — във въпроса ще пише (Търси се еди какво си...).</p>
+    <p>📷 След като напишете буква, натиснете бутона Изпрати. С клавиш Enter се изпраща по-лесно и по-бързо.</p>
+    <p>📷 При равенство в точките се гледа общото време за целия куиз.</p>
+    <p>🔤 По време на играта имате достъп до жокер <strong>Втора сричка</strong> — еднократен за цялата игра.</p>
+    <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
+  </div>
+
   <h3 id="lobbyTitle">Стартов списък на играчите</h3>
   <p style="margin-top:10px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
   <div id="lobbyList">Още няма други играчи.</div>
@@ -223,6 +289,14 @@
            placeholder="?" />
     <button id="submitBtn">Изпрати</button>
   </div>
+
+  <!-- ⭐ ЖОКЕРИ -->
+  <div id="jokers" class="jokers-panel">
+    <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Втора сричка</button>
+    <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
+  </div>
+  <div id="jokerStatus"></div>
+
   <div id="answeredList" style="display:none;">
     <strong>Отговорили:</strong>
     <div id="answeredNames"></div>
@@ -247,7 +321,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, onSnapshot, setDoc, collection, getDocs, getDoc
+  getFirestore, doc, onSnapshot, setDoc, deleteDoc, collection, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const startScreen    = document.getElementById("start-screen");
@@ -294,6 +368,32 @@ let episodeId     = null;
 let lobbyUnsub    = null;
 let lobbyEpisodeId= null;
 let answersUnsub  = null;
+
+// ⭐ ЖОКЕРИ — Втора сричка (еднократна) + Поправка (неограничена)
+let playerJokers = { syllable2: false, correction: 0 };
+let jokersLoaded = false;
+
+async function ensureJokersLoaded() {
+  if (jokersLoaded || !episodeId || !player) return;
+  jokersLoaded = true;
+  try {
+    const snap = await getDoc(doc(db, "games", "fotomania", "episodes", episodeId, "results", player));
+    if (snap.exists() && snap.data().jokers) {
+      playerJokers = { ...playerJokers, ...snap.data().jokers };
+    }
+  } catch(e) {}
+}
+
+function jokerStatusNote(msg) {
+  const el = document.getElementById("jokerStatus");
+  if (el) el.textContent = msg;
+}
+
+function updateJokerButtonUI(q) {
+  const btn = document.getElementById("joker-syllable2");
+  btn.style.display = playerJokers.syllable2 ? "none" : "inline-block";
+  document.getElementById("joker-correction").disabled = true;
+}
 
 /* ⭐ Транслитерация */
 const LATIN_TO_CYRILLIC = {
@@ -402,6 +502,8 @@ document.getElementById("enterBtn").onclick = async () => {
     { merge: true }
   );
 
+  await ensureJokersLoaded();
+
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
@@ -436,6 +538,8 @@ async function submitAnswer(index, startTime) {
       thinkingTime
     }
   );
+
+  document.getElementById("joker-correction").disabled = false;
 }
 
 function startAnswerListener(index) {
@@ -611,6 +715,8 @@ function applyPhaseImmediately(data) {
     const q = questions[index];
     if (!q) return;
 
+    ensureJokersLoaded().then(() => updateJokerButtonUI(q));
+
     // ⭐ Зареждаме снимката
     showImage(questionImage, q.image);
     qText.textContent = `${index+1}. ${q.question}`;
@@ -619,6 +725,9 @@ function applyPhaseImmediately(data) {
     letterInput.disabled = false;
     letterInput.classList.remove("submitted");
     submitBtn.disabled = false;
+
+    jokerStatusNote("");
+    updateJokerButtonUI(q);
 
     answeredNames.innerHTML = "";
     answeredList.style.display = "block";
@@ -631,6 +740,48 @@ function applyPhaseImmediately(data) {
     };
     letterInput.oninput = () => {
       letterInput.value = letterInput.value.slice(0, 1).toUpperCase();
+    };
+
+    document.getElementById("joker-syllable2").onclick = async () => {
+      if (playerJokers.syllable2) return;
+      const syll = (q.syllable2 || "").trim();
+
+      playerJokers.syllable2 = true;
+      jokerStatusNote(syll ? `🔤 Втора сричка: "${syll}"` : `🔤 Думата няма втора сричка.`);
+      updateJokerButtonUI(q);
+
+      try {
+        await setDoc(
+          doc(db, "games", "fotomania", "episodes", episodeId, "results", player),
+          { exists: true, jokers: playerJokers },
+          { merge: true }
+        );
+      } catch(e) {}
+    };
+
+    document.getElementById("joker-correction").onclick = async () => {
+      if (submitBtn.disabled === false) return; // все още не е отговорил
+      playerJokers.correction = (playerJokers.correction || 0) + 1;
+
+      letterInput.value = "";
+      letterInput.disabled = false;
+      letterInput.classList.remove("submitted");
+      submitBtn.disabled = false;
+      document.getElementById("joker-correction").disabled = true;
+
+      try {
+        await deleteDoc(
+          doc(db, "games", "fotomania", "episodes", episodeId, "results", player, "answers", String(index))
+        );
+      } catch(e) {}
+
+      await setDoc(
+        doc(db, "games", "fotomania", "episodes", episodeId, "results", player),
+        { jokers: playerJokers },
+        { merge: true }
+      );
+
+      jokerStatusNote("🔁 Поправка използвана — въведи буквата наново.");
     };
 
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
