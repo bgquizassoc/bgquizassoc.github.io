@@ -157,6 +157,7 @@
     <p>Трябва да маркирате име от лявата колона и съответстващото му име от дясната.</p>
     <p>Време за мислене — <strong>2 минути</strong> за целия кръг (тема).</p>
     <p>Точкуване — по <strong>1 точка</strong> на верен чифт. При 10 верни получавате <strong>бонус 3 точки</strong>.</p>
+    <p>🔁 <strong>Поправка</strong> — неограничена, маха само последния чифт, който сте направили.</p>
   </div>
   <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
   <p style="margin-top:8px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
@@ -176,6 +177,7 @@
     <div class="match-col" id="rightCol"></div>
   </div>
   <div id="pairsDisplay"></div>
+  <button id="correctionBtn" style="background:#0d47a1;color:#fff;border:2px solid #1565c0;" disabled>🔁 Поправка (маха последния чифт)</button>
   <div id="answeredList" style="display:none;">
     <strong>Завършили:</strong>
     <div id="answeredNames"></div>
@@ -308,6 +310,14 @@ historyBtn.onclick = () => {
 document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
   if (!player) return alert("Въведете две имена!");
+
+  try {
+    const res = await fetch("questions.json");
+    questions = await res.json();
+    const themesStr = questions.map(q => q.title || "").filter(Boolean).join(", ");
+    if (themesStr) lobbyThemes.textContent = "Темите днес са: " + themesStr;
+  } catch(e) {}
+
   ready = true;
   showOnly(waitingScreen);
   globalTimer.style.display = "none";
@@ -325,10 +335,12 @@ function buildMatchUI(q, startTime) {
   pairs         = [];
   submitted     = false;
   lastClickTime = null;
+  currentStartTime = startTime;
   pairsDisplay.innerHTML   = "";
   scoreDisplay.textContent = "";
   answeredNames.innerHTML  = "";
   answeredList.style.display = "block";
+  document.getElementById("correctionBtn").disabled = true;
   roundTitle.textContent = q.title || "Чифтосване";
 
   const leftItems  = [...q.left].sort();
@@ -392,13 +404,41 @@ function selectRight(el, value, startTime) {
 
   selectedLeft = null;
   scoreDisplay.textContent = `Чифтосани: ${pairs.length} / ${leftCol.children.length}`;
+  document.getElementById("correctionBtn").disabled = false;
 
   // ⭐ Записваме веднага след всяко кликане
   saveCurrentPairs(currentIndex, startTime);
 }
 
+// ⭐ Поправка — маха САМО последния направен чифт, не всичко
+function undoLastPair() {
+  if (submitted) return;
+  if (pairs.length === 0) return;
+
+  const last = pairs.pop();
+
+  const leftEl  = [...leftCol.querySelectorAll(".match-item")].find(e => e.dataset.value === last.left);
+  const rightEl = [...rightCol.querySelectorAll(".match-item")].find(e => e.dataset.value === last.right);
+  [leftEl, rightEl].forEach(el => {
+    if (!el) return;
+    el.classList.remove("matched");
+    el.style.background = "";
+    el.style.borderColor = "";
+  });
+
+  if (pairsDisplay.lastElementChild) pairsDisplay.removeChild(pairsDisplay.lastElementChild);
+
+  scoreDisplay.textContent = `Чифтосани: ${pairs.length} / ${leftCol.children.length}`;
+  document.getElementById("correctionBtn").disabled = pairs.length === 0;
+
+  saveCurrentPairs(currentIndex, currentStartTime);
+}
+
+document.getElementById("correctionBtn").onclick = undoLastPair;
+
 /* ⭐ currentIndex за достъп навсякъде */
 let currentIndex = 0;
+let currentStartTime = null;
 
 /* ⭐ Записваме след всяко кликане — не чакаме края */
 async function saveCurrentPairs(index, startTime) {
@@ -680,7 +720,6 @@ onSnapshot(doc(db, "games", "chift", "state", "current"), async snap => {
   lastPhaseSnapshot = data;
   episodeId = data.episodeId;
   if (!episodeId) return;
-  if (data.questions && data.questions.length > 0) questions = data.questions;
 
   if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
     if (lobbyUnsub) lobbyUnsub();
