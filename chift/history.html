@@ -85,10 +85,13 @@ if (!episodeId || !player) {
 
 async function loadHistory() {
   // Вземаме въпросите от state документа
-  const stateDoc = await getDoc(doc(db, "games", "chift", "state", "current"));
   let questions = [];
-  if (stateDoc.exists() && stateDoc.data().questions) {
-    questions = stateDoc.data().questions;
+  try {
+    const res = await fetch("questions.json");
+    questions = await res.json();
+  } catch(e) {
+    summary.textContent = "Не мога да заредя въпросите.";
+    return;
   }
 
   // Вземаме отговорите на играча
