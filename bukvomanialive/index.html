@@ -388,6 +388,11 @@ const LATIN_TO_CYRILLIC = {
   "K":"К","M":"М","O":"О","P":"Р","T":"Т","X":"Х","Y":"У"
 };
 
+// ⭐ Превръща ***текст*** в удебелен HTML (за акцентиране на ключови думи от въпроса)
+function formatQuestionText(text) {
+  return (text || "").replace(/\*\*\*(.+?)\*\*\*/g, '<span style="color:#ffd100; font-weight:bold;">$1</span>');
+}
+
 function normalizeLetter(letter) {
   const upper = letter.toUpperCase();
   return LATIN_TO_CYRILLIC[upper] || upper;
@@ -692,7 +697,7 @@ function applyPhaseImmediately(data) {
 
     ensureJokersLoaded().then(() => updateJokerButtonUI(q));
 
-    qText.textContent = `${index+1}. ${q.question}`;
+    qText.innerHTML = formatQuestionText(`${index+1}. ${q.question}`);
 
     letterInput.value = "";
     letterInput.disabled = false;
