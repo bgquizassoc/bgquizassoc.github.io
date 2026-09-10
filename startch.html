@@ -20,23 +20,19 @@
   .field-row label { display:inline-block; width:200px; text-align:right; margin-right:10px; }
   .section {
     background:rgba(255,255,255,0.06); border-radius:12px;
-    padding:15px; margin:15px auto; max-width:600px; text-align:left;
+    padding:15px; margin:15px auto; max-width:500px; text-align:left;
   }
   .section h3 { color:#ffd100; margin-bottom:10px; text-align:center; }
-  textarea {
-    width:100%; padding:8px; border-radius:8px; border:none;
-    background:#002a55; color:white; font-size:0.95em; resize:vertical;
-  }
   #statusMsg { margin-top:15px; color:#00e676; font-size:1.1em; }
-  .round-block {
-    background:rgba(255,255,255,0.04); border-radius:8px;
-    padding:12px; margin-bottom:12px;
+  #log {
+    margin-top: 20px; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;
+    background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px;
+    font-size: 0.9em; line-height: 1.6; max-height: 300px; overflow-y: auto;
   }
-  .round-label { color:#ffd100; font-weight:bold; margin-bottom:8px; }
 </style>
 </head>
 <body>
-<h1>🔗 Старт на Куиз Чифтосване 1-1</h1>
+<h1>🔗 Старт на Куиз Чифтосване</h1>
 
 <div class="field-row">
   <label>Епизод:</label>
@@ -46,23 +42,10 @@
   <label>Час за старт:</label>
   <input type="time" id="startTime">
 </div>
-<div class="field-row">
-  <label>Теми (за лобито):</label>
-  <input id="themes" placeholder="Градове, Псевдоними..." style="width:280px;">
-</div>
-
-<div class="section">
-  <h3>🔗 Кръгове с двойки</h3>
-  <p style="font-size:0.9em;opacity:0.8;margin-bottom:10px;text-align:center;">
-    Формат: <code>Ляво → Дясно</code> или <code>Ляво [Tab] Дясно</code> — по един на ред
-  </p>
-  <div id="roundsContainer"></div>
-  <button onclick="addRound()" style="background:#003d7a;color:white;border:1px solid #00509e;">+ Добави кръг</button>
-</div>
 
 <div class="section">
   <h3>⏱ Времена (секунди)</h3>
-  <div class="field-row"><label>Въпрос:</label><input id="tQ" type="number" value="120" style="width:80px;"></div>
+  <div class="field-row"><label>Въпрос (кръг):</label><input id="tQ" type="number" value="120" style="width:80px;"></div>
   <div class="field-row"><label>Резултати:</label><input id="tRes" type="number" value="30" style="width:80px;"></div>
   <div class="field-row"><label>Класиране за кръга:</label><input id="tQRank" type="number" value="20" style="width:80px;"></div>
   <div class="field-row"><label>Общо класиране:</label><input id="tRank" type="number" value="30" style="width:80px;"></div>
@@ -71,11 +54,12 @@
 <br>
 <button id="startBtn">🚀 СТАРТ</button>
 <div id="statusMsg"></div>
+<div id="log"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, deleteDoc, serverTimestamp
+  getFirestore, doc, setDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -90,88 +74,70 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const LOBBY_TIME = 1000;
-let roundCount = 0;
+const GAME_ID = "chift";
+const LOBBY_TIME = 10000; // ⚠️ преди беше 1000 (1 сек.) в стария файл — вероятно печатна грешка, върнах на нормалните 10 сек.
 
-window.addRound = function() {
-  roundCount++;
-  const container = document.getElementById("roundsContainer");
-  const div = document.createElement("div");
-  div.className = "round-block";
-  div.innerHTML = `
-    <div class="round-label">Кръг ${roundCount}</div>
-    <div style="margin-bottom:8px;">
-      <label style="color:#7fffd4;">Заглавие на кръга:</label>
-      <input class="round-title" placeholder="БГ Градове и древните им имена" style="width:280px;display:block;margin-top:4px;background:#002a55;color:white;padding:8px;border-radius:6px;border:none;">
-    </div>
-    <textarea class="round-pairs" rows="11"
-      placeholder="Поморие → Анхиало&#10;Созопол → Аполония&#10;..."></textarea>
-  `;
-  container.appendChild(div);
-};
-addRound();
+let questions = [];
 
-function parsePairs(text) {
-  const pairs = {};
-  const left = [], right = [];
-  text.split("\n").forEach(line => {
-    line = line.trim();
-    if (!line) return;
-    let l, r;
-    if (line.includes("→")) {
-      const parts = line.split("→");
-      l = parts[0].trim(); r = parts[1]?.trim();
-    } else if (line.includes("\t")) {
-      const parts = line.split("\t");
-      l = parts[0].trim(); r = parts[1]?.trim();
-    }
-    if (l && r) { pairs[l] = r; left.push(l); right.push(r); }
-  });
-  return { pairs, left, right };
+function log(msg) {
+  const el = document.getElementById("log");
+  const line = document.createElement("div");
+  line.textContent = `[${new Date().toLocaleTimeString('bg-BG')}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  console.log(msg);
+}
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+async function loadQuestions() {
+  const res = await fetch("chift/questions.json");
+  questions = await res.json();
+  log(`Заредени ${questions.length} кръга: ${questions.map(q => q.title).join(", ")}`);
 }
 
 async function setState(ep, index, phase, durationMs, extra = {}) {
   await setDoc(
-    doc(db, "games", "chift", "state", "current"),
-    { episodeId: ep, index, phase, startTime: serverTimestamp(), duration: durationMs, ...extra },
+    doc(db, "games", GAME_ID, "state", "current"),
+    { episodeId: ep, index, phase, startTime: Date.now(), duration: durationMs, ...extra },
     { merge: false }
   );
 }
 
 async function resetState() {
-  try { await deleteDoc(doc(db, "games", "chift", "state", "current")); } catch(e) {}
+  try { await deleteDoc(doc(db, "games", GAME_ID, "state", "current")); } catch(e) {}
 }
 
-async function runGame(ep, rounds, times) {
+async function runGame(ep, times) {
   const { tQ, tRes, tQRank, tRank } = times;
-  let t = 0;
 
-  rounds.forEach((round, i) => {
-    setTimeout(() => setState(ep, i, "question",   tQ * 1000,     { questions: rounds }), t); t += tQ * 1000;
-    setTimeout(() => setState(ep, i, "results",    tRes * 1000,   { questions: rounds }), t); t += tRes * 1000;
-    setTimeout(() => setState(ep, i, "q-ranking",  tQRank * 1000, { questions: rounds }), t); t += tQRank * 1000;
-    setTimeout(() => setState(ep, i, "ranking",    tRank * 1000,  { questions: rounds }), t); t += tRank * 1000;
-  });
+  for (let i = 0; i < questions.length; i++) {
+    log(`Кръг ${i + 1}/${questions.length}: ${questions[i].title}`);
+
+    await setState(ep, i, "question", tQ * 1000);
+    await sleep(tQ * 1000);
+
+    await setState(ep, i, "results", tRes * 1000);
+    await sleep(tRes * 1000);
+
+    await setState(ep, i, "q-ranking", tQRank * 1000);
+    await sleep(tQRank * 1000);
+
+    const isFinal = i === questions.length - 1;
+    await setState(ep, i, "ranking", tRank * 1000, { isFinal });
+    await sleep(tRank * 1000);
+  }
+
+  log("Играта приключи.");
 }
 
 document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
   const startTimeRaw = document.getElementById("startTime").value;
-  const themes = document.getElementById("themes").value.trim();
   const statusMsg = document.getElementById("statusMsg");
 
   if (!ep) return alert("Въведи епизод!");
   if (!startTimeRaw) return alert("Избери час!");
-
-  const rounds = [];
-  document.querySelectorAll("#roundsContainer .round-block").forEach((div, i) => {
-    const title = div.querySelector(".round-title")?.value.trim() || `Кръг ${i+1}`;
-    const pairsText = div.querySelector(".round-pairs")?.value || "";
-    const { pairs, left, right } = parsePairs(pairsText);
-    if (Object.keys(pairs).length > 0) rounds.push({ title, pairs, left, right });
-  });
-
-  if (rounds.length === 0) return alert("Добави поне един кръг с двойки!");
 
   const times = {
     tQ:     Number(document.getElementById("tQ").value),
@@ -188,14 +154,27 @@ document.getElementById("startBtn").onclick = async () => {
   const prestartDuration = startAt - Date.now() - LOBBY_TIME;
   if (prestartDuration < 0) return alert("Часът е твърде близо!");
 
-  await resetState();
-  await setState(ep, 0, "lobby", LOBBY_TIME, { questions: rounds, themes });
-  setTimeout(() => setState(ep, 0, "prestart", prestartDuration, { questions: rounds, themes }), LOBBY_TIME);
-  setTimeout(() => runGame(ep, rounds, times), LOBBY_TIME + prestartDuration);
+  document.getElementById("startBtn").disabled = true;
 
-  const h = Math.floor(prestartDuration / 3600000);
-  const m = Math.floor((prestartDuration % 3600000) / 60000);
-  statusMsg.textContent = `✅ Стартирано! Престарт ${h > 0 ? h + "ч " : ""}${m}мин → Старт в ${startTimeRaw}`;
+  await loadQuestions();
+  if (questions.length === 0) {
+    alert("questions.json е празен или не се зареди!");
+    document.getElementById("startBtn").disabled = false;
+    return;
+  }
+
+  await resetState();
+  await setState(ep, 0, "lobby", LOBBY_TIME);
+  log(`Лоби (10 сек.) → престарт → старт в ${startTimeRaw}`);
+
+  await sleep(LOBBY_TIME);
+  await setState(ep, 0, "prestart", prestartDuration);
+  await sleep(prestartDuration);
+
+  log("Играта започва!");
+  await runGame(ep, times);
+
+  statusMsg.textContent = `✅ Епизод "${ep}" приключи.`;
 };
 </script>
 </body>
