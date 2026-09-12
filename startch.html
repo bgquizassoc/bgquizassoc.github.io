@@ -43,14 +43,6 @@
   <input type="time" id="startTime">
 </div>
 
-<div class="section">
-  <h3>⏱ Времена (секунди)</h3>
-  <div class="field-row"><label>Въпрос (кръг):</label><input id="tQ" type="number" value="120" style="width:80px;"></div>
-  <div class="field-row"><label>Резултати:</label><input id="tRes" type="number" value="30" style="width:80px;"></div>
-  <div class="field-row"><label>Класиране за кръга:</label><input id="tQRank" type="number" value="20" style="width:80px;"></div>
-  <div class="field-row"><label>Общо класиране:</label><input id="tRank" type="number" value="30" style="width:80px;"></div>
-</div>
-
 <br>
 <button id="startBtn">🚀 СТАРТ</button>
 <div id="statusMsg"></div>
@@ -75,7 +67,13 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const GAME_ID = "chift";
-const LOBBY_TIME = 10000; // ⚠️ преди беше 1000 (1 сек.) в стария файл — вероятно печатна грешка, върнах на нормалните 10 сек.
+
+// ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) =====
+const LOBBY_TIME = 10000;   // 10 сек. лоби
+const Q          = 120000;  // 2 мин. за самия кръг (чифтосване)
+const RES        = 30000;   // резултати от кръга
+const Q_RANKING  = 20000;   // класиране за конкретния кръг
+const RANK       = 30000;   // общо класиране
 
 let questions = [];
 
@@ -92,7 +90,18 @@ function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 async function loadQuestions() {
   const res = await fetch("chift/questions.json");
-  questions = await res.json();
+  if (!res.ok) {
+    throw new Error(`questions.json не се зареди (HTTP ${res.status}) — провери дали пътят "chift/questions.json" е верен.`);
+  }
+  const text = await res.text();
+  try {
+    questions = JSON.parse(text);
+  } catch(e) {
+    throw new Error(`questions.json има синтактична грешка в самия JSON: ${e.message}. Провери го в jsonlint.com преди да пуснеш пак.`);
+  }
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new Error("questions.json се зареди, но е празен или не е масив от кръгове.");
+  }
   log(`Заредени ${questions.length} кръга: ${questions.map(q => q.title).join(", ")}`);
 }
 
@@ -108,24 +117,22 @@ async function resetState() {
   try { await deleteDoc(doc(db, "games", GAME_ID, "state", "current")); } catch(e) {}
 }
 
-async function runGame(ep, times) {
-  const { tQ, tRes, tQRank, tRank } = times;
-
+async function runGame(ep) {
   for (let i = 0; i < questions.length; i++) {
     log(`Кръг ${i + 1}/${questions.length}: ${questions[i].title}`);
 
-    await setState(ep, i, "question", tQ * 1000);
-    await sleep(tQ * 1000);
+    await setState(ep, i, "question", Q);
+    await sleep(Q);
 
-    await setState(ep, i, "results", tRes * 1000);
-    await sleep(tRes * 1000);
+    await setState(ep, i, "results", RES);
+    await sleep(RES);
 
-    await setState(ep, i, "q-ranking", tQRank * 1000);
-    await sleep(tQRank * 1000);
+    await setState(ep, i, "q-ranking", Q_RANKING);
+    await sleep(Q_RANKING);
 
     const isFinal = i === questions.length - 1;
-    await setState(ep, i, "ranking", tRank * 1000, { isFinal });
-    await sleep(tRank * 1000);
+    await setState(ep, i, "ranking", RANK, { isFinal });
+    await sleep(RANK);
   }
 
   log("Играта приключи.");
@@ -135,16 +142,10 @@ document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
   const startTimeRaw = document.getElementById("startTime").value;
   const statusMsg = document.getElementById("statusMsg");
+  const startBtn = document.getElementById("startBtn");
 
   if (!ep) return alert("Въведи епизод!");
   if (!startTimeRaw) return alert("Избери час!");
-
-  const times = {
-    tQ:     Number(document.getElementById("tQ").value),
-    tRes:   Number(document.getElementById("tRes").value),
-    tQRank: Number(document.getElementById("tQRank").value),
-    tRank:  Number(document.getElementById("tRank").value)
-  };
 
   const [hh, mm] = startTimeRaw.split(":").map(Number);
   const now = new Date();
@@ -154,27 +155,38 @@ document.getElementById("startBtn").onclick = async () => {
   const prestartDuration = startAt - Date.now() - LOBBY_TIME;
   if (prestartDuration < 0) return alert("Часът е твърде близо!");
 
-  document.getElementById("startBtn").disabled = true;
+  startBtn.disabled = true;
+  startBtn.textContent = "Зареждам въпросите…";
 
-  await loadQuestions();
-  if (questions.length === 0) {
-    alert("questions.json е празен или не се зареди!");
-    document.getElementById("startBtn").disabled = false;
+  try {
+    await loadQuestions();
+  } catch(e) {
+    alert("⚠️ ГРЕШКА: " + e.message);
+    log("⚠️ ГРЕШКА при зареждане: " + e.message);
+    startBtn.disabled = false;
+    startBtn.textContent = "🚀 СТАРТ";
     return;
   }
 
-  await resetState();
-  await setState(ep, 0, "lobby", LOBBY_TIME);
-  log(`Лоби (10 сек.) → престарт → старт в ${startTimeRaw}`);
+  startBtn.textContent = "Играта тече…";
 
-  await sleep(LOBBY_TIME);
-  await setState(ep, 0, "prestart", prestartDuration);
-  await sleep(prestartDuration);
+  try {
+    await resetState();
+    await setState(ep, 0, "lobby", LOBBY_TIME);
+    log(`Лоби (10 сек.) → престарт → старт в ${startTimeRaw}`);
 
-  log("Играта започва!");
-  await runGame(ep, times);
+    await sleep(LOBBY_TIME);
+    await setState(ep, 0, "prestart", prestartDuration);
+    await sleep(prestartDuration);
 
-  statusMsg.textContent = `✅ Епизод "${ep}" приключи.`;
+    log("Играта започва!");
+    await runGame(ep);
+
+    statusMsg.textContent = `✅ Епизод "${ep}" приключи.`;
+  } catch(e) {
+    alert("⚠️ ГРЕШКА по време на играта: " + e.message);
+    log("⚠️ ГРЕШКА по време на играта: " + e.message);
+  }
 };
 </script>
 </body>
