@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<title>Старт на Куиз Микс 456</title>
+<style>
+  body { background:#001a33; color:white; text-align:center; padding:40px; font-family:Arial; }
+  button {
+    padding:15px 30px; font-size:1.4em; border:none; border-radius:10px;
+    background:#ffd100; color:#111; font-weight:bold; cursor:pointer;
+  }
+  input { padding:10px; font-size:1.2em; border-radius:8px; border:none; margin-bottom:20px; width:200px; text-align:center; }
+  .field-row { margin: 10px 0; font-size: 1.1em; }
+  .field-row label { display: inline-block; width: 220px; text-align: right; margin-right: 10px; }
+  #log {
+    margin-top: 30px; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;
+    background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px;
+    font-size: 0.9em; line-height: 1.6; max-height: 400px; overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+<h1>🎬 Старт на Куиз Микс 456</h1>
+
+<div class="field-row">
+  <label>Име на епизод:</label>
+  <input id="ep" placeholder="пример: mix456-1">
+</div>
+
+<div class="field-row">
+  <label>Час за старт на играта:</label>
+  <input type="time" id="startTime">
+</div>
+
+<br>
+<button id="startBtn">СТАРТ</button>
+
+<div id="log"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, deleteDoc, getDoc, getDocs, collection
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const GAME_ID = "quizmix456";
+
+// ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) =====
+const LOBBY_TIME   = 10000;   // 10 сек. общо лоби (вход с код)
+
+const LOBBY_TIME4  = 60000;   // 60 сек. обяснение за кръг 4 (Фотомания)
+const Q4           = 20000;   // време за въпрос, кръг 4
+const EXPL4        = 15000;
+const RANK4        = 15000;
+
+const LOBBY_TIME5  = 60000;   // 60 сек. обяснение за кръг 5 (Цифромания)
+const Q5           = 20000;
+const EXPL5        = 15000;
+const RANK5        = 15000;
+
+const LOBBY_TIME6  = 60000;   // 60 сек. обяснение за кръг 6 (Чифтосване)
+const CHOOSE_TIME  = 20000;   // 20 сек. за избор на тема от последния в класирането
+const CHOOSE_REVEAL= 5000;    // кратка пауза, темата свети
+const Q6           = 90000;   // 90 сек. за самото чифтосване
+const RESULTS6     = 15000;
+
+const FINAL_RANK   = 30000;   // финално класиране (по-дълго, отделна музика)
+
+let questions4 = [], questions5 = [], questions6 = [];
+
+function log(msg) {
+  const el = document.getElementById("log");
+  const line = document.createElement("div");
+  line.textContent = `[${new Date().toLocaleTimeString('bg-BG')}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  console.log(msg);
+}
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 233280;
+}
+
+async function loadAllQuestions() {
+  const [r4, r5, r6] = await Promise.all([
+    fetch("questions4.json").then(r => r.json()),
+    fetch("questions5.json").then(r => r.json()),
+    fetch("questions6.json").then(r => r.json())
+  ]);
+  questions4 = r4; questions5 = r5; questions6 = r6;
+  log(`Заредени въпроси: кръг4=${questions4.length}, кръг5=${questions5.length}, теми кръг6=${questions6.length}`);
+}
+
+async function setState(ep, phase, duration, extra = {}) {
+  await setDoc(
+    doc(db, "games", GAME_ID, "state", "current"),
+    { episodeId: ep, phase, startTime: Date.now(), duration, ...extra },
+    { merge: false }
+  );
+}
+
+async function resetState() {
+  try { await deleteDoc(doc(db, "games", GAME_ID, "state", "current")); } catch(e) {}
+}
+
+// ⭐ Изчислява текущото класиране (кръгове 4 и 5, докато тече играта) — за избор на тема преди кръг 6
+function computeCashInBonus(jokers) {
+  const j = jokers || {};
+  let bonus = 0;
+  if (!j.r4_syllable2) bonus += 1;
+  return bonus;
+}
+
+async function computeStandings(ep, isFinal) {
+  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results"));
+
+  const perPlayer = await Promise.all(playersSnap.docs.map(async playerDoc => {
+    const name = playerDoc.id;
+    const answersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results", name, "answers"));
+
+    let totalPoints = 0, totalTime = 0, r4Correct = 0, r5Perfect = 0;
+
+    answersSnap.forEach(ansDoc => {
+      const id = ansDoc.id;
+      const data = ansDoc.data();
+      if (id.startsWith("r4-")) {
+        if (data.isCorrect) { totalPoints += 4; r4Correct++; }
+      } else if (id.startsWith("r5-")) {
+        totalPoints += (data.points || 0);
+        if (data.points === 5) r5Perfect++;
+      } else if (id.startsWith("r6-")) {
+        totalPoints += (data.total || 0);
+      }
+      if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
+    });
+
+    if (r4Correct === 10) totalPoints += 3;
+    if (r5Perfect === 10) totalPoints += 3;
+
+    const jokersData = playerDoc.data().jokers || {};
+    if (isFinal) totalPoints += computeCashInBonus(jokersData);
+
+    return { name, points: Math.round(totalPoints * 100) / 100, time: totalTime };
+  }));
+
+  return perPlayer.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (a.time !== b.time) return a.time - b.time;
+    return a.name.localeCompare(b.name, "bg");
+  });
+}
+
+// ⭐ Изпълнява кръг 4 или 5: обяснение → 10 въпроса (question→explanation→ranking)
+async function runStandardRound(ep, round, questions, Q, EXPL, RANK, introTime) {
+  log(`=== Кръг ${round}: обяснение (${introTime/1000} сек.) ===`);
+  await setState(ep, "roundIntro", introTime, { round });
+  await sleep(introTime);
+
+  for (let i = 0; i < questions.length; i++) {
+    log(`Кръг ${round}, въпрос ${i+1}/${questions.length}`);
+
+    await setState(ep, "question", Q, { round, index: i });
+    await sleep(Q);
+
+    await setState(ep, "explanation", EXPL, { round, index: i });
+    await sleep(EXPL);
+
+    await setState(ep, "ranking", RANK, { round, index: i, isFinal: false });
+    await sleep(RANK);
+  }
+}
+
+// ⭐ Кръг 6: обяснение → избор на тема от последния в класирането → разкриване → чифтосване (1 кръг) → резултати
+async function runRound6(ep) {
+  log(`=== Кръг 6: обяснение (${LOBBY_TIME6/1000} сек.) ===`);
+  await setState(ep, "roundIntro", LOBBY_TIME6, { round: 6 });
+  await sleep(LOBBY_TIME6);
+
+  const standings = await computeStandings(ep, false);
+  if (standings.length === 0) {
+    log("⚠️ Няма играчи в класирането — темата ще бъде избрана на случаен принцип.");
+  }
+  const chooserName = standings.length ? standings[standings.length - 1].name : null;
+  log(`Избиращ темата (последен в класирането): ${chooserName || "—"}`);
+
+  const slotId = "r6-choice";
+  try { await deleteDoc(doc(db, "games", GAME_ID, "episodes", ep, "choicePicks", slotId)); } catch(e) {}
+
+  await setState(ep, "choose", CHOOSE_TIME, {
+    round: 6, slotId, chooserName,
+    frozenRanking: standings
+  });
+  await sleep(CHOOSE_TIME);
+
+  let chosenTopic = null, autoChosen = false;
+  try {
+    const snap = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "choicePicks", slotId));
+    if (snap.exists()) chosenTopic = snap.data().topic;
+  } catch(e) {}
+
+  if (!chosenTopic) {
+    autoChosen = true;
+    const seed = hashString(ep + slotId);
+    const idx = Math.floor((seed / 233280) * questions6.length);
+    chosenTopic = questions6[idx] ? questions6[idx].title : questions6[0].title;
+  }
+  log(`Избрана тема за кръг 6: "${chosenTopic}"${autoChosen ? " (автоматично, времето изтече)" : ""}`);
+
+  await setState(ep, "choose-reveal", CHOOSE_REVEAL, {
+    round: 6, chosenTopic, chooserName, autoChosen, frozenRanking: standings
+  });
+  await sleep(CHOOSE_REVEAL);
+
+  await setState(ep, "question", Q6, { round: 6, index: 0, chosenTopic });
+  await sleep(Q6);
+
+  await setState(ep, "results", RESULTS6, { round: 6, index: 0, chosenTopic });
+  await sleep(RESULTS6);
+}
+
+async function runGame(ep) {
+  await loadAllQuestions();
+
+  await runStandardRound(ep, 4, questions4, Q4, EXPL4, RANK4, LOBBY_TIME4);
+  await runStandardRound(ep, 5, questions5, Q5, EXPL5, RANK5, LOBBY_TIME5);
+  await runRound6(ep);
+
+  log("Играта приключи — финално класиране.");
+  await setState(ep, "finalRanking", FINAL_RANK, { isFinal: true });
+}
+
+document.getElementById("startBtn").onclick = async () => {
+  const ep = document.getElementById("ep").value.trim();
+  const startTimeRaw = document.getElementById("startTime").value;
+
+  if (!ep) return alert("Въведи име на епизод!");
+  if (!startTimeRaw) return alert("Избери час за старт!");
+
+  const [hh, mm] = startTimeRaw.split(":").map(Number);
+  const now = new Date();
+  let startAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0).getTime();
+  if (startAt <= Date.now()) startAt += 24 * 60 * 60 * 1000;
+
+  const prestartDuration = startAt - Date.now() - LOBBY_TIME;
+  if (prestartDuration < 0) return alert("Избраният час е твърде близо! Избери по-късен час.");
+
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("startBtn").textContent = "Играта тече…";
+
+  await resetState();
+  await setState(ep, "lobby", LOBBY_TIME, {});
+  log(`Лоби (10 сек.) → престарт → старт в ${startTimeRaw}`);
+
+  await sleep(LOBBY_TIME);
+  await setState(ep, "prestart", prestartDuration, {});
+  await sleep(prestartDuration);
+
+  log("Играта започва!");
+  await runGame(ep);
+};
+</script>
+</body>
+</html>
