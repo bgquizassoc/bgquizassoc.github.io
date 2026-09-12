@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История – Куиз Сараево</title>
+  <style>
+    body {
+      background: #0a1a3a; color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px; max-width: 900px; margin: auto; line-height: 1.6;
+    }
+    h1 { color: #7fffd4; text-align: center; margin-bottom: 5px; }
+    #playerTitle { text-align: center; color: #ffd100; font-size: 1.2em; margin-bottom: 20px; }
+    #summary {
+      text-align: center; margin-bottom: 25px; font-size: 1.2em;
+      color: #ffd100; font-weight: bold;
+      background: rgba(255,215,0,0.1); padding: 12px; border-radius: 10px;
+    }
+
+    .round-block {
+      margin-bottom: 30px; padding: 15px;
+      border-radius: 12px; background: rgba(255,255,255,0.06);
+      border-left: 6px solid #ffd100;
+    }
+    .round-title-h {
+      color: #ffd100; font-size: 1.2em; font-weight: bold; margin-bottom: 12px;
+    }
+    .round-score {
+      color: #ffd100; font-weight: bold; float: right; font-size: 1em;
+    }
+
+    .q-block {
+      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .q-block:last-child { border-bottom: none; }
+
+    .q-text { font-size: 0.95em; color: #cce8ff; margin-bottom: 5px; }
+    .q-text em { color: #ffd100; font-style: normal; font-weight: bold; }
+
+    .q-my { font-size: 0.9em; margin: 3px 0; }
+    .q-correct-ans { font-size: 0.9em; color: #00e676; font-weight: bold; }
+    .q-explanation { font-size: 0.85em; color: #aaddff; margin-top: 4px; font-style: italic; }
+
+    .badge-correct { color: #00e676; font-weight: bold; }
+    .badge-wrong   { color: #ff5252; font-weight: bold; }
+
+    .copy-btn {
+      display: block; margin: 20px auto 10px;
+      padding: 10px 25px; background: #003d7a;
+      color: white; border: 1px solid #00509e;
+      border-radius: 8px; font-size: 1em; cursor: pointer;
+    }
+    .copy-btn:hover { background: #004a9f; }
+
+    .backBtn {
+      display: block; margin: 10px auto 30px;
+      padding: 12px 30px; background: #ffd100;
+      color: #003344; border: none; border-radius: 8px;
+      font-size: 1.2em; cursor: pointer; font-weight: bold; width: 200px;
+    }
+    .backBtn:hover { background: #ffcc33; }
+
+    #copyNotice { color: #00e676; font-size: 0.9em; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+<h1>🏆 История – Куиз Сараево</h1>
+<div id="playerTitle"></div>
+<div id="summary">Зареждане...</div>
+<div id="content"></div>
+
+<button class="copy-btn" id="copyBtn">📋 Копирай за анализ</button>
+<div id="copyNotice"></div>
+<button class="backBtn" onclick="window.history.back()">Назад</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const params    = new URLSearchParams(window.location.search);
+const episodeId = params.get("episodeId");
+const player    = params.get("player");
+
+document.getElementById("playerTitle").textContent = "Играч: " + player;
+const summary = document.getElementById("summary");
+const content = document.getElementById("content");
+
+function formatQuestion(text) {
+  return text.replace(/\*\*\*(.*?)\*\*\*/g, '<em>$1</em>');
+}
+
+function formatQuestionPlain(text) {
+  return text.replace(/\*\*\*(.*?)\*\*\*/g, '$1');
+}
+
+if (!episodeId || !player) {
+  summary.textContent = "Липсва информация.";
+  throw new Error("Missing params");
+}
+
+let copyText = "";
+
+async function loadHistory() {
+  const answersSnap = await getDocs(
+    collection(db, "games", "saraevo", "episodes", episodeId, "results", player, "rounds")
+  );
+
+  if (answersSnap.empty) {
+    summary.textContent = "Нямате записани отговори за този епизод.";
+    return;
+  }
+
+  const rounds = {};
+  answersSnap.forEach(d => rounds[Number(d.id)] = d.data());
+
+  let totalPts = 0;
+  let totalCorrect = 0;
+  const roundCount = Object.keys(rounds).length;
+
+  Object.values(rounds).forEach(r => {
+    totalPts += (r.roundScore || 0);
+    totalCorrect += (r.roundScore || 0);
+  });
+
+  summary.innerHTML = `
+    Общо точки: <strong>${totalPts}</strong> от ${roundCount * 10}
+    &nbsp;|&nbsp; Верни отговори: <strong>${totalCorrect}</strong>
+  `;
+
+  copyText = `Куиз Сараево — ${player}\nЕпизод: ${episodeId}\nОбщо точки: ${totalPts} от ${roundCount * 10}\n\n`;
+
+  let html = "";
+
+  for (let ri = 0; ri < roundCount; ri++) {
+    const round = rounds[ri];
+    if (!round) continue;
+
+    const results = round.results || [];
+    const rScore  = round.roundScore || 0;
+
+    html += `<div class="round-block">
+      <div class="round-title-h">
+        Кръг ${ri + 1}
+        <span class="round-score">${rScore} т.</span>
+      </div>`;
+
+    copyText += `=== Кръг ${ri + 1} (${rScore} т.) ===\n`;
+
+    results.forEach((r, qi) => {
+      const num = ri * 10 + qi + 1;
+      html += `<div class="q-block">
+        <div class="q-text">${num}. ${formatQuestion(r.question)}</div>
+        <div class="q-my">
+          Твоят отговор: <strong>${r.myAnswer || "—"}</strong>
+          <span class="${r.correct ? "badge-correct" : "badge-wrong"}">${r.correct ? " ✔ +1т." : " ✘"}</span>
+        </div>
+        <div class="q-correct-ans">✔ Верен: ${r.correctAnswer}</div>
+        ${r.explanation ? `<div class="q-explanation">${r.explanation}</div>` : ""}
+      </div>`;
+
+      copyText += `${num}. ${formatQuestionPlain(r.question)}\n`;
+      copyText += `   Твоят отговор: ${r.myAnswer || "—"} ${r.correct ? "✔" : "✘"}\n`;
+      copyText += `   Верен: ${r.correctAnswer}\n`;
+      if (r.explanation) copyText += `   ${r.explanation}\n`;
+      copyText += "\n";
+    });
+
+    html += `</div>`;
+    copyText += "\n";
+  }
+
+  content.innerHTML = html;
+}
+
+loadHistory();
+
+document.getElementById("copyBtn").onclick = () => {
+  navigator.clipboard.writeText(copyText).then(() => {
+    document.getElementById("copyNotice").textContent = "✅ Копирано в клипборда!";
+    setTimeout(() => document.getElementById("copyNotice").textContent = "", 3000);
+  }).catch(() => {
+    document.getElementById("copyNotice").textContent = "❌ Не успя — опитай ръчно.";
+  });
+};
+</script>
+</body>
+</html>
