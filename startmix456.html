@@ -102,9 +102,9 @@ function hashString(str) {
 
 async function loadAllQuestions() {
   const [r4, r5, r6] = await Promise.all([
-    fetch("questions4.json").then(r => r.json()),
-    fetch("questions5.json").then(r => r.json()),
-    fetch("questions6.json").then(r => r.json())
+    fetch("quizmix456/questions4.json").then(r => r.json()),
+    fetch("quizmix456/questions5.json").then(r => r.json()),
+    fetch("quizmix456/questions6.json").then(r => r.json())
   ]);
   questions4 = r4; questions5 = r5; questions6 = r6;
   log(`Заредени въпроси: кръг4=${questions4.length}, кръг5=${questions5.length}, теми кръг6=${questions6.length}`);
