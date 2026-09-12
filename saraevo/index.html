@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🏆 Куиз Сараево 🏆</title>
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; overflow-x: hidden; overflow-y: auto; }
+
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    font-size: 16px; font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 900px; margin: 0 auto; padding: 20px;
+    background: #00264d; color: #ffffff;
+  }
+
+  h1 {
+    text-align: center; color: #ffd100;
+    font-size: clamp(1.4em, 4vw, 2em);
+    margin: 10px auto 15px auto;
+    text-shadow: 0 0 5px #ffb400;
+  }
+
+  #start-screen, #waiting-screen, #quiz, #round-results, #final-screen {
+    width: 100%; max-width: 700px; text-align: center;
+    margin-top: 20px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 0 10px rgba(255,209,0,0.2);
+  }
+
+  input[type="text"] {
+    padding: 10px; font-size: 1.1em; border-radius: 8px;
+    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+    text-align: center; background: #001a33; color: #fff;
+  }
+
+  button {
+    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    border-radius: 8px; border: none;
+    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background:#ffcc33; transform:scale(1.05); }
+
+  /* ТАЙМЕР */
+  #globalTimer {
+    text-align: center; font-weight: 800; margin: 10px 0;
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+  }
+  #globalTimer.warning { color: #ff4c4c; }
+
+  /* ЛОБИ */
+  #lobby-instructions {
+    text-align: left; font-size: 1em; line-height: 1.8; color: #cce8ff;
+    margin: 15px 0; background: rgba(255,255,255,0.05);
+    padding: 12px; border-radius: 10px;
+  }
+  #lobby-instructions p { margin-bottom: 6px; }
+  #lobby-instructions strong { color: #ffd100; }
+
+  /* QUIZ */
+  #roundTitle {
+    font-size: 1.2em; color: #ffd100; margin-bottom: 16px; font-weight: bold;
+  }
+
+  .question-block {
+    text-align: left; padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+  .question-block:last-child { border-bottom: none; }
+
+  .question-text {
+    font-size: 1em; line-height: 1.5; margin-bottom: 8px; color: #fff;
+  }
+
+  /* *** текст *** се оцветява */
+  .question-text em {
+    color: #ffd100; font-style: normal; font-weight: bold;
+  }
+
+  .answer-input {
+    width: 100%; padding: 9px 12px; font-size: 1em;
+    border-radius: 8px; border: 2px solid #00509e;
+    background: #001a33; color: #fff; outline: none;
+    transition: 0.15s;
+  }
+  .answer-input:focus { border-color: #ffd100; }
+  .answer-input.correct { border-color: #00e676; background: #0a2a0a; color: #00e676; }
+  .answer-input.wrong   { border-color: #ff5252; background: #2a0a0a; color: #ff5252; }
+  .answer-input:disabled { opacity: 0.8; cursor: default; }
+
+  /* РЕЗУЛТАТИ СЛЕД КРЪГА */
+  .result-block {
+    text-align: left; padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .result-block:last-child { border-bottom: none; }
+  .result-q { font-size: 0.95em; color: #cce8ff; margin-bottom: 4px; }
+  .result-my { font-size: 0.9em; margin: 3px 0; }
+  .result-correct-ans { font-size: 0.9em; color: #00e676; font-weight: bold; }
+  .result-explanation { font-size: 0.85em; color: #aaddff; margin-top: 4px; font-style: italic; }
+  .badge-correct { color: #00e676; font-weight: bold; }
+  .badge-wrong   { color: #ff5252; font-weight: bold; }
+
+  .score-summary {
+    margin-top: 16px; padding: 12px;
+    background: rgba(255,215,0,0.1); border-radius: 8px;
+    font-size: 1.2em; color: #ffd100; font-weight: bold;
+    text-align: center;
+  }
+
+  #historyBtn { margin-top: 20px; background: #00e5ff; color: #003344; }
+  </style>
+</head>
+
+<body>
+<h1>Игри на Знания<br>🏆 Куиз Сараево 🏆<br>епизод 1</h1>
+
+<div id="globalTimer" style="display:none;">-</div>
+
+<!-- СТАРТ -->
+<div id="start-screen">
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="playerName" placeholder="Две имена..." />
+  <button id="enterBtn">Влез в играта</button>
+</div>
+
+<!-- ЧАКАНЕ -->
+<div id="waiting-screen" style="display:none;">
+  <h2 id="waitingTitle">Играта още не е започнала.</h2>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
+  <div id="lobby-instructions">
+    <p><strong>Куиз Сараево</strong> — подготовка за националните състезатели.</p>
+    <p>5 кръга по 10 въпроса — <strong>12 минути</strong> за всеки кръг.</p>
+    <p>Изписвате пълния отговор. Допускат се до <strong>2 печатни грешки</strong>.</p>
+    <p>По <strong>1 точка</strong> за верен отговор.</p>
+  </div>
+</div>
+
+<!-- ВЪПРОСИ -->
+<div id="quiz" style="display:none;">
+  <div id="roundTitle"></div>
+  <div id="questionsContainer"></div>
+  <button id="submitRoundBtn" style="margin-top:20px;width:100%;">Предай отговорите</button>
+</div>
+
+<!-- РЕЗУЛТАТИ ОТ КРЪГА -->
+<div id="round-results" style="display:none;">
+  <h3 id="roundResultsTitle">Резултати — Кръг 1</h3>
+  <div id="roundResultsContainer"></div>
+  <div class="score-summary" id="roundScoreSummary"></div>
+  <p style="margin-top:12px;color:#aaddff;font-size:0.9em;">Следващият кръг започва след: <span id="nextRoundTimer" style="color:#ffd100;font-weight:bold;"></span></p>
+</div>
+
+<!-- ФИНАЛЕН ЕКРАН -->
+<div id="final-screen" style="display:none;">
+  <h3 style="color:#ffd100;">🏆 Играта приключи!</h3>
+  <div class="score-summary" id="finalScore"></div>
+  <button id="historyBtn">История на играта</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, onSnapshot, setDoc, serverTimestamp, collection
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const startScreen    = document.getElementById("start-screen");
+const waitingScreen  = document.getElementById("waiting-screen");
+const quizDiv        = document.getElementById("quiz");
+const roundResultsDiv= document.getElementById("round-results");
+const finalScreen    = document.getElementById("final-screen");
+
+const globalTimer    = document.getElementById("globalTimer");
+const waitingTitle   = document.getElementById("waitingTitle");
+const roundTitle     = document.getElementById("roundTitle");
+const questionsContainer = document.getElementById("questionsContainer");
+const roundResultsTitle  = document.getElementById("roundResultsTitle");
+const roundResultsContainer = document.getElementById("roundResultsContainer");
+const roundScoreSummary  = document.getElementById("roundScoreSummary");
+const nextRoundTimer     = document.getElementById("nextRoundTimer");
+const finalScore         = document.getElementById("finalScore");
+
+let player        = "";
+let questions     = [];
+let ready         = false;
+let timerInterval = null;
+let episodeId     = null;
+let totalScore    = 0;
+let allAnswers    = {}; // { roundIndex: [ {q, myAnswer, correct, pts} ] }
+
+/* ===== LEVENSHTEIN ===== */
+function levenshtein(a, b) {
+  a = a.toLowerCase().trim();
+  b = b.toLowerCase().trim();
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, (_, i) =>
+    Array.from({length: n+1}, (_, j) => i === 0 ? j : j === 0 ? i : 0)
+  );
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function isCorrect(userAnswer, correctAnswer) {
+  if (!userAnswer.trim()) return false;
+  return levenshtein(userAnswer, correctAnswer) <= 2;
+}
+
+/* ===== ФОРМАТИРАНЕ НА ВЪПРОС (***текст*** → жълто) ===== */
+function formatQuestion(text) {
+  return text.replace(/\*\*\*(.*?)\*\*\*/g, '<em>$1</em>');
+}
+
+function showOnly(...divs) {
+  [startScreen, waitingScreen, quizDiv, roundResultsDiv, finalScreen]
+    .forEach(d => d.style.display = "none");
+  divs.forEach(d => d.style.display = "block");
+}
+
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  const dotsEl = document.getElementById("dots");
+  if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
+}, 400);
+
+function formatMMSS(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
+
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  globalTimer.textContent = formatMMSS(remaining);
+  if (remaining <= 30) globalTimer.classList.add("warning");
+  else globalTimer.classList.remove("warning");
+}
+
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете две имена!");
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
+
+document.getElementById("historyBtn").onclick = () => {
+  if (!episodeId) return;
+  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+};
+
+/* ===== СТРОИМ КРЪГА ===== */
+function buildRound(roundIndex, startTime) {
+  const roundQuestions = questions.slice(roundIndex * 10, roundIndex * 10 + 10);
+  roundTitle.textContent = `Кръг ${roundIndex + 1} от 5`;
+  questionsContainer.innerHTML = "";
+
+  roundQuestions.forEach((q, qi) => {
+    const block = document.createElement("div");
+    block.className = "question-block";
+    block.innerHTML = `
+      <div class="question-text">${roundIndex * 10 + qi + 1}. ${formatQuestion(q.question)}</div>
+      <input type="text" class="answer-input" data-qi="${qi}" placeholder="Вашият отговор..." autocomplete="off" />
+    `;
+    questionsContainer.appendChild(block);
+  });
+
+  // Submit бутон
+  const submitBtn = document.getElementById("submitRoundBtn");
+  submitBtn.onclick = () => submitRound(roundIndex, startTime);
+}
+
+/* ===== ПРЕДАВАНЕ НА КРЪГА ===== */
+async function submitRound(roundIndex, startTime) {
+  const roundQuestions = questions.slice(roundIndex * 10, roundIndex * 10 + 10);
+  const inputs = questionsContainer.querySelectorAll(".answer-input");
+
+  // Заключваме
+  inputs.forEach(inp => inp.disabled = true);
+  document.getElementById("submitRoundBtn").disabled = true;
+
+  const results = [];
+  let roundScore = 0;
+
+  inputs.forEach((inp, qi) => {
+    const q = roundQuestions[qi];
+    const myAnswer = inp.value.trim();
+    const correct  = isCorrect(myAnswer, q.answer);
+    const pts = correct ? 1 : 0;
+    roundScore += pts;
+
+    if (correct) inp.classList.add("correct");
+    else if (myAnswer) inp.classList.add("wrong");
+
+    results.push({ question: q.question, myAnswer, correctAnswer: q.answer, explanation: q.explanation || "", correct, pts });
+  });
+
+  totalScore += roundScore;
+  allAnswers[roundIndex] = results;
+
+  // Записваме в Firebase
+  try {
+    await setDoc(
+      doc(db, "games", "saraevo", "episodes", episodeId, "results", player),
+      { exists: true }, { merge: true }
+    );
+    await setDoc(
+      doc(db, "games", "saraevo", "episodes", episodeId, "results", player, "rounds", String(roundIndex)),
+      { results, roundScore, totalScore, timestamp: Date.now() }
+    );
+  } catch(e) { console.error(e); }
+}
+
+/* ===== ПОКАЗВАНЕ НА РЕЗУЛТАТИ ОТ КРЪГА ===== */
+function showRoundResults(roundIndex, startTime, duration) {
+  const results = allAnswers[roundIndex] || [];
+  roundResultsTitle.textContent = `Резултати — Кръг ${roundIndex + 1}`;
+
+  let html = "";
+  let roundScore = 0;
+
+  results.forEach((r, i) => {
+    roundScore += r.pts;
+    html += `<div class="result-block">
+      <div class="result-q">${roundIndex * 10 + i + 1}. ${formatQuestion(r.question)}</div>
+      <div class="result-my">
+        Твоят отговор: <strong>${r.myAnswer || "—"}</strong>
+        <span class="${r.correct ? "badge-correct" : "badge-wrong"}">${r.correct ? " ✔ +1т." : " ✘"}</span>
+      </div>
+      <div class="result-correct-ans">✔ Верен: ${r.correctAnswer}</div>
+      ${r.explanation ? `<div class="result-explanation">${r.explanation}</div>` : ""}
+    </div>`;
+  });
+
+  roundResultsContainer.innerHTML = html;
+  roundScoreSummary.textContent = `Точки за кръга: ${roundScore} | Общо: ${totalScore}`;
+
+  // Таймер до следващ кръг
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startTime)) / 1000));
+    nextRoundTimer.textContent = formatMMSS(remaining);
+  }, 200);
+}
+
+/* ===== ФАЗИ ===== */
+let lastPhaseSnapshot = null;
+
+function applyPhaseImmediately(data) {
+  const { index, phase, duration } = data;
+  const startTime = data.startTime?.toMillis?.() ?? data.startTime ?? Date.now();
+  if (timerInterval) clearInterval(timerInterval);
+
+  if (phase === "lobby") {
+    showOnly(waitingScreen);
+    globalTimer.style.display = "none";
+    waitingTitle.textContent = "Играта още не е започнала.";
+    return;
+  }
+
+  if (phase === "prestart") {
+    showOnly(waitingScreen);
+    waitingTitle.textContent = "Играта започва след:";
+    globalTimer.style.display = "block";
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "question") {
+    showOnly(quizDiv);
+    globalTimer.style.display = "block";
+    buildRound(index, startTime);
+
+    timerInterval = setInterval(() => {
+      updateTimer(startTime, duration);
+      const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startTime)) / 1000));
+      if (remaining === 0) {
+        clearInterval(timerInterval);
+        // Автоматично предаване ако не е предадено
+        const submitBtn = document.getElementById("submitRoundBtn");
+        if (!submitBtn.disabled) submitBtn.click();
+      }
+    }, 200);
+    return;
+  }
+
+  if (phase === "results") {
+    showOnly(roundResultsDiv);
+    globalTimer.style.display = "none";
+    showRoundResults(index, startTime, duration);
+    return;
+  }
+
+  if (phase === "final") {
+    showOnly(finalScreen);
+    globalTimer.style.display = "none";
+    finalScore.textContent = `Общо точки: ${totalScore} от 50`;
+    return;
+  }
+}
+
+/* ===== FIREBASE ===== */
+onSnapshot(doc(db, "games", "saraevo", "state", "current"), snap => {
+  if (!snap.exists()) return;
+  const data = snap.data();
+  lastPhaseSnapshot = data;
+  episodeId = data.episodeId;
+  if (!episodeId) return;
+  if (data.questions && data.questions.length > 0) questions = data.questions;
+  if (!ready) return;
+  applyPhaseImmediately(data);
+});
+</script>
+</body>
+</html>
