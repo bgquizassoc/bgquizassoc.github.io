@@ -214,7 +214,7 @@
 
 <body>
 
-<h1> Игри на Знания <br> 🧩 Куиз Микс 456 🧩 <br>епизод 1-1</h1>
+<h1> Игри на Знания <br> 🧩 Куиз Микс 456 🧩 <br>епизод 1</h1>
 
 <audio id="bg-music" src="games.mp3" loop preload="auto"></audio>
 
@@ -797,6 +797,7 @@ async function renderR4Explanation(index) {
 function renderR5Question(index, startTime, duration) {
   showOnly(quizDiv);
   roundTag.textContent = "Кръг 5 — Цифромания";
+  showImage(questionImage, "");
   letterArea.style.display = "none";
   numberArea.style.display = "flex";
   matchArea.style.display = "none";
@@ -831,7 +832,7 @@ function renderR5Question(index, startTime, duration) {
     numberInput.classList.add("submitted");
     numberInput.disabled = true;
     numberSubmitBtn.disabled = true;
-    myPoints.textContent = `+${pts} т. | Общо кръг 5: ${totalScore5} т.`;
+    myPoints.textContent = "Отговорът е записан ✓";
 
     const thinkingTime = Date.now() - startTime;
 
@@ -1089,6 +1090,7 @@ function renderR6Question(chosenTopic, startTime, duration) {
   showOnly(quizDiv);
   roundTag.textContent = "Кръг 6 — Чифтосване: " + chosenTopic;
   qText.textContent = "";
+  showImage(questionImage, "");
   letterArea.style.display = "none";
   numberArea.style.display = "none";
   matchArea.style.display = "block";
@@ -1329,7 +1331,7 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "finalRanking") {
     globalTimer.style.display = "block";
-    setMusic("Rise.mp3");
+    setMusic("rise.mp3");
     renderRanking(true);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
