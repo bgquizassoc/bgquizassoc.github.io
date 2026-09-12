@@ -242,7 +242,7 @@
     <p>🧩 5-ти кръг – Цифромания </p>
     <p>🧩Време  - <strong>20 секунди </strong> Точки - <strong> по 5,3,2,1 </strong> в зависимост колко сте близо до верния отговор</p>
     <p>🧩 6-ти кръг – Чифтосване </p>
-    <p>🧩 Посленият отбор в класирането избира тема от 10 възможни </p>
+    <p>🧩 Последният отбор в класирането избира тема от 10 възможни </p>
     <p>🧩Време  - <strong>90 секунди </strong> Точки - <strong> по 1 </strong> за верен отговор.</p>
     <p>🧩Ако отговорите правилно на всички въпроси в даден кръг, получвате <strong>  бонус от 3 точки </strong> , затова използвайте активно и разумно жокерите си, за да запазите безпогрешна серия.</p>
     <p>🧩Всеки неизползван жокер се осребрява в края на играта и печелите по 1 точка за всеки</p>
@@ -308,7 +308,7 @@
 
   <!-- ⭐ ЖОКЕРИ — само за кръг 4 -->
   <div id="jokers" class="jokers-panel">
-    <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Втора сричка</button>
+    <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Дай Три</button>
     <button class="joker-btn" id="joker-correction" style="display:none;" disabled>🔁 Поправка</button>
   </div>
   <div id="jokerStatus"></div>
@@ -716,7 +716,7 @@ function renderR4Question(index, startTime, duration) {
     if (playerJokers.r4_syllable2) return;
     const syll = (q.syllable2 || "").trim();
     playerJokers.r4_syllable2 = true;
-    jokerStatusNote(syll ? `🔤 Втора сричка: "${syll}"` : `🔤 Думата няма втора сричка.`);
+    jokerStatusNote(syll ? `🔤 Дай Три: "${syll}"` : `🔤 Думата няма втора сричка.`);
     updateJoker4UI();
     try {
       await setDoc(
@@ -1215,7 +1215,7 @@ const ROUND_META = {
       <p>📷 Пример: за Стара планина пишем С, за Иван Вазов пишем В.</p>
       <p>📷 Ако темата на въпроса е различна, ще пише изрично какво се търси.</p>
       <p>⭐ Време за отговор — <strong>20 секунди</strong>. Всеки верен отговор носи <strong>4 точки</strong>.</p>
-      <p>🔤 Жокер <strong>Втора сричка</strong> — еднократен за целия кръг.</p>
+      <p>🔤 Жокер <strong>Дай Три</strong> дава следващите три букви от търсената дума/израз. Жокерът е еднократен за целия куиз</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
       <p>⭐ 10/10 верни носят бонус от <strong>3 точки</strong>.</p>
     `
