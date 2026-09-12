@@ -343,8 +343,13 @@ function buildMatchUI(q, startTime) {
   document.getElementById("correctionBtn").disabled = true;
   roundTitle.textContent = q.title || "Чифтосване";
 
-  const leftItems  = [...q.left].sort();
-  const rightItems = [...q.right].sort();
+  // ⭐ ПОПРАВКА: questions.json носи само "pairs" (обект ключ->стойност),
+  // няма отделни масиви "left"/"right" - извличаме ги оттук.
+  // Пропускаме и празни ключове/стойности (напр. случайно оставена "": "" двойка).
+  const leftItems  = (q.left && q.right) ? [...q.left].sort()
+                      : Object.keys(q.pairs).filter(k => k !== "").sort();
+  const rightItems = (q.left && q.right) ? [...q.right].sort()
+                      : Object.values(q.pairs).filter(v => v !== "").sort();
   leftCol.innerHTML  = "";
   rightCol.innerHTML = "";
 
