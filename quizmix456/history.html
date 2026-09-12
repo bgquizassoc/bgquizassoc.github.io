@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История на играта – Куиз Микс 456</title>
+  <style>
+    body {
+      background: #0a1a3a; color: white; font-family: Arial, sans-serif;
+      padding: 20px; max-width: 900px; margin: auto; line-height: 1.6;
+    }
+    h1 { color: #7fffd4; text-align: center; margin-bottom: 5px; text-shadow: 0 0 5px #00e5ff44; }
+    #playerTitle { text-align: center; color: #ffd100; font-size: 1.2em; margin-bottom: 15px; }
+    .round-header {
+      margin: 30px 0 15px 0; padding: 10px 15px;
+      background: rgba(255,209,0,0.1); border: 1px solid #ffd100; border-radius: 10px;
+      color: #ffd100; font-weight: bold; font-size: 1.2em;
+    }
+    .round-summary { font-size: 1em; color: #aaddff; margin-bottom: 10px; }
+    .question-block {
+      margin-bottom: 20px; padding: 15px; border-radius: 12px;
+      background: rgba(255,255,255,0.06); border-left: 6px solid #ffd100;
+    }
+    .question-block.correct-block { border-left-color: #00e676; }
+    .question-block.wrong-block { border-left-color: #ff5252; }
+    .question-block.skipped-block { border-left-color: #888; opacity: 0.7; }
+    .label { color: #7fffd4; font-weight: bold; }
+    .correct { color: #00e676; font-weight: bold; }
+    .wrong { color: #ff5252; font-weight: bold; }
+    .skipped { color: #aaa; font-style: italic; }
+    .joker-tag { color: #ffd100; font-weight: bold; }
+    .explanation { margin-top: 10px; opacity: 0.85; }
+    .pair-row { display: flex; gap: 8px; padding: 4px 0; }
+    .pair-row.correct { color: #00e676; }
+    .pair-row.wrong { color: #ff5252; }
+    .backBtn {
+      display: block; margin: 30px auto; padding: 12px 30px;
+      background: #ffd100; color: #003344; border: none; border-radius: 8px;
+      font-size: 1.2em; cursor: pointer; font-weight: bold; text-align: center; width: 200px;
+    }
+    .backBtn:hover { background: #ffcc33; }
+    #summary { text-align: center; margin-bottom: 10px; font-size: 1.1em; color: #aaddff; }
+    #pointsSummary { text-align: center; margin-bottom: 25px; font-size: 1.4em; color: #ffd100; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>📘 История на играта — Куиз Микс 456</h1>
+<div id="playerTitle"></div>
+<div id="pointsSummary">Зареждане...</div>
+<div id="summary"></div>
+<div id="content"></div>
+<button class="backBtn" onclick="window.history.back()">Назад</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const GAME_ID = "quizmix456";
+
+const ROUND_TITLES = {
+  4: "Кръг 4 — Фотомания",
+  5: "Кръг 5 — Цифромания",
+  6: "Кръг 6 — Чифтосване"
+};
+
+const params    = new URLSearchParams(window.location.search);
+const episodeId = params.get("episodeId");
+const player    = params.get("player");
+
+const playerTitle   = document.getElementById("playerTitle");
+const summary       = document.getElementById("summary");
+const pointsSummary = document.getElementById("pointsSummary");
+const content       = document.getElementById("content");
+
+if (!episodeId || !player) {
+  summary.textContent = "Липсва информация за епизод или играч.";
+  throw new Error("Missing params");
+}
+
+playerTitle.textContent = "Играч: " + player;
+
+const LATIN_TO_CYRILLIC = {
+  "A":"А","B":"В","C":"С","E":"Е","H":"Н",
+  "K":"К","M":"М","O":"О","P":"Р","T":"Т","X":"Х","Y":"У"
+};
+function normalizeLetter(letter) {
+  const upper = (letter || "").toUpperCase();
+  return LATIN_TO_CYRILLIC[upper] || upper;
+}
+
+function computeCashInFinalBonus(jokers) {
+  const j = jokers || {};
+  let bonus = 0;
+  if (!j.r4_syllable2) bonus += 1;
+  return bonus;
+}
+
+function renderR4Block(i, q, ans) {
+  let statusClass = "skipped-block";
+  let statusText = '<span class="skipped">⬜ Не е отговорено</span>';
+  let yourAnswer = "—", correctAnswer = (q.letter || "").toUpperCase();
+
+  if (ans) {
+    const isCorrect = !!ans.isCorrect;
+    yourAnswer = normalizeLetter(ans.answer || "");
+    statusClass = isCorrect ? "correct-block" : "wrong-block";
+    statusText = isCorrect ? '<span class="correct">✔ Вярно (4 т.)</span>' : '<span class="wrong">✘ Грешно</span>';
+  }
+
+  return `<div class="question-block ${statusClass}">
+    <div class="label">${i+1}. ${q.question}</div>
+    <div><span class="label">Твоят отговор:</span> ${yourAnswer}</div>
+    <div><span class="label">Верен отговор:</span> ${correctAnswer}</div>
+    <div style="margin-top:6px;">${statusText}</div>
+    ${q.explanation ? `<div class="explanation">${q.explanation}</div>` : ""}
+  </div>`;
+}
+
+function renderR5Block(i, q, ans) {
+  let statusClass = "skipped-block";
+  let statusText = '<span class="skipped">⬜ Не е отговорено</span>';
+  let yourAnswer = "—";
+
+  if (ans) {
+    const pts = ans.points || 0;
+    statusClass = pts > 0 ? (pts === 5 ? "correct-block" : "question-block") : "wrong-block";
+    yourAnswer = ans.answer;
+    statusText = `<span class="${pts > 0 ? "correct" : "wrong"}">${pts} т. (отклонение: ${ans.diff})</span>`;
+  }
+
+  return `<div class="question-block ${statusClass}">
+    <div class="label">${i+1}. ${q.question}</div>
+    <div><span class="label">Твоят отговор:</span> ${yourAnswer}</div>
+    <div><span class="label">Верен отговор:</span> ${q.answer}</div>
+    <div style="margin-top:6px;">${statusText}</div>
+    ${q.explanation ? `<div class="explanation">${q.explanation}</div>` : ""}
+  </div>`;
+}
+
+function renderR6Block(q, ans) {
+  if (!ans) {
+    return `<div class="question-block skipped-block">
+      <div class="label">Тема: ${q.title}</div>
+      <div class="skipped">⬜ Не е играно</div>
+    </div>`;
+  }
+  const myPairs = ans.pairs || [];
+  let rows = "";
+  Object.entries(q.pairs).sort().forEach(([left, right]) => {
+    const mine = myPairs.find(p => p.left === left);
+    if (mine && mine.right === right) {
+      rows += `<div class="pair-row correct">✔ ${left} → ${right}</div>`;
+    } else if (mine) {
+      rows += `<div class="pair-row wrong">✘ ${left} → ${mine.right} <span style="opacity:0.7;">(вярно: ${right})</span></div>`;
+    } else {
+      rows += `<div class="pair-row skipped">⬜ ${left} → <span style="opacity:0.7;">(вярно: ${right})</span></div>`;
+    }
+  });
+
+  return `<div class="question-block correct-block">
+    <div class="label">Тема: ${q.title}</div>
+    ${rows}
+    <div style="margin-top:8px;"><strong style="color:#ffd100;">${ans.correct} верни + ${ans.bonus} бонус = ${ans.total} т.</strong></div>
+  </div>`;
+}
+
+async function loadHistory() {
+  let questions4 = [], questions5 = [], questions6 = [];
+  try {
+    [questions4, questions5, questions6] = await Promise.all([
+      fetch("questions4.json").then(r => r.json()),
+      fetch("questions5.json").then(r => r.json()),
+      fetch("questions6.json").then(r => r.json())
+    ]);
+  } catch(e) {
+    summary.textContent = "Не мога да заредя въпросите.";
+    return;
+  }
+
+  let answers = {};
+  try {
+    const answersSnap = await getDocs(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers")
+    );
+    answersSnap.forEach(d => answers[d.id] = d.data());
+  } catch(e) {
+    summary.textContent = "Нямате история за този епизод.";
+    return;
+  }
+
+  if (Object.keys(answers).length === 0) {
+    summary.textContent = "Нямате записани отговори за този епизод.";
+    return;
+  }
+
+  let jokersData = {};
+  let chosenTopic = null;
+  try {
+    const resultDoc = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player));
+    if (resultDoc.exists()) jokersData = resultDoc.data().jokers || {};
+  } catch(e) {}
+  try {
+    const pickDoc = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "choicePicks", "r6-choice"));
+    if (pickDoc.exists()) chosenTopic = pickDoc.data().topic;
+  } catch(e) {}
+
+  let grandTotal = 0;
+  let html = "";
+  let overallCorrect = 0, overallWrong = 0, overallSkipped = 0;
+
+  // ---- Кръг 4 ----
+  {
+    let roundCorrect = 0, roundWrong = 0, roundSkipped = 0, roundPoints = 0;
+    let roundHtml = `<div class="round-header">${ROUND_TITLES[4]}</div>`;
+    questions4.forEach((q, i) => {
+      const ans = answers[`r4-${i}`];
+      if (!ans) roundSkipped++;
+      else if (ans.isCorrect) { roundCorrect++; roundPoints += 4; }
+      else roundWrong++;
+      roundHtml += renderR4Block(i, q, ans);
+    });
+    let roundBonus = 0;
+    if (roundCorrect === questions4.length) { roundBonus = 3; roundPoints += roundBonus; }
+    roundHtml = `<div class="round-summary">
+      Верни: <span style="color:#00e676;">${roundCorrect}</span> |
+      Грешни: <span style="color:#ff5252;">${roundWrong}</span> |
+      Пропуснати: <span style="color:#aaa;">${roundSkipped}</span> |
+      Точки: <strong style="color:#ffd100;">${roundPoints}</strong>${roundBonus ? ` (вкл. +${roundBonus} бонус за 10/10)` : ""}
+    </div>` + roundHtml;
+    html += roundHtml;
+    grandTotal += roundPoints;
+    overallCorrect += roundCorrect; overallWrong += roundWrong; overallSkipped += roundSkipped;
+  }
+
+  // ---- Кръг 5 ----
+  {
+    let roundCorrect = 0, roundWrong = 0, roundSkipped = 0, roundPoints = 0;
+    let roundHtml = `<div class="round-header">${ROUND_TITLES[5]}</div>`;
+    questions5.forEach((q, i) => {
+      const ans = answers[`r5-${i}`];
+      if (!ans) roundSkipped++;
+      else if (ans.points === 5) { roundCorrect++; roundPoints += ans.points; }
+      else if (ans.points > 0) { roundPoints += ans.points; }
+      else roundWrong++;
+      roundHtml += renderR5Block(i, q, ans);
+    });
+    let roundBonus = 0;
+    if (roundCorrect === questions5.length) { roundBonus = 3; roundPoints += roundBonus; }
+    roundHtml = `<div class="round-summary">
+      Точни попадения: <span style="color:#00e676;">${roundCorrect}</span> |
+      С 0 точки: <span style="color:#ff5252;">${roundWrong}</span> |
+      Пропуснати: <span style="color:#aaa;">${roundSkipped}</span> |
+      Точки: <strong style="color:#ffd100;">${roundPoints}</strong>${roundBonus ? ` (вкл. +${roundBonus} бонус за 10/10 точни)` : ""}
+    </div>` + roundHtml;
+    html += roundHtml;
+    grandTotal += roundPoints;
+    overallCorrect += roundCorrect; overallWrong += roundWrong; overallSkipped += roundSkipped;
+  }
+
+  // ---- Кръг 6 ----
+  {
+    let roundHtml = `<div class="round-header">${ROUND_TITLES[6]}</div>`;
+    const q6 = questions6.find(t => t.title === chosenTopic) || null;
+    const ans = answers["r6-0"];
+    if (q6) {
+      roundHtml += renderR6Block(q6, ans);
+      if (ans) {
+        grandTotal += ans.total || 0;
+        overallCorrect += ans.correct || 0;
+        overallWrong += (Object.keys(q6.pairs).length - (ans.correct || 0));
+      } else {
+        overallSkipped += q6 ? Object.keys(q6.pairs).length : 0;
+      }
+    } else {
+      roundHtml += `<div class="question-block skipped-block"><div class="skipped">⬜ Няма данни за избраната тема.</div></div>`;
+    }
+    html += roundHtml;
+  }
+
+  const cashInBonus = computeCashInFinalBonus(jokersData);
+  grandTotal += cashInBonus;
+
+  let pointsLine = `🏁 Общо точки: ${grandTotal}`;
+  if (cashInBonus > 0) pointsLine += ` <span style="color:#00e676; font-size:0.7em;">(вкл. +${cashInBonus} за неизползван жокер)</span>`;
+  pointsSummary.innerHTML = pointsLine;
+
+  summary.innerHTML = `
+    Общо верни: <span style="color:#00e676;font-weight:bold;">${overallCorrect}</span> &nbsp;|&nbsp;
+    Общо грешни: <span style="color:#ff5252;font-weight:bold;">${overallWrong}</span> &nbsp;|&nbsp;
+    Общо пропуснати: <span style="color:#aaa;">${overallSkipped}</span>
+  `;
+
+  content.innerHTML = html;
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>
