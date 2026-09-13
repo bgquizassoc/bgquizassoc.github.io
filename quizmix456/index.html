@@ -214,7 +214,7 @@
 
 <body>
 
-<h1> Игри на Знания <br> 🧩 Куиз Микс 456 🧩 <br>епизод 1-3</h1>
+<h1> Игри на Знания <br> 🧩 Куиз Микс 456 🧩 <br>епизод 1</h1>
 
 <audio id="bg-music" src="games.mp3" loop preload="auto"></audio>
 
@@ -861,6 +861,7 @@ function renderR5Question(index, startTime, duration) {
 async function renderR5Explanation(index) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = ""; explanationText.textContent = "";
+  showImage(explanationImage, "");
   answeredList.style.display = "none"; answeredNames.innerHTML = "";
 
   const q = questions5[index];
