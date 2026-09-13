@@ -44,6 +44,18 @@
   }
   button:hover { background:#ffcc33; transform:scale(1.05); }
 
+  .secondary-btn {
+    background: #003d7a; color: #fff; border: 2px solid #00509e;
+  }
+  .secondary-btn:hover { background: #004a9f; }
+
+  #spectatorBadge {
+    display: none;
+    background: rgba(0,229,255,0.12); color: #00e5ff;
+    border: 1px solid #00e5ff; border-radius: 8px;
+    padding: 8px 14px; margin-bottom: 10px; font-size: 0.95em; font-weight: bold;
+  }
+
   /* ТАЙМЕР */
   #globalTimer {
     text-align: center; font-weight: 800; margin: 10px 0;
@@ -92,18 +104,48 @@
   .answer-input.wrong   { border-color: #ff5252; background: #2a0a0a; color: #ff5252; }
   .answer-input:disabled { opacity: 0.8; cursor: default; }
 
+  /* Огледало на отговора за зрителите (само за четене) */
+  .answer-mirror {
+    width: 100%; padding: 9px 12px; font-size: 1em;
+    border-radius: 8px; border: 2px dashed #00509e;
+    background: #001a33; color: #aaddff; min-height: 1.4em;
+    font-style: italic;
+  }
+
   /* РЕЗУЛТАТИ СЛЕД КРЪГА */
   .result-block {
     text-align: left; padding: 12px 0;
     border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex; gap: 12px; align-items: flex-start;
   }
   .result-block:last-child { border-bottom: none; }
+  .result-main { flex: 1; min-width: 0; }
   .result-q { font-size: 0.95em; color: #cce8ff; margin-bottom: 4px; }
   .result-my { font-size: 0.9em; margin: 3px 0; }
   .result-correct-ans { font-size: 0.9em; color: #00e676; font-weight: bold; }
   .result-explanation { font-size: 0.85em; color: #aaddff; margin-top: 4px; font-style: italic; }
   .badge-correct { color: #00e676; font-weight: bold; }
   .badge-wrong   { color: #ff5252; font-weight: bold; }
+
+  /* Кутийка с точки + admin +/- бутони (както vote-square в igri.txt) */
+  .pts-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    flex-shrink: 0;
+  }
+  .pts-box {
+    width: 34px; height: 34px; border-radius: 6px;
+    border: 2px solid #009e3d; background: #001a33;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 1.1em;
+  }
+  .pts-box.is-correct { background: #009e3d; }
+  .pts-adjust-row { display: flex; gap: 4px; }
+  .pts-adjust-btn {
+    width: 26px; height: 26px; margin: 0; padding: 0;
+    font-size: 0.9em; border-radius: 5px;
+    background: #003d7a; color: #fff; border: 1px solid #00509e;
+  }
+  .pts-adjust-btn:hover { background: #004a9f; transform: none; }
 
   .score-summary {
     margin-top: 16px; padding: 12px;
@@ -120,12 +162,15 @@
 <h1>Игри на Знания<br>🏆 Куиз Сараево 🏆<br>епизод 1</h1>
 
 <div id="globalTimer" style="display:none;">-</div>
+<div id="spectatorBadge">👁️ Режим зрител — следиш отговорите на пишещия в реално време</div>
 
 <!-- СТАРТ -->
 <div id="start-screen">
   <p>Въведете Двете си имена:</p>
   <input type="text" id="playerName" placeholder="Две имена..." />
-  <button id="enterBtn">Влез в играта</button>
+  <button id="enterBtn">Влез в играта (пишеш отговорите)</button>
+  <br>
+  <button id="spectatorBtn" class="secondary-btn">👁️ Влез като зрител (само гледаш)</button>
 </div>
 
 <!-- ЧАКАНЕ -->
@@ -135,7 +180,7 @@
   <div id="lobby-instructions">
     <p><strong>Куиз Сараево</strong> — подготовка за националните състезатели.</p>
     <p>5 кръга по 10 въпроса — <strong>12 минути</strong> за всеки кръг.</p>
-    <p>Изписвате пълния отговор. Допускат се до <strong>2 печатни грешки</strong>.</p>
+    <p>Изписвате пълния отговор. Допускат се до <strong>2 печатни грешки</strong> (главни/малки букви нямат значение).</p>
     <p>По <strong>1 точка</strong> за верен отговор.</p>
   </div>
 </div>
@@ -165,7 +210,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, onSnapshot, setDoc, serverTimestamp, collection
+  getFirestore, doc, onSnapshot, setDoc, getDoc, collection
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -187,6 +232,7 @@ const roundResultsDiv= document.getElementById("round-results");
 const finalScreen    = document.getElementById("final-screen");
 
 const globalTimer    = document.getElementById("globalTimer");
+const spectatorBadge = document.getElementById("spectatorBadge");
 const waitingTitle   = document.getElementById("waitingTitle");
 const roundTitle     = document.getElementById("roundTitle");
 const questionsContainer = document.getElementById("questionsContainer");
@@ -196,15 +242,27 @@ const roundScoreSummary  = document.getElementById("roundScoreSummary");
 const nextRoundTimer     = document.getElementById("nextRoundTimer");
 const finalScore         = document.getElementById("finalScore");
 
+// ⭐ ?role=admin в адреса отключва +/- бутоните за ръчна корекция на точки.
+// Играчите и обикновените зрители не виждат тази възможност.
+const urlParams = new URLSearchParams(window.location.search);
+const isAdmin = urlParams.get("role") === "admin";
+
 let player        = "";
 let questions     = [];
 let ready         = false;
 let timerInterval = null;
 let episodeId     = null;
-let totalScore    = 0;
-let allAnswers    = {}; // { roundIndex: [ {q, myAnswer, correct, pts} ] }
 
-/* ===== LEVENSHTEIN ===== */
+// ⭐ Отборна логика: играта има само ЕДИН отбор/пишещ на епизод. Зрителите
+// (и админът) не пишат — те следят кой пише чрез "activePlayer", открит
+// автоматично от Firestore, а не подаден ръчно.
+let isSpectator      = false;
+let activePlayer     = null;
+let activePlayerUnsub= null;
+let draftUnsub       = null;
+let draftDebounceTimer = null;
+
+/* ===== LEVENSHTEIN (регистър-независимо сравнение — .toLowerCase() и на двата низа) ===== */
 function levenshtein(a, b) {
   a = a.toLowerCase().trim();
   b = b.toLowerCase().trim();
@@ -256,39 +314,136 @@ function updateTimer(startTime, duration) {
   else globalTimer.classList.remove("warning");
 }
 
+/* ⭐ Открива автоматично кой е "пишещият" за епизода — понеже играе само
+   ЕДИН отбор, взимаме първия (единствен) документ в results/. Ползва се
+   от зрителите (и от админа), за да знаят чии чернови/резултати да следят. */
+function watchActivePlayer() {
+  if (activePlayerUnsub) activePlayerUnsub();
+  activePlayerUnsub = onSnapshot(
+    collection(db, "games", "saraevo", "episodes", episodeId, "results"),
+    snap => {
+      if (snap.empty) return;
+      const newActive = snap.docs[0].id;
+      const changed = newActive !== activePlayer;
+      activePlayer = newActive;
+      // Ако вече показваме нещо и активният играч тъкмо се разкри/смени,
+      // опресняваме текущия екран, за да хване новите данни.
+      if (changed && ready && lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+    }
+  );
+}
+
 document.getElementById("enterBtn").onclick = async () => {
   player = document.getElementById("playerName").value.trim();
   if (!player) return alert("Въведете две имена!");
+  isSpectator = false;
   ready = true;
   showOnly(waitingScreen);
   globalTimer.style.display = "none";
+  spectatorBadge.style.display = "none";
+
+  // ⭐ Отбелязваме се като "activePlayer" веднага при влизане (не чак при
+  // предаване на кръг 1), за да могат зрителите да ни открият по-рано.
+  if (episodeId) {
+    try {
+      await setDoc(
+        doc(db, "games", "saraevo", "episodes", episodeId, "results", player),
+        { exists: true }, { merge: true }
+      );
+    } catch(e) { console.error(e); }
+  }
+  activePlayer = player;
+
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
+
+document.getElementById("spectatorBtn").onclick = () => {
+  isSpectator = true;
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+  spectatorBadge.style.display = "block";
+  if (episodeId) watchActivePlayer();
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
 document.getElementById("historyBtn").onclick = () => {
   if (!episodeId) return;
-  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+  const name = activePlayer || player;
+  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(name)}`;
 };
 
 /* ===== СТРОИМ КРЪГА ===== */
 function buildRound(roundIndex, startTime) {
+  if (draftUnsub) { draftUnsub(); draftUnsub = null; }
+  clearTimeout(draftDebounceTimer);
+
   const roundQuestions = questions.slice(roundIndex * 10, roundIndex * 10 + 10);
-  roundTitle.textContent = `Кръг ${roundIndex + 1} от 5`;
+  roundTitle.textContent = `Кръг ${roundIndex + 1} от 5` + (isSpectator ? " (следиш на живо)" : "");
   questionsContainer.innerHTML = "";
 
   roundQuestions.forEach((q, qi) => {
     const block = document.createElement("div");
     block.className = "question-block";
-    block.innerHTML = `
-      <div class="question-text">${roundIndex * 10 + qi + 1}. ${formatQuestion(q.question)}</div>
-      <input type="text" class="answer-input" data-qi="${qi}" placeholder="Вашият отговор..." autocomplete="off" />
-    `;
+    if (isSpectator) {
+      block.innerHTML = `
+        <div class="question-text">${roundIndex * 10 + qi + 1}. ${formatQuestion(q.question)}</div>
+        <div class="answer-mirror" data-qi="${qi}">…</div>
+      `;
+    } else {
+      block.innerHTML = `
+        <div class="question-text">${roundIndex * 10 + qi + 1}. ${formatQuestion(q.question)}</div>
+        <input type="text" class="answer-input" data-qi="${qi}" placeholder="Вашият отговор..." autocomplete="off" />
+      `;
+    }
     questionsContainer.appendChild(block);
   });
 
-  // Submit бутон
   const submitBtn = document.getElementById("submitRoundBtn");
+
+  if (isSpectator) {
+    // Зрителят не предава — вместо бутона показваме статус, и слушаме
+    // живо чернова на пишещия за текущия кръг.
+    submitBtn.style.display = "none";
+
+    if (activePlayer) {
+      draftUnsub = onSnapshot(
+        doc(db, "games", "saraevo", "episodes", episodeId, "results", activePlayer, "drafts", String(roundIndex)),
+        snap => {
+          const values = snap.exists() ? (snap.data().values || []) : [];
+          questionsContainer.querySelectorAll(".answer-mirror").forEach((m, i) => {
+            m.textContent = values[i] && values[i].trim() ? values[i] : "…";
+          });
+        }
+      );
+    }
+    return;
+  }
+
+  submitBtn.style.display = "block";
+  // Submit бутон — при нов кръг задължително се връща в активно състояние
+  // (стар бъг: след Кръг 1 бутонът оставаше "disabled" завинаги, защото
+  // никой ред не го връщаше на false за следващите кръгове — това
+  // блокираше и ръчното предаване, и автоматичното при изтичане на времето)
+  submitBtn.disabled = false;
   submitBtn.onclick = () => submitRound(roundIndex, startTime);
+
+  // ⭐ Живо излъчване на чернова към зрителите, докато играчът пише
+  // (леко забавяне 500мс, за да не пишем в Firestore на всяка буква)
+  questionsContainer.addEventListener("input", () => {
+    clearTimeout(draftDebounceTimer);
+    draftDebounceTimer = setTimeout(async () => {
+      const inputs = questionsContainer.querySelectorAll(".answer-input");
+      const values = Array.from(inputs).map(inp => inp.value);
+      try {
+        await setDoc(
+          doc(db, "games", "saraevo", "episodes", episodeId, "results", player, "drafts", String(roundIndex)),
+          { values, updatedAt: Date.now() },
+          { merge: true }
+        );
+      } catch(e) { console.error(e); }
+    }, 500);
+  });
 }
 
 /* ===== ПРЕДАВАНЕ НА КРЪГА ===== */
@@ -304,20 +459,24 @@ async function submitRound(roundIndex, startTime) {
   let roundScore = 0;
 
   inputs.forEach((inp, qi) => {
-    const q = roundQuestions[qi];
-    const myAnswer = inp.value.trim();
-    const correct  = isCorrect(myAnswer, q.answer);
-    const pts = correct ? 1 : 0;
-    roundScore += pts;
+    try {
+      const q = roundQuestions[qi];
+      const myAnswer = inp.value.trim();
+      const correct  = isCorrect(myAnswer, q.answer);
+      const pts = correct ? 1 : 0;
+      roundScore += pts;
 
-    if (correct) inp.classList.add("correct");
-    else if (myAnswer) inp.classList.add("wrong");
+      if (correct) inp.classList.add("correct");
+      else if (myAnswer) inp.classList.add("wrong");
 
-    results.push({ question: q.question, myAnswer, correctAnswer: q.answer, explanation: q.explanation || "", correct, pts });
+      results.push({ question: q.question, myAnswer, correctAnswer: q.answer, explanation: q.explanation || "", correct, pts });
+    } catch(e) {
+      // ⭐ Защита: дори един счупен въпрос да гръмне, предаването продължава
+      // за останалите, вместо целият кръг да остане непредаден.
+      console.error("Грешка при обработка на въпрос", qi, e);
+      results.push({ question: "(грешка)", myAnswer: inp.value.trim(), correctAnswer: "", explanation: "", correct: false, pts: 0 });
+    }
   });
-
-  totalScore += roundScore;
-  allAnswers[roundIndex] = results;
 
   // Записваме в Firebase
   try {
@@ -327,34 +486,103 @@ async function submitRound(roundIndex, startTime) {
     );
     await setDoc(
       doc(db, "games", "saraevo", "episodes", episodeId, "results", player, "rounds", String(roundIndex)),
-      { results, roundScore, totalScore, timestamp: Date.now() }
+      { results, roundScore, timestamp: Date.now() }
     );
   } catch(e) { console.error(e); }
 }
 
-/* ===== ПОКАЗВАНЕ НА РЕЗУЛТАТИ ОТ КРЪГА ===== */
-function showRoundResults(roundIndex, startTime, duration) {
-  const results = allAnswers[roundIndex] || [];
+/* ===== РЪЧНА КОРЕКЦИЯ НА ТОЧКИ (само админ) ===== */
+async function adjustPoint(roundIndex, qIndex, delta) {
+  if (!isAdmin || !activePlayer) return;
+  const roundRef = doc(db, "games", "saraevo", "episodes", episodeId, "results", activePlayer, "rounds", String(roundIndex));
+  try {
+    const snap = await getDoc(roundRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+    const results = (data.results || []).slice();
+    if (!results[qIndex]) return;
+
+    const newPts = Math.max(0, Math.min(1, (results[qIndex].pts || 0) + delta));
+    results[qIndex] = { ...results[qIndex], pts: newPts, correct: newPts > 0 };
+    const roundScore = results.reduce((s, r) => s + (r.pts || 0), 0);
+
+    await setDoc(roundRef, { results, roundScore }, { merge: true });
+    // Опресняваме изгледа веднага (работи и за играч, и за зрител/админ)
+    await showRoundResults(roundIndex, currentRoundStartTime, currentRoundDuration);
+  } catch(e) { console.error(e); }
+}
+
+/* ===== ПОКАЗВАНЕ НА РЕЗУЛТАТИ ОТ КРЪГА (винаги от Firestore — работи
+   еднакво за пишещия играч, зрителите и админа) ===== */
+let currentRoundStartTime = null;
+let currentRoundDuration  = null;
+
+async function showRoundResults(roundIndex, startTime, duration, retriesLeft = 6) {
+  currentRoundStartTime = startTime;
+  currentRoundDuration  = duration;
   roundResultsTitle.textContent = `Резултати — Кръг ${roundIndex + 1}`;
 
-  let html = "";
-  let roundScore = 0;
+  if (!activePlayer) {
+    roundResultsContainer.innerHTML = `<p>Изчакваме данни за пишещия играч…</p>`;
+    roundScoreSummary.textContent = "";
+  } else {
+    let snap;
+    try {
+      snap = await getDoc(doc(db, "games", "saraevo", "episodes", episodeId, "results", activePlayer, "rounds", String(roundIndex)));
+    } catch(e) { console.error(e); }
 
-  results.forEach((r, i) => {
-    roundScore += r.pts;
-    html += `<div class="result-block">
-      <div class="result-q">${roundIndex * 10 + i + 1}. ${formatQuestion(r.question)}</div>
-      <div class="result-my">
-        Твоят отговор: <strong>${r.myAnswer || "—"}</strong>
-        <span class="${r.correct ? "badge-correct" : "badge-wrong"}">${r.correct ? " ✔ +1т." : " ✘"}</span>
-      </div>
-      <div class="result-correct-ans">✔ Верен: ${r.correctAnswer}</div>
-      ${r.explanation ? `<div class="result-explanation">${r.explanation}</div>` : ""}
-    </div>`;
-  });
+    if (!snap || !snap.exists()) {
+      if (retriesLeft > 0) {
+        roundResultsContainer.innerHTML = `<p>Зареждане на резултатите…</p>`;
+        setTimeout(() => showRoundResults(roundIndex, startTime, duration, retriesLeft - 1), 1000);
+        return;
+      }
+      roundResultsContainer.innerHTML = `<p>Няма записани резултати за този кръг.</p>`;
+      roundScoreSummary.textContent = "";
+    } else {
+      const data = snap.data();
+      const results = data.results || [];
+      let html = "";
 
-  roundResultsContainer.innerHTML = html;
-  roundScoreSummary.textContent = `Точки за кръга: ${roundScore} | Общо: ${totalScore}`;
+      results.forEach((r, i) => {
+        const ptsBoxHtml = `
+          <div class="pts-wrap">
+            <div class="pts-box ${r.pts > 0 ? "is-correct" : ""}">${r.pts}</div>
+            ${isAdmin ? `
+              <div class="pts-adjust-row">
+                <button type="button" class="pts-adjust-btn" data-action="minus" data-qi="${i}">−</button>
+                <button type="button" class="pts-adjust-btn" data-action="plus" data-qi="${i}">+</button>
+              </div>` : ""}
+          </div>`;
+
+        html += `<div class="result-block">
+          <div class="result-main">
+            <div class="result-q">${roundIndex * 10 + i + 1}. ${formatQuestion(r.question)}</div>
+            <div class="result-my">
+              Отговор: <strong>${r.myAnswer || "—"}</strong>
+              <span class="${r.correct ? "badge-correct" : "badge-wrong"}">${r.correct ? " ✔" : " ✘"}</span>
+            </div>
+            <div class="result-correct-ans">✔ Верен: ${r.correctAnswer}</div>
+            ${r.explanation ? `<div class="result-explanation">${r.explanation}</div>` : ""}
+          </div>
+          ${ptsBoxHtml}
+        </div>`;
+      });
+
+      roundResultsContainer.innerHTML = html;
+      roundScoreSummary.textContent = `Точки за кръга: ${data.roundScore ?? 0}`;
+
+      if (isAdmin) {
+        roundResultsContainer.querySelectorAll(".pts-adjust-btn").forEach(btn => {
+          btn.onclick = () => {
+            const qi = Number(btn.dataset.qi);
+            const delta = btn.dataset.action === "plus" ? 1 : -1;
+            adjustPoint(roundIndex, qi, delta);
+          };
+        });
+      }
+    }
+  }
 
   // Таймер до следващ кръг
   if (timerInterval) clearInterval(timerInterval);
@@ -362,6 +590,23 @@ function showRoundResults(roundIndex, startTime, duration) {
     const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startTime)) / 1000));
     nextRoundTimer.textContent = formatMMSS(remaining);
   }, 200);
+}
+
+/* ===== ФИНАЛЕН ЕКРАН — сумира всички 5 кръга директно от Firestore,
+   така винаги отразява и евентуални ръчни корекции ===== */
+async function showFinalScreen() {
+  if (!activePlayer) {
+    finalScore.textContent = "Изчакваме данни…";
+    return;
+  }
+  let total = 0;
+  try {
+    for (let i = 0; i < 5; i++) {
+      const snap = await getDoc(doc(db, "games", "saraevo", "episodes", episodeId, "results", activePlayer, "rounds", String(i)));
+      if (snap.exists()) total += (snap.data().roundScore || 0);
+    }
+  } catch(e) { console.error(e); }
+  finalScore.textContent = `Общо точки: ${total} от 50`;
 }
 
 /* ===== ФАЗИ ===== */
@@ -392,16 +637,20 @@ function applyPhaseImmediately(data) {
     globalTimer.style.display = "block";
     buildRound(index, startTime);
 
-    timerInterval = setInterval(() => {
-      updateTimer(startTime, duration);
-      const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startTime)) / 1000));
-      if (remaining === 0) {
-        clearInterval(timerInterval);
-        // Автоматично предаване ако не е предадено
-        const submitBtn = document.getElementById("submitRoundBtn");
-        if (!submitBtn.disabled) submitBtn.click();
-      }
-    }, 200);
+    if (!isSpectator) {
+      timerInterval = setInterval(() => {
+        updateTimer(startTime, duration);
+        const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startTime)) / 1000));
+        if (remaining === 0) {
+          clearInterval(timerInterval);
+          // Автоматично предаване ако не е предадено
+          const submitBtn = document.getElementById("submitRoundBtn");
+          if (!submitBtn.disabled) submitBtn.click();
+        }
+      }, 200);
+    } else {
+      timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    }
     return;
   }
 
@@ -415,7 +664,7 @@ function applyPhaseImmediately(data) {
   if (phase === "final") {
     showOnly(finalScreen);
     globalTimer.style.display = "none";
-    finalScore.textContent = `Общо точки: ${totalScore} от 50`;
+    showFinalScreen();
     return;
   }
 }
@@ -425,9 +674,11 @@ onSnapshot(doc(db, "games", "saraevo", "state", "current"), snap => {
   if (!snap.exists()) return;
   const data = snap.data();
   lastPhaseSnapshot = data;
+  const wasEpisodeId = episodeId;
   episodeId = data.episodeId;
   if (!episodeId) return;
   if (data.questions && data.questions.length > 0) questions = data.questions;
+  if (episodeId !== wasEpisodeId && isSpectator) watchActivePlayer();
   if (!ready) return;
   applyPhaseImmediately(data);
 });
