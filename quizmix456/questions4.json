@@ -1,8 +1,8 @@
 [
-  {"question": "Коя е тази базидиева гъба от рода на мухоморките?", "image": "https://i.imgur.com/gA4OCbN.jpeg", "letter": "", "alt_letters": [], "explanation": "Б=Булка"},
-{"question": "Очертанията на коя държава виждате?", "image": "https://i.imgur.com/wrYWiC3.jpeg", "letter": ".", "alt_letters": ["."], "explanation": "Б=Ботсвана"},
-{"question": "Кой виден американец е изобразен на този *зелен гущер*? (фамилия)", "image": "https://i.imgur.com/ZymlCxt.jpeg", "letter": "", "alt_letters": [], "explanation": "Ф=Франклин"},
-{"question": "В кой марокански град се намира това архитектурно чудо?", "image": "https://i.imgur.com/Py7iqz7.jpeg", "letter": "", "alt_letters": [], "explanation": "К=Казабланка, джамията Хасан II"},
+  {"question": "Коя е тази базидиева гъба от рода на мухоморките?", "image": "https://i.imgur.com/WB1K6ZH.jpeg", "letter": "", "alt_letters": [], "explanation": "Б=Булка"},
+{"question": "Очертанията на коя държава виждате?", "image": "https://i.imgur.com/gA4OCbN.jpeg", "letter": ".", "alt_letters": ["."], "explanation": "Б=Ботсвана"},
+{"question": "Кой виден американец е изобразен на този *зелен гущер*? (фамилия)", "image": "https://i.imgur.com/wrYWiC3.jpeg", "letter": "", "alt_letters": [], "explanation": "Ф=Франклин"},
+{"question": "В кой марокански град се намира това архитектурно чудо?", "image": "https://i.imgur.com/ZymlCxt.jpeg", "letter": "", "alt_letters": [], "explanation": "К=Казабланка, джамията Хасан II"},
 {"question": "От кой руски художник е картината ? (фамилия)", "image": "https://i.imgur.com/Py7iqz7.jpeg", "letter": "", "alt_letters": [], "explanation": "Ш=Иван Шишкин, картината е *Ръж*"},
 {"question": "Кой е този богаташ (малко име или фамилия)", "image": "https://i.imgur.com/1OvjYIi.jpeg", "letter": "", "alt_letters": [], "explanation": "Д или Б = Джеф Безос"},
 {"question": "Коя е тази филмова поредица?", "image": "https://i.imgur.com/b2VwWpV.jpeg", "letter": "", "alt_letters": ["."], "explanation": "Б=Бързи и яростни"},
