@@ -1,4 +1,5 @@
-{"question": "Коя е тази базидиева гъба от рода на мухоморките?", "image": "https://i.imgur.com/gA4OCbN.jpeg", "letter": "", "alt_letters": [], "explanation": "Б=Булка"},
+[
+  {"question": "Коя е тази базидиева гъба от рода на мухоморките?", "image": "https://i.imgur.com/gA4OCbN.jpeg", "letter": "", "alt_letters": [], "explanation": "Б=Булка"},
 {"question": "Очертанията на коя държава виждате?", "image": "https://i.imgur.com/wrYWiC3.jpeg", "letter": ".", "alt_letters": ["."], "explanation": "Б=Ботсвана"},
 {"question": "Кой виден американец е изобразен на този *зелен гущер*? (фамилия)", "image": "https://i.imgur.com/ZymlCxt.jpeg", "letter": "", "alt_letters": [], "explanation": "Ф=Франклин"},
 {"question": "В кой марокански град се намира това архитектурно чудо?", "image": "https://i.imgur.com/Py7iqz7.jpeg", "letter": "", "alt_letters": [], "explanation": "К=Казабланка, джамията Хасан II"},
@@ -7,4 +8,6 @@
 {"question": "Коя е тази филмова поредица?", "image": "https://i.imgur.com/b2VwWpV.jpeg", "letter": "", "alt_letters": ["."], "explanation": "Б=Бързи и яростни"},
 {"question": "Това е момичето, което обичаше да пее, пие и да се смее? (малко име и фамилия започват с една и съща буква)", "image": "https://i.imgur.com/vQazEMi.jpeg", "letter": "", "alt_letters": [], "explanation": "Д=Джанис Джоплин"},
 {"question": "Баскетболната легенда Кевин ......?", "image": "https://i.imgur.com/EM04YMm.jpeg", "letter": "", "alt_letters": [], "explanation": "Д=Дюран"},
-{"question": "Кой е този треньор, роден в Ондарибия, Баска автономна област? (фамилия)", "image": "https://i.imgur.com/IjpjB7p.jpeg", "letter": "", "alt_letters": [], "explanation": "Е=Унаи Емери"},
+{"question": "Кой е този треньор, роден в Ондарибия, Баска автономна област? (фамилия)", "image": "https://i.imgur.com/IjpjB7p.jpeg", "letter": "", "alt_letters": [], "explanation": "Е=Унаи Емери"}
+
+]
