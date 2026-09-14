@@ -292,7 +292,7 @@
 
   <!-- ⭐ ЖОКЕРИ -->
   <div id="jokers" class="jokers-panel">
-    <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Втора сричка</button>
+    <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Дай Три</button>
     <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
   </div>
   <div id="jokerStatus"></div>
@@ -747,7 +747,7 @@ function applyPhaseImmediately(data) {
       const syll = (q.syllable2 || "").trim();
 
       playerJokers.syllable2 = true;
-      jokerStatusNote(syll ? `🔤 Втора сричка: "${syll}"` : `🔤 Думата няма втора сричка.`);
+      jokerStatusNote(syll ? `🔤 Дай Три: "${syll}"` : `🔤 Думата няма втора сричка.`);
       updateJokerButtonUI(q);
 
       try {
