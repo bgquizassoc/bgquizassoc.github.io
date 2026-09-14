@@ -1,13 +1,13 @@
 [
-  {"question": "От кой руски художник е картината ? (фамилия)", "image": "https://i.imgur.com/Py7iqz7.jpeg", "letter": "Ш", "alt_letters": [], "explanation": "Ш=Иван Шишкин, картината е *Ръж*"},
-{"question": "Кой е този богаташ (малко име или фамилия)", "image": "https://i.imgur.com/1OvjYIi.jpeg", "letter": "Б", "alt_letters": [], "explanation": "Д или Б = Джеф Безос"},
-{"question": "Коя е тази филмова поредица?", "image": "https://i.imgur.com/b2VwWpV.jpeg", "letter": "Б", "alt_letters": ["."], "explanation": "Б=Бързи и яростни"},
-{"question": "Това е момичето, което обичаше да пее, пие и да се смее? (малко име и фамилия започват с една и съща буква)", "image": "https://i.imgur.com/vQazEMi.jpeg", "letter": "Д", "alt_letters": [], "explanation": "Д=Джанис Джоплин"},
-{"question": "Баскетболната легенда Кевин ......?", "image": "https://i.imgur.com/EM04YMm.jpeg", "letter": "Д", "alt_letters": [], "explanation": "Д=Дюран"},
-{"question": "Кой е този треньор, роден в Ондарибия, Баска автономна област? (фамилия)", "image": "https://i.imgur.com/IjpjB7p.jpeg", "letter": "Е", "alt_letters": [], "explanation": "Е=Унаи Емери"},
-{"question": "Очертанията на коя област виждате?", "image": "https://i.imgur.com/AnWcn1H.jpeg", "letter": "Т", "alt_letters": [], "explanation": "Т=Търговище"},
-{"question": "В кой марокански град се намира кулата Мохамед VI (в дъното на снимката)?", "image": "https://i.imgur.com/aDZd5LF.jpeg", "letter": "Р", "alt_letters": [], "explanation": "Р=Рабат"},
-{"question": "От кой филм е репликата: „Джена, телепортирай ме!“?", "image": "https://i.imgur.com/dXg57mt.jpeg", "letter": "С", "alt_letters": [], "explanation": "С=Седморката на Блейк"},
-{"question": "От кой български бунтарски филм е кадъра?", "image": "https://i.imgur.com/d6Png0G.jpeg", "letter": "Д", "alt_letters": [], "explanation": "Д=Диада"}
+  {"question": "От кой руски художник е картината ? (фамилия)", "image": "https://i.imgur.com/Py7iqz7.jpeg", "letter": "Ш", "alt_letters": [], "syllable2": "ишк", "explanation": "Ш=Шишкин---(Иван Шишкин), картината е *Ръж*"},
+{"question": "Кой е този богаташ (малко име или фамилия)", "image": "https://i.imgur.com/1OvjYIi.jpeg", "letter": "Б", "alt_letters": ["Д"], "syllable2": "езо", "explanation": "Б=Безос---(Джеф Безос)"},
+{"question": "Коя е тази филмова поредица?", "image": "https://i.imgur.com/b2VwWpV.jpeg", "letter": "Б", "alt_letters": [], "syllable2": "Бър", "explanation": "Б=„Бързи и яростни*---"},
+{"question": "Това е момичето, което обичаше да пее, пие и да се смее? (малко име и фамилия започват с една и съща буква)", "image": "https://i.imgur.com/vQazEMi.jpeg", "letter": "Д", "alt_letters": [], "syllable2": "жан", "explanation": "Д=Джанис Джоплин---"},
+{"question": "Баскетболната легенда Кевин ......?", "image": "https://i.imgur.com/EM04YMm.jpeg", "letter": "Д", "alt_letters": [], "syllable2": "юра", "explanation": "Д=Дюран---"},
+{"question": "Кой е този треньор, роден в Ондарибия, Баска автономна област? (фамилия)", "image": "https://i.imgur.com/IjpjB7p.jpeg", "letter": "Е", "alt_letters": [], "syllable2": "мер", "explanation": "Е=Емери---(Унаи Емери)"},
+{"question": "Очертанията на коя област виждате?", "image": "https://i.imgur.com/AnWcn1H.jpeg", "letter": "Т", "alt_letters": [], "syllable2": "ърг", "explanation": "Т=Търговище---"},
+{"question": "В кой марокански град се намира кулата Мохамед VI (в дъното на снимката)?", "image": "https://i.imgur.com/aDZd5LF.jpeg", "letter": "Р", "alt_letters": [], "syllable2": "аба", "explanation": "Р=Рабат---"},
+{"question": "От кой филм е репликата: „Джена, телепортирай ме!“?", "image": "https://i.imgur.com/dXg57mt.jpeg", "letter": "С", "alt_letters": [], "syllable2": "Сед", "explanation": "С=„Седморката на Блейк*---"},
+{"question": "От кой български бунтарски филм е кадъра?", "image": "https://i.imgur.com/d6Png0G.jpeg", "letter": "Д", "alt_letters": [], "syllable2": "Диа", "explanation": "Д=„Диада“---"}
 
 ]
