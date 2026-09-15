@@ -429,7 +429,7 @@ let lastPhaseSnapshot = null;
 
 let questions4 = [], questions5 = [], questions6 = [];
 
-// ⭐ ЖОКЕРИ (само кръг 4: втора сричка + поправка)
+// ⭐ ЖОКЕРИ (само кръг 4: Дай Три + поправка)
 let playerJokers = { r4_syllable2: false, r4_correction: 0 };
 let jokersLoaded = false;
 
@@ -463,7 +463,7 @@ function jokerStatusNote(msg) {
   if (el) el.textContent = msg;
 }
 
-// ⭐ Бонус в края: +1 т. за неизползвана Втора сричка (кръг 4). Поправките не се осребряват.
+// ⭐ Бонус в края: +1 т. за неизползвана Дай Три (кръг 4). Поправките не се осребряват.
 function computeCashInFinalBonus(jokers) {
   const j = jokers || {};
   let bonus = 0;
@@ -608,10 +608,12 @@ startBtn.onclick = async () => {
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
-function startAnswerListener(slotIdStr) {
+function startAnswerListener(slotIdStr, formatFn) {
   if (answersUnsub) answersUnsub();
   answeredNames.innerHTML = "";
   answeredList.style.display = "block";
+
+  const fmt = formatFn || ((pName) => pName + " отговори");
 
   answersUnsub = onSnapshot(
     collection(db, "games", GAME_ID, "episodes", episodeId, "results"),
@@ -622,11 +624,15 @@ function startAnswerListener(slotIdStr) {
           doc(db, "games", GAME_ID, "episodes", episodeId, "results", pName, "answers", slotIdStr),
           ansDoc => {
             if (ansDoc.exists()) {
-              const already = Array.from(answeredNames.children).some(d => d.dataset.player === pName);
-              if (!already) {
+              const data = ansDoc.data();
+              const text = fmt(pName, data);
+              const existing = Array.from(answeredNames.children).find(d => d.dataset.player === pName);
+              if (existing) {
+                existing.textContent = text;
+              } else {
                 const div = document.createElement("div");
                 div.dataset.player = pName;
-                div.textContent = pName + " отговори";
+                div.textContent = text;
                 answeredNames.appendChild(div);
               }
             }
@@ -1101,7 +1107,7 @@ function renderR6Question(chosenTopic, startTime, duration) {
 
   const q = questions6.find(t => t.title === chosenTopic) || questions6[0];
   buildMatchUI(q, startTime);
-  startAnswerListener("r6-0");
+  startAnswerListener("r6-0", (pName, data) => `${pName} — ${data.pairs?.length || 0} чифта`);
 
   timerInterval = setInterval(() => {
     updateTimer(startTime, duration);
@@ -1216,7 +1222,7 @@ const ROUND_META = {
       <p>📷 Пример: за Стара планина пишем С, за Иван Вазов пишем В.</p>
       <p>📷 Ако темата на въпроса е различна, ще пише изрично какво се търси.</p>
       <p>⭐ Време за отговор — <strong>20 секунди</strong>. Всеки верен отговор носи <strong>4 точки</strong>.</p>
-      <p>🔤 Жокер <strong>Дай Три</strong> — дава следващите три бувки на търсената дума/израз. Жокерът е еднократен за целия куиз.</p>
+      <p>🔤 Жокер <strong>Дай Три</strong> — дава следващите три букви на търсената дума/израз. Жокерът се ползва еднократно за целия куиз.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
       <p>⭐ 10/10 верни носят бонус от <strong>3 точки</strong>.</p>
     `
@@ -1332,7 +1338,7 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "finalRanking") {
     globalTimer.style.display = "block";
-    setMusic("Rise.mp3");
+    setMusic("rise.mp3");
     renderRanking(true);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
