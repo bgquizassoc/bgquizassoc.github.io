@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🎬 Игри на Знания - Куиз Мултимедия 🎬</title>
+
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 900px; margin: 0 auto; padding: 20px;
+    background: #00264d;
+    color: #ffffff;
+  }
+
+  h1 {
+    text-align: center; color: #ffd100;
+    font-size: clamp(1.5em, 4vw, 2em);
+    margin: 10px auto 15px auto;
+    text-shadow: 0 0 5px #ffb400;
+  }
+
+  #start-screen, #waiting-screen, #quiz, #explanation, #ranking {
+    width: 100%; max-width: 600px; text-align: center;
+    margin-top: 30px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 0 10px rgba(255,209,0,0.2);
+  }
+
+  input {
+    padding: 10px; font-size: 1.1em; border-radius: 8px;
+    border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+  }
+
+  button {
+    margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+    border-radius: 8px; border: none;
+    background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+  }
+  button:hover { background:#ffcc33; transform:scale(1.05); }
+
+  #globalTimer {
+    text-align: center; font-weight: 800; margin: 20px 0;
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+  }
+  #globalTimer.warning { color: #ff4c4c; }
+
+  /* ⭐ КЛИП (видео/YouTube/Streamable) */
+  #questionMedia, #explanationMedia {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 320px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    display: none;
+    background: #001a33;
+    overflow: hidden;
+  }
+  #explanationMedia { max-height: 260px; margin-bottom: 12px; }
+  #questionMedia video, #questionMedia iframe,
+  #explanationMedia video, #explanationMedia iframe {
+    width: 100%; height: 100%; border: none; display: block; background: #000;
+  }
+  #questionMedia video, #explanationMedia video { object-fit: contain; }
+
+  #question { font-size: 1.4em; margin: 10px 0 6px; font-weight: 600; }
+
+  #letterArea {
+    margin: 16px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #letterHint {
+    font-size: 1em;
+    color: #aaddff;
+    margin-bottom: 4px;
+  }
+
+  #letterInput {
+    width: 80px;
+    height: 80px;
+    font-size: 2.5em;
+    text-align: center;
+    border-radius: 12px;
+    border: 3px solid #00509e;
+    background: #001a33;
+    color: #fff;
+    font-weight: bold;
+    text-transform: uppercase;
+    caret-color: #ffd100;
+    outline: none;
+  }
+
+  #letterInput:focus {
+    border-color: #ffd100;
+    box-shadow: 0 0 10px #ffd10066;
+  }
+
+  #letterInput.submitted {
+    border-color: #00e676;
+    background: #00264d;
+    color: #00e676;
+  }
+
+  #submitBtn {
+    width: 200px;
+    font-size: 1.2em;
+    padding: 14px;
+    background: #ffd100;
+    color: #111;
+  }
+
+  #submitBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  #answeredList {
+    margin-top: 20px;
+    text-align: left;
+    font-size: 1.1em;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  #answeredList div {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  #answeredList div:last-child { border-bottom: none; }
+
+  .stat-answer {
+    display: block; width: 100%; margin: 10px 0; padding: 16px;
+    border-radius: 10px; background: #333; color: #fff;
+    font-size: 1.2em; text-align: left; position: relative;
+  }
+  .stat-answer.correct { background: #2e7d32; font-weight: bold; }
+  .stat-answer .pct {
+    position: absolute; right: 16px; top: 50%;
+    transform: translateY(-50%); opacity: 0.9;
+  }
+
+  #explanationText {
+    font-size: 1.25em; line-height: 1.5em;
+    margin-top: 20px; text-align: left;
+  }
+
+  .rank-item {
+    padding: 10px; margin: 8px 0;
+    border-radius: 10px; font-size: 1.2em; text-align: left;
+  }
+  .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
+  .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
+  .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
+
+  #historyBtn, #archiveBtn {
+    margin-top: 20px; background: #00e5ff; color: #003344;
+  }
+
+  #lobbyTitle { margin-top: 20px; font-weight: 600; }
+
+  #lobbyList {
+    margin-top: 10px; text-align: left;
+    max-height: 200px; overflow-y: auto; font-size: 0.95em;
+  }
+  #lobbyList div { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+  .myself {
+    background: #00e5ff55 !important;
+    border-left: 6px solid #00e5ff !important;
+    font-weight: 700; color: #fff !important;
+  }
+
+  /* ⭐ ЛОБИ */
+  #lobby-image {
+    width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 12px;
+    margin-bottom: 15px;
+  }
+  #lobby-instructions {
+    text-align: left;
+    font-size: 1em;
+    line-height: 1.8;
+    color: #cce8ff;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.05);
+    padding: 12px;
+    border-radius: 10px;
+  }
+  #lobby-instructions p { margin-bottom: 6px; }
+  #lobby-instructions strong { color: #ffd100; }
+
+  /* ⭐ ЖОКЕРИ */
+  .jokers-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 22px;
+    margin-bottom: 10px;
+  }
+  .joker-btn {
+    background: #0d47a1;
+    color: #ffffff;
+    border: 2px solid #1565c0;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 1.05em;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 0;
+  }
+  .joker-btn:hover:not(:disabled) { background:#1565c0; transform: scale(1.03); }
+  .joker-btn:disabled { opacity: 0.35; cursor: not-allowed; background:#555; border-color:#555; }
+  #jokerStatus {
+    margin-top: 12px;
+    min-height: 20px;
+    font-size: 1.1em;
+    color: #ffd100;
+    font-weight: bold;
+  }
+  </style>
+</head>
+
+<body>
+
+<h1>Игри на Знания<br>🎬 Куиз Мултимедия 🎬<br> епизод 1 </h1>
+
+<audio id="bg-music" src="Future.mp3" loop preload="auto"></audio>
+
+<div id="globalTimer" style="display:none;">-</div>
+
+<div id="start-screen">
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="playerName" placeholder="Име ..." />
+  <button id="enterBtn">Влез в играта</button>
+  <button id="archiveBtn">Архив класирания</button>
+</div>
+
+<div id="waiting-screen" style="display:none;">
+  <h2 id="waitingTitle">Играта още не е започнала.</h2>
+  <p>Моля, изчакайте<span id="dots">...</span></p>
+
+  <!-- ⭐ ТУК СЛОЖИ ТВОЯТА СНИМКА ЗА ЛОБИТО -->
+  <img id="lobby-image" src="" alt="Куиз Мултимедия" />
+
+  <!-- ⭐ ТУК СЛОЖИ ТВОИТЕ ОБЯСНЕНИЯ ЗА ЛОБИТО -->
+  <div id="lobby-instructions">
+    <p>🎬 Очакват ви 15 въпроса (по 5 от Музика, Кино и Спорт), придружени с кратък клип (от 40 секунди).</p>
+    <p>🎬 Отговаря се с изписване на първа буква от това, което сте си намислили.</p>
+    <p>🎬 Ако се пита за име на човек, пише се фамилната му буква; ако е обект или термин, пише се първата буква на първата дума.</p>
+    <p>🎬 Пример: За Стара планина пишем С, за Иван Вазов пишем В.</p>
+    <p>🎬 Ако се пита нещо различно — във въпроса ще пише (Търси се еди какво си...).</p>
+    <p>🎬 След като напишете буква, натиснете бутона Изпрати. С клавиш Enter се изпраща по-лесно и по-бързо.</p>
+    <p>🎬 Време за клипа и отговора — 40 секунди.</p>
+    <p>🎬 При равенство в точките се гледа общото време за целия куиз.</p>
+    <p>🔤 По време на играта имате достъп до жокер <strong> Дай Три</strong> дава ви следващите три букви от търсената дума/израз. Жокетър е еднократен за целия куиз.</p>
+    <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
+  </div>
+
+  <h3 id="lobbyTitle">Стартов списък на играчите</h3>
+  <p style="margin-top:10px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
+  <div id="lobbyList">Още няма други играчи.</div>
+</div>
+
+<div id="quiz" style="display:none;">
+  <!-- ⭐ КЛИПЪТ ИЗЛИЗА НАД ВЪПРОСА -->
+  <div id="questionMedia"></div>
+  <div id="question"></div>
+  <div id="letterArea">
+    <div id="letterHint">Напиши първата буква на отговора:</div>
+    <input type="text" id="letterInput" maxlength="1" autocomplete="off"
+           autocorrect="off" autocapitalize="characters" spellcheck="false"
+           placeholder="?" />
+    <button id="submitBtn">Изпрати</button>
+  </div>
+
+  <!-- ⭐ ЖОКЕРИ -->
+  <div id="jokers" class="jokers-panel">
+    <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Втора сричка</button>
+    <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
+  </div>
+  <div id="jokerStatus"></div>
+
+  <div id="answeredList" style="display:none;">
+    <strong>Отговорили:</strong>
+    <div id="answeredNames"></div>
+  </div>
+</div>
+
+<div id="explanation" style="display:none;">
+  <h3>Статистика</h3>
+  <div id="statsBlock"></div>
+  <!-- ⭐ КЛИПЪТ СЕ ПОКАЗВА ОТНОВО И В ОБЯСНЕНИЕТО -->
+  <div id="explanationMedia"></div>
+  <h3 style="margin-top:25px;">Обяснение</h3>
+  <div id="explanationText"></div>
+</div>
+
+<div id="ranking" style="display:none;">
+  <h3 id="rankingTitle">Крайно класиране</h3>
+  <div id="rankingList"></div>
+  <button id="historyBtn">История на играта</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, onSnapshot, setDoc, deleteDoc, collection, getDocs, getDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const GAME_ID = "quizmultimedia";
+
+const startScreen    = document.getElementById("start-screen");
+const waitingScreen  = document.getElementById("waiting-screen");
+const quizDiv        = document.getElementById("quiz");
+const explanationDiv = document.getElementById("explanation");
+const rankingDiv     = document.getElementById("ranking");
+
+const qText           = document.getElementById("question");
+const questionMedia   = document.getElementById("questionMedia");
+const explanationMedia= document.getElementById("explanationMedia");
+const letterInput     = document.getElementById("letterInput");
+const submitBtn       = document.getElementById("submitBtn");
+const statsBlock      = document.getElementById("statsBlock");
+const explanationText = document.getElementById("explanationText");
+const rankingList     = document.getElementById("rankingList");
+const rankingTitle    = document.getElementById("rankingTitle");
+const historyBtn      = document.getElementById("historyBtn");
+const lobbyList       = document.getElementById("lobbyList");
+const lobbyTitle      = document.getElementById("lobbyTitle");
+const globalTimer     = document.getElementById("globalTimer");
+const waitingTitle    = document.getElementById("waitingTitle");
+const answeredList    = document.getElementById("answeredList");
+const answeredNames   = document.getElementById("answeredNames");
+const bgMusic         = document.getElementById("bg-music");
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+let player        = "";
+let questions     = [];
+let ready         = false;
+let timerInterval = null;
+let episodeId     = null;
+let lobbyUnsub    = null;
+let lobbyEpisodeId= null;
+let answersUnsub  = null;
+
+// ⭐ ЖОКЕРИ — Втора сричка (еднократна) + Поправка (неограничена)
+let playerJokers = { syllable2: false, correction: 0 };
+let jokersLoaded = false;
+
+async function ensureJokersLoaded() {
+  if (jokersLoaded || !episodeId || !player) return;
+  jokersLoaded = true;
+  try {
+    const snap = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player));
+    if (snap.exists() && snap.data().jokers) {
+      playerJokers = { ...playerJokers, ...snap.data().jokers };
+    }
+  } catch(e) {}
+}
+
+function jokerStatusNote(msg) {
+  const el = document.getElementById("jokerStatus");
+  if (el) el.textContent = msg;
+}
+
+function updateJokerButtonUI(q) {
+  const btn = document.getElementById("joker-syllable2");
+  btn.style.display = playerJokers.syllable2 ? "none" : "inline-block";
+  document.getElementById("joker-correction").disabled = true;
+}
+
+/* ⭐ Транслитерация */
+const LATIN_TO_CYRILLIC = {
+  "A":"А","B":"В","C":"С","E":"Е","H":"Н",
+  "K":"К","M":"М","O":"О","P":"Р","T":"Т","X":"Х","Y":"У"
+};
+
+function normalizeLetter(letter) {
+  const upper = letter.toUpperCase();
+  return LATIN_TO_CYRILLIC[upper] || upper;
+}
+
+function isCorrectAnswer(q, input) {
+  const typed = normalizeLetter(input.trim());
+  if (!typed) return false;
+  const main = (q.letter || "").toUpperCase();
+  const alts = (q.alt_letters || []).map(l => l.toUpperCase());
+  return typed === main || alts.includes(typed);
+}
+
+/* ⭐ Разпознаване на типа линк — YouTube / Streamable / директен видео файл */
+function extractYouTubeId(url) {
+  const patterns = [
+    /youtu\.be\/([a-zA-Z0-9_-]{6,})/,
+    /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{6,})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{6,})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{6,})/
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function extractStreamableId(url) {
+  const m = url.match(/streamable\.com\/(?:e\/|o\/)?([a-zA-Z0-9]+)/);
+  return m ? m[1] : null;
+}
+
+/* ⭐ Зарежда клип в контейнер — video таг, YouTube iframe или Streamable iframe.
+   За да "спрем" клипа, просто изчистваме innerHTML (унищожава iframe/video). */
+function loadMedia(container, url, autoplay) {
+  container.innerHTML = "";
+
+  if (!url || url.trim() === "") {
+    container.style.display = "none";
+    return;
+  }
+  container.style.display = "block";
+
+  const ytId = extractYouTubeId(url);
+  const stId = !ytId ? extractStreamableId(url) : null;
+
+  if (ytId) {
+    const iframe = document.createElement("iframe");
+    iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=${autoplay ? 1 : 0}&rel=0&modestbranding=1&playsinline=1`;
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture";
+    iframe.allowFullscreen = true;
+    container.appendChild(iframe);
+  } else if (url.includes("streamable.com") && stId) {
+    const iframe = document.createElement("iframe");
+    iframe.src = `https://streamable.com/e/${stId}?autoplay=${autoplay ? 1 : 0}`;
+    iframe.allow = "autoplay";
+    iframe.allowFullscreen = true;
+    container.appendChild(iframe);
+  } else {
+    const video = document.createElement("video");
+    video.src = url;
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    container.appendChild(video);
+    if (autoplay) video.play().catch(() => {});
+  }
+}
+
+function stopMedia(container) {
+  container.innerHTML = "";
+  container.style.display = "none";
+}
+
+document.getElementById("archiveBtn").onclick = () => {
+  window.location.href = "archive.html";
+};
+
+historyBtn.onclick = () => {
+  if (!episodeId) return;
+  window.location.href = `history.html?episodeId=${episodeId}&player=${encodeURIComponent(player)}`;
+};
+
+async function loadQuestions() {
+  const res = await fetch("questions.json");
+  questions = await res.json();
+}
+
+function showOnly(div) {
+  startScreen.style.display    = "none";
+  waitingScreen.style.display  = "none";
+  quizDiv.style.display        = "none";
+  explanationDiv.style.display = "none";
+  rankingDiv.style.display     = "none";
+  div.style.display = "block";
+}
+
+let dotCount = 0;
+setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  const dotsEl = document.getElementById("dots");
+  if (dotsEl) dotsEl.textContent = ".".repeat(dotCount);
+}, 400);
+
+function formatTime(totalSeconds) {
+  if (totalSeconds >= 60) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    return `${m}:${String(s).padStart(2,"0")}`;
+  }
+  return String(totalSeconds);
+}
+
+function updateTimer(startTime, duration) {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  globalTimer.textContent = formatTime(remaining);
+  if (remaining <= 5) globalTimer.classList.add("warning");
+  else globalTimer.classList.remove("warning");
+}
+
+function updateRankingTitle(index) {
+  const isLast = index >= questions.length - 1;
+  rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
+  historyBtn.style.display = isLast ? "block" : "none";
+}
+
+document.getElementById("enterBtn").onclick = async () => {
+  player = document.getElementById("playerName").value.trim();
+  if (!player) return alert("Въведете ime!");
+
+  await loadQuestions();
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+
+  // ⭐ Музика само в лобито — спира завинаги щом тръгне първият клип
+  if (bgMusic) {
+    bgMusic.volume = 0.35;
+    bgMusic.currentTime = 0;
+    bgMusic.play().catch(() => {});
+  }
+
+  if (!episodeId) return;
+
+  await setDoc(
+    doc(db, "games", GAME_ID, "episodes", episodeId, "lobby", player),
+    { joinedAt: Date.now() },
+    { merge: true }
+  );
+
+  await ensureJokersLoaded();
+
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
+
+async function submitAnswer(index, startTime) {
+  const raw = letterInput.value.trim();
+  if (!raw) { alert("Напиши буква!"); return; }
+
+  const typed = normalizeLetter(raw);
+  const q = questions[index];
+  const correct = isCorrectAnswer(q, raw);
+
+  letterInput.classList.add("submitted");
+  letterInput.disabled = true;
+  submitBtn.disabled = true;
+
+  await setDoc(
+    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+    { exists: true },
+    { merge: true }
+  );
+
+  const thinkingTime = Date.now() - startTime;
+
+  await setDoc(
+    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", String(index)),
+    {
+      answer: typed,
+      correct: (q.letter || "").toUpperCase(),
+      isCorrect: correct,
+      explanation: q.explanation || "",
+      timestamp: Date.now(),
+      thinkingTime
+    }
+  );
+
+  document.getElementById("joker-correction").disabled = false;
+}
+
+function startAnswerListener(index) {
+  if (answersUnsub) answersUnsub();
+  answeredNames.innerHTML = "";
+  answeredList.style.display = "block";
+
+  answersUnsub = onSnapshot(
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results"),
+    resultsSnap => {
+      resultsSnap.forEach(playerDoc => {
+        const pName = playerDoc.id;
+        onSnapshot(
+          doc(db, "games", GAME_ID, "episodes", episodeId, "results", pName, "answers", String(index)),
+          ansDoc => {
+            if (ansDoc.exists()) {
+              const already = Array.from(answeredNames.children).some(d => d.dataset.player === pName);
+              if (!already) {
+                const div = document.createElement("div");
+                div.dataset.player = pName;
+                div.textContent = pName + " отговори";
+                answeredNames.appendChild(div);
+              }
+            }
+          }
+        );
+      });
+    }
+  );
+}
+
+async function renderExplanation(index) {
+  showOnly(explanationDiv);
+  statsBlock.innerHTML = "";
+  explanationText.textContent = "";
+  answeredList.style.display = "none";
+  answeredNames.innerHTML = "";
+
+  const q = questions[index];
+  if (!q) return;
+
+  // ⭐ Клипът се показва отново в обяснението
+  loadMedia(explanationMedia, q.video, true);
+
+  explanationText.textContent = q.explanation || "";
+
+  const playersSnap = await getDocs(
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results")
+  );
+
+  const counts = {};
+  for (const playerDoc of playersSnap.docs) {
+    const ansSnap = await getDocs(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", playerDoc.id, "answers")
+    );
+    const ansDoc = ansSnap.docs.find(d => d.id === String(index));
+    if (ansDoc) {
+      const typed = normalizeLetter((ansDoc.data().answer || ""));
+      counts[typed] = (counts[typed] || 0) + 1;
+    }
+  }
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const mainLetter = (q.letter || "").toUpperCase();
+  const altLetters = (q.alt_letters || []).map(l => l.toUpperCase());
+  const allCorrect = [mainLetter, ...altLetters];
+
+  let html = "";
+  allCorrect.forEach(l => {
+    const c = counts[l] || 0;
+    const pct = total ? Math.round((c / total) * 100) : 0;
+    html += `<div class="stat-answer correct">${l} — верен отговор<span class="pct">${pct}%</span> ✔</div>`;
+  });
+
+  Object.entries(counts).forEach(([letter, count]) => {
+    if (allCorrect.includes(letter)) return;
+    const pct = total ? Math.round((count / total) * 100) : 0;
+    html += `<div class="stat-answer">${letter}<span class="pct">${pct}%</span></div>`;
+  });
+
+  statsBlock.innerHTML = html || "<p>Няма отговори.</p>";
+}
+
+async function renderRanking(index) {
+  showOnly(rankingDiv);
+  rankingList.innerHTML = "";
+
+  const playersSnap = await getDocs(
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results")
+  );
+
+  const scores = {};
+
+  for (const playerDoc of playersSnap.docs) {
+    const playerName = playerDoc.id;
+    const answersSnap = await getDocs(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", playerName, "answers")
+    );
+
+    let totalPoints = 0;
+    let totalTime   = 0;
+
+    answersSnap.forEach(ansDoc => {
+      const qIndex = Number(ansDoc.id);
+      const data   = ansDoc.data();
+      const q      = questions[qIndex];
+      if (!q) return;
+
+      if (data.isCorrect) {
+        if (qIndex < 10)      totalPoints += 1;
+        else if (qIndex < 20) totalPoints += 2;
+        else                  totalPoints += 3;
+      }
+
+      if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
+    });
+
+    scores[playerName] = { points: totalPoints, time: totalTime };
+  }
+
+  const sorted = Object.entries(scores).sort((a, b) => {
+    if (b[1].points !== a[1].points) return b[1].points - a[1].points;
+    if (a[1].time   !== b[1].time)   return a[1].time   - b[1].time;
+    return a[0].localeCompare(b[0], "bg");
+  });
+
+  rankingList.innerHTML = sorted.map(([name, obj], i) => {
+    const pts    = obj.points;
+    const time   = (obj.time / 1000).toFixed(1);
+    const isLast = index >= questions.length - 1;
+    const isMe   = name === player;
+    let cls = "", medal = "";
+    if (i === 0) { cls = "gold";   medal = "🥇"; }
+    else if (i === 1) { cls = "silver"; medal = "🥈"; }
+    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+    const timeText = isLast ? ` (време: ${time} сек)` : "";
+    return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+      ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
+    </div>`;
+  }).join("");
+
+  updateRankingTitle(index);
+}
+
+let lastPhaseSnapshot = null;
+
+function applyPhaseImmediately(data) {
+ const { index, phase, duration } = data;
+ const startTime = data.startTime?.toMillis?.() ?? data.startTime ?? Date.now();
+  if (timerInterval) clearInterval(timerInterval);
+
+  if (phase === "lobby") {
+    showOnly(waitingScreen);
+    globalTimer.style.display = "none";
+    answeredList.style.display = "none";
+    waitingTitle.textContent = "Играта още не е започнала.";
+    stopMedia(questionMedia);
+    stopMedia(explanationMedia);
+    return;
+  }
+
+  if (phase === "prestart") {
+    showOnly(waitingScreen);
+    waitingTitle.textContent = "Играта започва след:";
+    globalTimer.style.display = "block";
+    answeredList.style.display = "none";
+    stopMedia(questionMedia);
+    stopMedia(explanationMedia);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "question") {
+    showOnly(quizDiv);
+    globalTimer.style.display = "block";
+
+    // ⭐ Музиката от лобито спира завинаги — от тук нататък звучи само клипът
+    if (bgMusic && !bgMusic.paused) bgMusic.pause();
+    stopMedia(explanationMedia);
+
+    const q = questions[index];
+    if (!q) return;
+
+    ensureJokersLoaded().then(() => updateJokerButtonUI(q));
+
+    // ⭐ Зареждаме клипа
+    loadMedia(questionMedia, q.video, true);
+    qText.textContent = `${index+1}. ${q.question}`;
+
+    letterInput.value = "";
+    letterInput.disabled = false;
+    letterInput.classList.remove("submitted");
+    submitBtn.disabled = false;
+
+    jokerStatusNote("");
+    updateJokerButtonUI(q);
+
+    answeredNames.innerHTML = "";
+    answeredList.style.display = "block";
+
+    startAnswerListener(index);
+
+    submitBtn.onclick = () => submitAnswer(index, startTime);
+    letterInput.onkeydown = (e) => {
+      if (e.key === "Enter" && !submitBtn.disabled) submitAnswer(index, startTime);
+    };
+    letterInput.oninput = () => {
+      letterInput.value = letterInput.value.slice(0, 1).toUpperCase();
+    };
+
+    document.getElementById("joker-syllable2").onclick = async () => {
+      if (playerJokers.syllable2) return;
+      const syll = (q.syllable2 || "").trim();
+
+      playerJokers.syllable2 = true;
+      jokerStatusNote(syll ? `🔤 Втора сричка: "${syll}"` : `🔤 Думата няма втора сричка.`);
+      updateJokerButtonUI(q);
+
+      try {
+        await setDoc(
+          doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+          { exists: true, jokers: playerJokers },
+          { merge: true }
+        );
+      } catch(e) {}
+    };
+
+    document.getElementById("joker-correction").onclick = async () => {
+      if (submitBtn.disabled === false) return; // все още не е отговорил
+      playerJokers.correction = (playerJokers.correction || 0) + 1;
+
+      letterInput.value = "";
+      letterInput.disabled = false;
+      letterInput.classList.remove("submitted");
+      submitBtn.disabled = false;
+      document.getElementById("joker-correction").disabled = true;
+
+      try {
+        await deleteDoc(
+          doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", String(index))
+        );
+      } catch(e) {}
+
+      await setDoc(
+        doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+        { jokers: playerJokers },
+        { merge: true }
+      );
+
+      jokerStatusNote("🔁 Поправка използвана — въведи буквата наново.");
+    };
+
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "explanation") {
+    globalTimer.style.display = "block";
+    answeredList.style.display = "none";
+    stopMedia(questionMedia);
+    renderExplanation(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "ranking") {
+    globalTimer.style.display = "block";
+    answeredList.style.display = "none";
+    stopMedia(questionMedia);
+    stopMedia(explanationMedia);
+    renderRanking(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+}
+
+onSnapshot(doc(db, "games", GAME_ID, "state", "current"), async snap => {
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+  lastPhaseSnapshot = data;
+  episodeId = data.episodeId;
+  if (!episodeId) return;
+
+  if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
+    if (lobbyUnsub) lobbyUnsub();
+    lobbyEpisodeId = episodeId;
+    lobbyUnsub = onSnapshot(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "lobby"),
+      lobbySnap => {
+        const names = lobbySnap.docs.map(d => d.id);
+        lobbyList.innerHTML = names.length
+          ? names.map(n => `<div>${n}</div>`).join("")
+          : "Още няма други играчи.";
+      }
+    );
+  }
+
+  if (!ready) return;
+  applyPhaseImmediately(data);
+});
+</script>
+
+</body>
+</html>
