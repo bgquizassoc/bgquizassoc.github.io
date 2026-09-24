@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История на играта – Куиз Мултимедия</title>
+  <style>
+    body {
+      background: #0a1a3a; color: white; font-family: Arial, sans-serif;
+      padding: 20px; max-width: 900px; margin: auto; line-height: 1.6;
+    }
+    h1 { color: #7fffd4; text-align: center; margin-bottom: 5px; text-shadow: 0 0 5px #00e5ff44; }
+    #playerTitle { text-align: center; color: #ffd100; font-size: 1.2em; margin-bottom: 15px; }
+    .question-block {
+      margin-bottom: 20px; padding: 15px; border-radius: 12px;
+      background: rgba(255,255,255,0.06); border-left: 6px solid #ffd100;
+    }
+    .question-block.correct-block { border-left-color: #00e676; }
+    .question-block.wrong-block { border-left-color: #ff5252; }
+    .question-block.skipped-block { border-left-color: #888; opacity: 0.7; }
+    .label { color: #7fffd4; font-weight: bold; }
+    .correct { color: #00e676; font-weight: bold; }
+    .wrong { color: #ff5252; font-weight: bold; }
+    .skipped { color: #aaa; font-style: italic; }
+    .explanation { margin-top: 10px; opacity: 0.85; }
+    .media-box {
+      width: 100%; max-width: 400px; aspect-ratio: 16/9;
+      border-radius: 10px; margin: 10px 0; background: #001a33; overflow: hidden;
+    }
+    .media-box video, .media-box iframe { width: 100%; height: 100%; border: none; }
+    .backBtn {
+      display: block; margin: 30px auto; padding: 12px 30px;
+      background: #ffd100; color: #003344; border: none; border-radius: 8px;
+      font-size: 1.2em; cursor: pointer; font-weight: bold; text-align: center; width: 200px;
+    }
+    .backBtn:hover { background: #ffcc33; }
+    #summary { text-align: center; margin-bottom: 10px; font-size: 1.1em; color: #aaddff; }
+    #pointsSummary { text-align: center; margin-bottom: 25px; font-size: 1.4em; color: #ffd100; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>📘 История на играта — Куиз Мултимедия</h1>
+<div id="playerTitle"></div>
+<div id="pointsSummary">Зареждане...</div>
+<div id="summary"></div>
+<div id="content"></div>
+<button class="backBtn" onclick="window.history.back()">Назад</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const GAME_ID = "quizmultimedia";
+
+const params    = new URLSearchParams(window.location.search);
+const episodeId = params.get("episodeId");
+const player    = params.get("player");
+
+const playerTitle   = document.getElementById("playerTitle");
+const summary       = document.getElementById("summary");
+const pointsSummary = document.getElementById("pointsSummary");
+const content       = document.getElementById("content");
+
+if (!episodeId || !player) {
+  summary.textContent = "Липсва информация за епизод или играч.";
+  throw new Error("Missing params");
+}
+
+playerTitle.textContent = "Играч: " + player;
+
+const LATIN_TO_CYRILLIC = {
+  "A":"А","B":"В","C":"С","E":"Е","H":"Н",
+  "K":"К","M":"М","O":"О","P":"Р","T":"Т","X":"Х","Y":"У"
+};
+function normalizeLetter(letter) {
+  const upper = (letter || "").toUpperCase();
+  return LATIN_TO_CYRILLIC[upper] || upper;
+}
+
+function extractYouTubeId(url) {
+  const patterns = [
+    /youtu\.be\/([a-zA-Z0-9_-]{6,})/,
+    /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{6,})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{6,})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{6,})/
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+function extractStreamableId(url) {
+  const m = url.match(/streamable\.com\/(?:e\/|o\/)?([a-zA-Z0-9]+)/);
+  return m ? m[1] : null;
+}
+function buildMediaHtml(url) {
+  if (!url || url.trim() === "") return "";
+  const ytId = extractYouTubeId(url);
+  const stId = !ytId ? extractStreamableId(url) : null;
+  if (ytId) {
+    return `<div class="media-box"><iframe src="https://www.youtube.com/embed/${ytId}" allow="encrypted-media" allowfullscreen></iframe></div>`;
+  } else if (url.includes("streamable.com") && stId) {
+    return `<div class="media-box"><iframe src="https://streamable.com/e/${stId}" allowfullscreen></iframe></div>`;
+  } else {
+    return `<div class="media-box"><video src="${url}" controls playsinline></video></div>`;
+  }
+}
+
+async function loadHistory() {
+  let questions = [];
+  try {
+    questions = await fetch("questions.json").then(r => r.json());
+  } catch(e) {
+    summary.textContent = "Не мога да заредя въпросите.";
+    return;
+  }
+
+  let answers = {};
+  try {
+    const answersSnap = await getDocs(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers")
+    );
+    answersSnap.forEach(d => answers[d.id] = d.data());
+  } catch(e) {
+    summary.textContent = "Нямате история за този епизод.";
+    return;
+  }
+
+  if (Object.keys(answers).length === 0) {
+    summary.textContent = "Нямате записани отговори за този епизод.";
+    return;
+  }
+
+  let grandTotal = 0;
+  let correctCount = 0, wrongCount = 0, skippedCount = 0;
+  let html = "";
+
+  questions.forEach((q, i) => {
+    const ans = answers[String(i)];
+    let statusClass = "skipped-block";
+    let statusText = '<span class="skipped">⬜ Не е отговорено</span>';
+    let yourAnswer = "—";
+
+    if (!ans) {
+      skippedCount++;
+    } else {
+      const isCorrect = !!ans.isCorrect;
+      yourAnswer = normalizeLetter(ans.answer || "");
+      statusClass = isCorrect ? "correct-block" : "wrong-block";
+      let pts = 0;
+      if (isCorrect) {
+        pts = i < 10 ? 1 : (i < 20 ? 2 : 3);
+        grandTotal += pts;
+        correctCount++;
+      } else {
+        wrongCount++;
+      }
+      statusText = isCorrect
+        ? `<span class="correct">✔ Вярно (${pts} т.)</span>`
+        : '<span class="wrong">✘ Грешно</span>';
+    }
+
+    html += `<div class="question-block ${statusClass}">
+      <div class="label">${i+1}. ${q.question}</div>
+      ${buildMediaHtml(q.video)}
+      <div><span class="label">Твоят отговор:</span> ${yourAnswer}</div>
+      <div><span class="label">Верен отговор:</span> ${(q.letter||"").toUpperCase()}</div>
+      <div style="margin-top:6px;">${statusText}</div>
+      ${q.explanation ? `<div class="explanation">${q.explanation}</div>` : ""}
+    </div>`;
+  });
+
+  pointsSummary.innerHTML = `🏁 Общо точки: ${grandTotal}`;
+  summary.innerHTML = `
+    Верни: <span style="color:#00e676;font-weight:bold;">${correctCount}</span> &nbsp;|&nbsp;
+    Грешни: <span style="color:#ff5252;font-weight:bold;">${wrongCount}</span> &nbsp;|&nbsp;
+    Пропуснати: <span style="color:#aaa;">${skippedCount}</span>
+    &nbsp; от общо ${questions.length} въпроса
+  `;
+
+  content.innerHTML = html;
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>
