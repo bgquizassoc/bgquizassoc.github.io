@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<title>Старт на Куиз Мултимедия</title>
+<style>
+  body { background:#001a33; color:white; text-align:center; padding:40px; font-family:Arial; }
+  button {
+    padding:15px 30px; font-size:1.4em; border:none; border-radius:10px;
+    background:#ffd100; color:#111; font-weight:bold; cursor:pointer;
+  }
+  input { padding:10px; font-size:1.2em; border-radius:8px; border:none; margin-bottom:20px; width:200px; text-align:center; }
+  .field-row { margin: 10px 0; font-size: 1.1em; }
+  .field-row label { display: inline-block; width: 220px; text-align: right; margin-right: 10px; }
+  #log {
+    margin-top: 30px; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;
+    background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px;
+    font-size: 0.9em; line-height: 1.6; max-height: 400px; overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+<h1>🎬 Старт на Куиз Мултимедия</h1>
+
+<div class="field-row">
+  <label>Име на епизод:</label>
+  <input id="ep" placeholder="пример: multitest1">
+</div>
+
+<div class="field-row">
+  <label>Час за старт на играта:</label>
+  <input type="time" id="startTime">
+</div>
+
+<br>
+<button id="startBtn">СТАРТ</button>
+
+<div id="log"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const GAME_ID = "quizmultimedia";
+
+// ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) =====
+const LOBBY_TIME = 10000;   // 10 сек. общо лоби (вход с код)
+const Q          = 40000;   // 40 сек. клип + отговор
+const EXPL       = 15000;   // обяснение / статистика
+const RANK       = 15000;   // временно класиране между въпросите
+const RANK_FINAL = 30000;   // финално класиране (по-дълго)
+
+let questions = [];
+
+function log(msg) {
+  const el = document.getElementById("log");
+  const line = document.createElement("div");
+  line.textContent = `[${new Date().toLocaleTimeString('bg-BG')}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  console.log(msg);
+}
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+async function loadQuestions() {
+  questions = await fetch("questions.json").then(r => r.json());
+  log(`Заредени въпроси: ${questions.length}`);
+}
+
+async function setState(ep, phase, duration, extra = {}) {
+  await setDoc(
+    doc(db, "games", GAME_ID, "state", "current"),
+    { episodeId: ep, phase, startTime: Date.now(), duration, ...extra },
+    { merge: false }
+  );
+}
+
+async function resetState() {
+  try { await deleteDoc(doc(db, "games", GAME_ID, "state", "current")); } catch(e) {}
+}
+
+async function runGame(ep) {
+  await loadQuestions();
+
+  for (let i = 0; i < questions.length; i++) {
+    log(`Въпрос ${i+1}/${questions.length}`);
+    const isLast = i === questions.length - 1;
+
+    await setState(ep, "question", Q, { index: i });
+    await sleep(Q);
+
+    await setState(ep, "explanation", EXPL, { index: i });
+    await sleep(EXPL);
+
+    const rankDuration = isLast ? RANK_FINAL : RANK;
+    await setState(ep, "ranking", rankDuration, { index: i });
+    await sleep(rankDuration);
+  }
+
+  log("Играта приключи.");
+}
+
+document.getElementById("startBtn").onclick = async () => {
+  const ep = document.getElementById("ep").value.trim();
+  const startTimeRaw = document.getElementById("startTime").value;
+
+  if (!ep) return alert("Въведи име на епизод!");
+  if (!startTimeRaw) return alert("Избери час за старт!");
+
+  const [hh, mm] = startTimeRaw.split(":").map(Number);
+  const now = new Date();
+  let startAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0).getTime();
+  if (startAt <= Date.now()) startAt += 24 * 60 * 60 * 1000;
+
+  const prestartDuration = startAt - Date.now() - LOBBY_TIME;
+  if (prestartDuration < 0) return alert("Избраният час е твърде близо! Избери по-късен час.");
+
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("startBtn").textContent = "Играта тече…";
+
+  await resetState();
+  await setState(ep, "lobby", LOBBY_TIME, {});
+  log(`Лоби (10 сек.) → престарт → старт в ${startTimeRaw}`);
+
+  await sleep(LOBBY_TIME);
+  await setState(ep, "prestart", prestartDuration, {});
+  await sleep(prestartDuration);
+
+  log("Играта започва!");
+  await runGame(ep);
+};
+</script>
+</body>
+</html>
