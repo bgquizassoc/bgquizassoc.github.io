@@ -268,7 +268,7 @@
     <p>🎬 След като напишете буква, натиснете бутона Изпрати. С клавиш Enter се изпраща по-лесно и по-бързо.</p>
     <p>🎬 Време за клипа и отговора — 40 секунди.</p>
     <p>🎬 При равенство в точките се гледа общото време за целия куиз.</p>
-    <p>🔤 По време на играта имате достъп до жокер <strong> Дай Три</strong> дава ви следващите три букви от търсената дума/израз. Жокетър е еднократен за целия куиз.</p>
+    <p>🔤 По време на играта имате достъп до жокер <strong> Дай Три</strong> дава ви следващите три букви от търсената дума/израз. Жокерът е еднократен за целия куиз.</p>
     <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
   </div>
 
@@ -291,7 +291,7 @@
 
   <!-- ⭐ ЖОКЕРИ -->
   <div id="jokers" class="jokers-panel">
-    <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Втора сричка</button>
+    <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Дай Три</button>
     <button class="joker-btn" id="joker-correction" disabled>🔁 Поправка</button>
   </div>
   <div id="jokerStatus"></div>
@@ -487,7 +487,7 @@ historyBtn.onclick = () => {
 };
 
 async function loadQuestions() {
-  const res = await fetch("questions.json");
+  const res = await fetch("/multi/questions.json");
   questions = await res.json();
 }
 
