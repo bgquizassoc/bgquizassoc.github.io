@@ -78,7 +78,7 @@ function log(msg) {
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 async function loadQuestions() {
-  questions = await fetch("questions.json").then(r => r.json());
+  questions = await fetch("multi/questions.json").then(r => r.json());
   log(`Заредени въпроси: ${questions.length}`);
 }
 
