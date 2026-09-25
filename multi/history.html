@@ -165,7 +165,7 @@ async function loadHistory() {
       statusClass = isCorrect ? "correct-block" : "wrong-block";
       let pts = 0;
       if (isCorrect) {
-        pts = i < 10 ? 1 : (i < 20 ? 2 : 3);
+        pts = 4;
         grandTotal += pts;
         correctCount++;
       } else {
