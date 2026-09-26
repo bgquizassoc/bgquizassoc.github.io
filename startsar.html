@@ -52,7 +52,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, deleteDoc, serverTimestamp
+  getFirestore, doc, setDoc, deleteDoc, getDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -87,19 +87,52 @@ async function resetState() {
   try { await deleteDoc(doc(db, "games", "saraevo", "state", "current")); } catch(e) {}
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ⭐ Флагът за "ранно приключване" — записва се от saraevoindex.html или
+// когато отборът предаде кръга, или ръчно от админ бутон. Тук само го
+// проверяваме на кратки интервали, вместо сляпо да чакаме цялото време.
+function earlyFinishRef(ep) {
+  return doc(db, "games", "saraevo", "episodes", ep, "control", "earlyFinish");
+}
+
+async function waitForRoundOrEarlyFinish(ep, roundIndex, maxMs) {
+  const start = Date.now();
+  const CHECK_EVERY = 1000; // проверка всяка секунда
+
+  while (Date.now() - start < maxMs) {
+    try {
+      const snap = await getDoc(earlyFinishRef(ep));
+      if (snap.exists() && snap.data().roundIndex === roundIndex && snap.data().triggered) {
+        // consume-ваме флага, за да не засегне следващия кръг
+        try { await deleteDoc(earlyFinishRef(ep)); } catch(e) {}
+        return;
+      }
+    } catch(e) {}
+    await sleep(Math.min(CHECK_EVERY, maxMs - (Date.now() - start)));
+  }
+}
+
 async function runGame(ep, times) {
   await loadQuestions();
   const { tQ, tRes } = times;
-  let t = 0;
   const ROUNDS = 5;
 
+  // изчистваме евентуален "стар" флаг от предишен епизод/тест
+  try { await deleteDoc(earlyFinishRef(ep)); } catch(e) {}
+
   for (let i = 0; i < ROUNDS; i++) {
-    setTimeout(() => setState(ep, i, "question", tQ * 1000, { questions }), t); t += tQ * 1000;
-    setTimeout(() => setState(ep, i, "results",  tRes * 1000, { questions }), t); t += tRes * 1000;
+    await setState(ep, i, "question", tQ * 1000, { questions });
+    await waitForRoundOrEarlyFinish(ep, i, tQ * 1000);
+
+    await setState(ep, i, "results", tRes * 1000, { questions });
+    await sleep(tRes * 1000);
   }
 
   // Финален екран
-  setTimeout(() => setState(ep, 0, "final", 0, { questions }), t);
+  await setState(ep, 0, "final", 0, { questions });
 }
 
 document.getElementById("startBtn").onclick = async () => {
