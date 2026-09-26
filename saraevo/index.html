@@ -190,6 +190,7 @@
   <div id="roundTitle"></div>
   <div id="questionsContainer"></div>
   <button id="submitRoundBtn" style="margin-top:20px;width:100%;">Предай отговорите</button>
+  <button id="adminEndRoundBtn" class="secondary-btn" style="display:none;width:100%;">⏭️ Приключи кръга сега (админ)</button>
 </div>
 
 <!-- РЕЗУЛТАТИ ОТ КРЪГА -->
@@ -241,6 +242,7 @@ const roundResultsContainer = document.getElementById("roundResultsContainer");
 const roundScoreSummary  = document.getElementById("roundScoreSummary");
 const nextRoundTimer     = document.getElementById("nextRoundTimer");
 const finalScore         = document.getElementById("finalScore");
+const adminEndRoundBtn   = document.getElementById("adminEndRoundBtn");
 
 // ⭐ ?role=admin в адреса отключва +/- бутоните за ръчна корекция на точки.
 // Играчите и обикновените зрители не виждат тази възможност.
@@ -382,6 +384,27 @@ function buildRound(roundIndex, startTime) {
   roundTitle.textContent = `Кръг ${roundIndex + 1} от 5` + (isSpectator ? " (следиш на живо)" : "");
   questionsContainer.innerHTML = "";
 
+  // ⭐ Ръчен бутон за админа — приключва кръга веднага, независимо дали
+  // отборът вече е предал отговорите си (напр. времето им е излишно, или
+  // просто искате да продължите по-рано).
+  if (isAdmin) {
+    adminEndRoundBtn.style.display = "block";
+    adminEndRoundBtn.disabled = false;
+    adminEndRoundBtn.textContent = "⏭️ Приключи кръга сега (админ)";
+    adminEndRoundBtn.onclick = async () => {
+      try {
+        await setDoc(
+          doc(db, "games", "saraevo", "episodes", episodeId, "control", "earlyFinish"),
+          { roundIndex, triggered: true, timestamp: Date.now() }
+        );
+        adminEndRoundBtn.disabled = true;
+        adminEndRoundBtn.textContent = "⏳ Приключва…";
+      } catch(e) { console.error(e); }
+    };
+  } else {
+    adminEndRoundBtn.style.display = "none";
+  }
+
   roundQuestions.forEach((q, qi) => {
     const block = document.createElement("div");
     block.className = "question-block";
@@ -487,6 +510,16 @@ async function submitRound(roundIndex, startTime) {
     await setDoc(
       doc(db, "games", "saraevo", "episodes", episodeId, "results", player, "rounds", String(roundIndex)),
       { results, roundScore, timestamp: Date.now() }
+    );
+  } catch(e) { console.error(e); }
+
+  // ⭐ Сигнал за ранно приключване на кръга — стартовият файл (startsaraevo)
+  // го проверява на всяка секунда и веднага минава към фазата с
+  // резултатите, вместо да чака цялото зададено време.
+  try {
+    await setDoc(
+      doc(db, "games", "saraevo", "episodes", episodeId, "control", "earlyFinish"),
+      { roundIndex, triggered: true, timestamp: Date.now() }
     );
   } catch(e) { console.error(e); }
 }
