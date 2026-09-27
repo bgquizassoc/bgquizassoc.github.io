@@ -20,7 +20,7 @@
 </style>
 </head>
 <body>
-<h1>🎬 Старт на Куиз Микс 7810</h1>
+<h1>🎬 Старт на Куиз Микс 7810 - 1</h1>
 
 <div class="field-row">
   <label>Име на епизод:</label>
@@ -106,9 +106,9 @@ function hashString(str) {
 
 async function loadAllQuestions() {
   const [r7, r8, r10] = await Promise.all([
-    fetch(FOLDER + "questions7.json").then(r => r.json()),
-    fetch(FOLDER + "questions8.json").then(r => r.json()),
-    fetch(FOLDER + "questions10.json").then(r => r.json())
+    fetch("quizmix7810/questions7.json").then(r => r.json()),
+    fetch("quizmix7810/questions8.json").then(r => r.json()),
+    fetch("quizmix7810/questions10.json").then(r => r.json())
   ]);
   questions7 = r7; questions8 = r8; questions10 = r10;
   log(`Заредени въпроси: кръг7=${questions7.length}, кръг8 теми=${questions8.length}, кръг10=${questions10.length}`);
