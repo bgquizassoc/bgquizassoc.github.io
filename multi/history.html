@@ -122,6 +122,24 @@ function buildMediaHtml(url) {
   }
 }
 
+// ⭐ Същите формули за бонус скорост и надмощие като в index.html
+function speedBonus(thinkingTimeMs) {
+  const seconds = thinkingTimeMs / 1000;
+  const stepsPast = Math.max(0, Math.ceil((seconds - 15) / 2));
+  const bucketSteps = Math.min(10, stepsPast);
+  return Math.round((1 - bucketSteps * 0.1) * 10) / 10;
+}
+function pctBonus(pctCorrect) {
+  return Math.round((100 - pctCorrect)) / 100;
+}
+function pointsForAnswer(isCorrect, thinkingTime, pctCorrect) {
+  if (!isCorrect) return 0;
+  let pts = 1;
+  if (typeof thinkingTime === "number") pts += speedBonus(thinkingTime);
+  pts += pctBonus(pctCorrect);
+  return Math.round(pts * 100) / 100;
+}
+
 async function loadHistory() {
   let questions = [];
   try {
@@ -147,6 +165,25 @@ async function loadHistory() {
     return;
   }
 
+  // ⭐ За бонуса за надмощие ни трябва % познали за ВСЕКИ въпрос измежду ВСИЧКИ играчи
+  const pctCorrectByIndex = {};
+  try {
+    const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
+    const countsByIndex = {};
+    for (const pDoc of playersSnap.docs) {
+      const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
+      ansSnap.forEach(ansDoc => {
+        const idx = Number(ansDoc.id);
+        if (!countsByIndex[idx]) countsByIndex[idx] = { total: 0, correct: 0 };
+        countsByIndex[idx].total++;
+        if (ansDoc.data().isCorrect) countsByIndex[idx].correct++;
+      });
+    }
+    Object.entries(countsByIndex).forEach(([idx, c]) => {
+      pctCorrectByIndex[idx] = c.total ? Math.round((c.correct / c.total) * 100) : 0;
+    });
+  } catch(e) {}
+
   let grandTotal = 0;
   let correctCount = 0, wrongCount = 0, skippedCount = 0;
   let html = "";
@@ -163,17 +200,19 @@ async function loadHistory() {
       const isCorrect = !!ans.isCorrect;
       yourAnswer = normalizeLetter(ans.answer || "");
       statusClass = isCorrect ? "correct-block" : "wrong-block";
-      let pts = 0;
+      const pctCorrect = pctCorrectByIndex[i] ?? 0;
+      const pts = pointsForAnswer(isCorrect, ans.thinkingTime, pctCorrect);
+
       if (isCorrect) {
-        pts = i < 10 ? 1 : (i < 20 ? 2 : 3);
         grandTotal += pts;
         correctCount++;
+        const sBonus = typeof ans.thinkingTime === "number" ? speedBonus(ans.thinkingTime) : 0;
+        const pBonus = pctBonus(pctCorrect);
+        statusText = `<span class="correct">✔ Вярно — 1 + ${sBonus.toFixed(1)} (скорост) + ${pBonus.toFixed(2)} (надмощие) = ${pts} т.</span>`;
       } else {
         wrongCount++;
+        statusText = '<span class="wrong">✘ Грешно</span>';
       }
-      statusText = isCorrect
-        ? `<span class="correct">✔ Вярно (${pts} т.)</span>`
-        : '<span class="wrong">✘ Грешно</span>';
     }
 
     html += `<div class="question-block ${statusClass}">
@@ -186,7 +225,7 @@ async function loadHistory() {
     </div>`;
   });
 
-  pointsSummary.innerHTML = `🏁 Общо точки: ${grandTotal}`;
+  pointsSummary.innerHTML = `🏁 Общо точки: ${Math.round(grandTotal * 100) / 100}`;
   summary.innerHTML = `
     Верни: <span style="color:#00e676;font-weight:bold;">${correctCount}</span> &nbsp;|&nbsp;
     Грешни: <span style="color:#ff5252;font-weight:bold;">${wrongCount}</span> &nbsp;|&nbsp;

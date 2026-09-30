@@ -60,7 +60,8 @@ const GAME_ID = "quizmultimedia";
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) =====
 const LOBBY_TIME = 10000;   // 10 сек. общо лоби (вход с код)
 const Q          = 40000;   // 40 сек. клип + отговор
-const EXPL       = 15000;   // обяснение / статистика
+const EXPL       = 15000;   // обяснение / статистика (буквено разпределение)
+const Q_RANKING  = 10000;   // ⭐ ново — класиране само по конкретния въпрос
 const RANK       = 15000;   // временно класиране между въпросите
 const RANK_FINAL = 30000;   // финално класиране (по-дълго)
 
@@ -78,7 +79,7 @@ function log(msg) {
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 async function loadQuestions() {
-  questions = await fetch("questions.json").then(r => r.json());
+  questions = await fetch("multi/questions.json").then(r => r.json());
   log(`Заредени въпроси: ${questions.length}`);
 }
 
@@ -106,6 +107,9 @@ async function runGame(ep) {
 
     await setState(ep, "explanation", EXPL, { index: i });
     await sleep(EXPL);
+
+    await setState(ep, "q-ranking", Q_RANKING, { index: i });
+    await sleep(Q_RANKING);
 
     const rankDuration = isLast ? RANK_FINAL : RANK;
     await setState(ep, "ranking", rankDuration, { index: i });

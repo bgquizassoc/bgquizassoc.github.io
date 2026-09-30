@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>🎬 Игри на Знания - Куиз Мултимедия 🎬</title>
+  <title>🎬 Игри на Знания - Куиз Мултимедия Live 🎬</title>
 
   <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -25,7 +25,7 @@
     text-shadow: 0 0 5px #ffb400;
   }
 
-  #start-screen, #waiting-screen, #quiz, #explanation, #ranking {
+  #start-screen, #waiting-screen, #quiz, #explanation, #q-ranking, #ranking {
     width: 100%; max-width: 600px; text-align: center;
     margin-top: 30px;
     background: rgba(255,255,255,0.05);
@@ -53,6 +53,7 @@
   #globalTimer.warning { color: #ff4c4c; }
 
   /* ⭐ КЛИП (видео/YouTube/Streamable) */
+  .media-wrap { position: relative; width: 100%; }
   #questionMedia, #explanationMedia {
     width: 100%;
     aspect-ratio: 16 / 9;
@@ -63,6 +64,14 @@
     background: #001a33;
     overflow: hidden;
   }
+  .fullscreen-btn {
+    position: absolute; top: 10px; right: 10px; z-index: 5;
+    width: 42px; height: 42px; padding: 0; margin: 0;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.55); color: #fff; border: 2px solid rgba(255,255,255,0.4);
+    border-radius: 10px; font-size: 1.4em; cursor: pointer;
+  }
+  .fullscreen-btn:hover { background: rgba(0,0,0,0.75); transform: none; }
   #explanationMedia { max-height: 260px; margin-bottom: 12px; }
   #questionMedia video, #questionMedia iframe,
   #explanationMedia video, #explanationMedia iframe {
@@ -157,13 +166,11 @@
     margin-top: 20px; text-align: left;
   }
 
-  .rank-item {
-    padding: 10px; margin: 8px 0;
-    border-radius: 10px; font-size: 1.2em; text-align: left;
-  }
+  .rank-item { padding: 10px; margin: 8px 0; border-radius: 10px; font-size: 1.2em; text-align: left; }
   .gold   { background: #ffeb3b33; border-left: 6px solid #ffd700; }
   .silver { background: #c0c0c033; border-left: 6px solid #c0c0c0; }
   .bronze { background: #cd7f3233; border-left: 6px solid #cd7f32; }
+  .rank-breakdown { display: block; font-size: 0.8em; opacity: 0.85; margin-top: 3px; }
 
   #historyBtn, #archiveBtn {
     margin-top: 20px; background: #00e5ff; color: #003344;
@@ -238,7 +245,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>🎬 Куиз Мултимедия 🎬<br> епизод 1 </h1>
+<h1>Игри на Знания<br>🎬 Куиз Мултимедия 🎬<br>⚡ епизод 1 ⚡</h1>
 
 <audio id="bg-music" src="Future.mp3" loop preload="auto"></audio>
 
@@ -256,19 +263,22 @@
   <p>Моля, изчакайте<span id="dots">...</span></p>
 
   <!-- ⭐ ТУК СЛОЖИ ТВОЯТА СНИМКА ЗА ЛОБИТО -->
-  <img id="lobby-image" src="" alt="Куиз Мултимедия" />
+  <img id="lobby-image" src="https://i.imgur.com/jF6LqSU.jpeg" alt="Куиз Мултимедия" />
 
   <!-- ⭐ ТУК СЛОЖИ ТВОИТЕ ОБЯСНЕНИЯ ЗА ЛОБИТО -->
   <div id="lobby-instructions">
-    <p>🎬 Очакват ви 15 въпроса (по 5 от Музика, Кино и Спорт), придружени с кратък клип (от 40 секунди).</p>
+    <p>🎬 Очакват ви въпроси, придружени с кратък клип (до 40 секунди).</p>
     <p>🎬 Отговаря се с изписване на първа буква от това, което сте си намислили.</p>
     <p>🎬 Ако се пита за име на човек, пише се фамилната му буква; ако е обект или термин, пише се първата буква на първата дума.</p>
     <p>🎬 Пример: За Стара планина пишем С, за Иван Вазов пишем В.</p>
     <p>🎬 Ако се пита нещо различно — във въпроса ще пише (Търси се еди какво си...).</p>
     <p>🎬 След като напишете буква, натиснете бутона Изпрати. С клавиш Enter се изпраща по-лесно и по-бързо.</p>
     <p>🎬 Време за клипа и отговора — 40 секунди.</p>
-    <p>🎬 При равенство в точките се гледа общото време за целия куиз.</p>
-    <p>🔤 По време на играта имате достъп до жокер <strong> Дай Три</strong> дава ви следващите три букви от търсената дума/израз. Жокетър е еднократен за целия куиз.</p>
+    <p>🎬 Точкуване — всеки верен отговор носи <strong>1 точка</strong> + два бонуса:</p>
+    <p>⏱ <strong>Бонус за скорост</strong> — до 15-тата секунда получавате <strong>+1.0 т.</strong>, а след това бонусът намалява с по 0.1 на всеки 2 секунди (0.9, 0.8 ... до 0.0 на 35-тата секунда).</p>
+    <p>🎯 <strong>Бонус за надмощие</strong> — колкото по-малко играчи са познали въпроса, толкова по-голям бонус получавате (100% познали = 0 бонус, 30% познали = +0.7 т.).</p>
+    <p>🎬 Грешен отговор носи 0 точки. При равенство в общите точки се гледа общото време за целия куиз.</p>
+    <p>🔤 По време на играта имате достъп до жокер <strong>Дай Три</strong> дава ви следващите три букви от търсената дума/израз. Жокерът е еднократен за целия куиз.</p>
     <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
   </div>
 
@@ -279,7 +289,10 @@
 
 <div id="quiz" style="display:none;">
   <!-- ⭐ КЛИПЪТ ИЗЛИЗА НАД ВЪПРОСА -->
-  <div id="questionMedia"></div>
+  <div class="media-wrap">
+    <div id="questionMedia"></div>
+    <button id="fullscreenBtn" class="fullscreen-btn" title="На цял екран" type="button">⛶</button>
+  </div>
   <div id="question"></div>
   <div id="letterArea">
     <div id="letterHint">Напиши първата буква на отговора:</div>
@@ -311,6 +324,11 @@
   <div id="explanationText"></div>
 </div>
 
+<div id="q-ranking" style="display:none;">
+  <h3 id="qRankingTitle">Класиране по въпроса</h3>
+  <div id="qRankingList"></div>
+</div>
+
 <div id="ranking" style="display:none;">
   <h3 id="rankingTitle">Крайно класиране</h3>
   <div id="rankingList"></div>
@@ -333,6 +351,7 @@ const rankingDiv     = document.getElementById("ranking");
 
 const qText           = document.getElementById("question");
 const questionMedia   = document.getElementById("questionMedia");
+const fullscreenBtn   = document.getElementById("fullscreenBtn");
 const explanationMedia= document.getElementById("explanationMedia");
 const letterInput     = document.getElementById("letterInput");
 const submitBtn       = document.getElementById("submitBtn");
@@ -340,6 +359,9 @@ const statsBlock      = document.getElementById("statsBlock");
 const explanationText = document.getElementById("explanationText");
 const rankingList     = document.getElementById("rankingList");
 const rankingTitle    = document.getElementById("rankingTitle");
+const qRankingDiv     = document.getElementById("q-ranking");
+const qRankingList    = document.getElementById("qRankingList");
+const qRankingTitle   = document.getElementById("qRankingTitle");
 const historyBtn      = document.getElementById("historyBtn");
 const lobbyList       = document.getElementById("lobbyList");
 const lobbyTitle      = document.getElementById("lobbyTitle");
@@ -415,6 +437,84 @@ function isCorrectAnswer(q, input) {
   return typed === main || alts.includes(typed);
 }
 
+// ===============================
+// ⭐ ФОРМУЛА ЗА ТОЧКИ: 1 т. база + бонус скорост + бонус надмощие
+// (адаптирана версия на Куиз Процент за 40-секунден въпрос)
+// ===============================
+
+// Бонус за скорост: 1.0 т. до 15-тата сек., после -0.1 на всеки 2 сек.,
+// до 0.0 около 35-тата сек. (времето за клипа е 40 сек.).
+function speedBonus(thinkingTimeMs) {
+  const seconds = thinkingTimeMs / 1000;
+  const stepsPast = Math.max(0, Math.ceil((seconds - 15) / 2));
+  const bucketSteps = Math.min(10, stepsPast);
+  return Math.round((1 - bucketSteps * 0.1) * 10) / 10;
+}
+
+// Бонус за надмощие: (100 - % познали въпроса измежду реално отговорилите) / 100
+function pctBonus(pctCorrect) {
+  return Math.round((100 - pctCorrect)) / 100;
+}
+
+// Точки за конкретен отговор, при вече известен % познали за въпроса
+function pointsForAnswerData(data, q, pctCorrect) {
+  if (!data.isCorrect) return 0;
+  let pts = 1;
+  if (typeof data.thinkingTime === "number") pts += speedBonus(data.thinkingTime);
+  pts += pctBonus(pctCorrect);
+  return Math.round(pts * 100) / 100;
+}
+
+// ⭐ Чете ВЕДНЪЖ всички отговори на всички играчи, групирани по индекс на въпрос
+async function fetchAllAnswers() {
+  const playersSnap = await getDocs(
+    collection(db, "games", GAME_ID, "episodes", episodeId, "results")
+  );
+
+  const byIndex = new Map();
+  const jokersByPlayer = {};
+
+  for (const playerDoc of playersSnap.docs) {
+    const name = playerDoc.id;
+    jokersByPlayer[name] = playerDoc.data().jokers || {};
+
+    const ansSnap = await getDocs(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", name, "answers")
+    );
+    ansSnap.forEach(ansDoc => {
+      const idx = Number(ansDoc.id);
+      if (!byIndex.has(idx)) byIndex.set(idx, []);
+      byIndex.get(idx).push({ name, data: ansDoc.data() });
+    });
+  }
+
+  return { byIndex, jokersByPlayer, playerNames: playersSnap.docs.map(d => d.id) };
+}
+
+// ⭐ Статистика за конкретен въпрос (% познали + разбив по играч)
+function buildQuestionStats(index, entries) {
+  const list = entries || [];
+  let correctCount = 0;
+
+  const perPlayer = list.map(({ name, data }) => {
+    const correct = !!data.isCorrect;
+    if (correct) correctCount++;
+    return { name, data, correct };
+  });
+
+  const total = list.length;
+  const pctCorrect = total ? Math.round((correctCount / total) * 100) : 0;
+
+  perPlayer.forEach(p => { p.points = pointsForAnswerData(p.data, questions[index], pctCorrect); });
+
+  return { total, correctCount, pctCorrect, perPlayer };
+}
+
+async function getQuestionStats(index) {
+  const all = await fetchAllAnswers();
+  return buildQuestionStats(index, all.byIndex.get(index));
+}
+
 /* ⭐ Разпознаване на типа линк — YouTube / Streamable / директен видео файл */
 function extractYouTubeId(url) {
   const patterns = [
@@ -437,14 +537,16 @@ function extractStreamableId(url) {
 
 /* ⭐ Зарежда клип в контейнер — video таг, YouTube iframe или Streamable iframe.
    За да "спрем" клипа, просто изчистваме innerHTML (унищожава iframe/video). */
-function loadMedia(container, url, autoplay) {
+function loadMedia(container, url, autoplay, fsBtn) {
   container.innerHTML = "";
 
   if (!url || url.trim() === "") {
     container.style.display = "none";
+    if (fsBtn) fsBtn.style.display = "none";
     return;
   }
   container.style.display = "block";
+  if (fsBtn) fsBtn.style.display = "flex";
 
   const ytId = extractYouTubeId(url);
   const stId = !ytId ? extractStreamableId(url) : null;
@@ -452,13 +554,13 @@ function loadMedia(container, url, autoplay) {
   if (ytId) {
     const iframe = document.createElement("iframe");
     iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=${autoplay ? 1 : 0}&rel=0&modestbranding=1&playsinline=1`;
-    iframe.allow = "autoplay; encrypted-media; picture-in-picture";
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     iframe.allowFullscreen = true;
     container.appendChild(iframe);
   } else if (url.includes("streamable.com") && stId) {
     const iframe = document.createElement("iframe");
     iframe.src = `https://streamable.com/e/${stId}?autoplay=${autoplay ? 1 : 0}`;
-    iframe.allow = "autoplay";
+    iframe.allow = "autoplay; fullscreen";
     iframe.allowFullscreen = true;
     container.appendChild(iframe);
   } else {
@@ -472,10 +574,30 @@ function loadMedia(container, url, autoplay) {
   }
 }
 
-function stopMedia(container) {
+function stopMedia(container, fsBtn) {
   container.innerHTML = "";
   container.style.display = "none";
+  if (fsBtn) fsBtn.style.display = "none";
 }
+
+/* ⭐ Разтягане на клипа на цял екран — само за него, не за останалата страница */
+function toggleFullscreen(container) {
+  const video  = container.querySelector("video");
+  const iframe = container.querySelector("iframe");
+
+  if (video) {
+    if (video.requestFullscreen) { video.requestFullscreen().catch(() => {}); return; }
+    if (video.webkitEnterFullscreen) { video.webkitEnterFullscreen(); return; } // iOS Safari
+    if (video.webkitRequestFullscreen) { video.webkitRequestFullscreen(); return; }
+    return;
+  }
+
+  const target = iframe || container;
+  if (target.requestFullscreen) target.requestFullscreen().catch(() => {});
+  else if (target.webkitRequestFullscreen) target.webkitRequestFullscreen();
+}
+
+fullscreenBtn.onclick = () => toggleFullscreen(questionMedia);
 
 document.getElementById("archiveBtn").onclick = () => {
   window.location.href = "archive.html";
@@ -496,6 +618,7 @@ function showOnly(div) {
   waitingScreen.style.display  = "none";
   quizDiv.style.display        = "none";
   explanationDiv.style.display = "none";
+  qRankingDiv.style.display    = "none";
   rankingDiv.style.display     = "none";
   div.style.display = "block";
 }
@@ -635,7 +758,7 @@ async function renderExplanation(index) {
   const q = questions[index];
   if (!q) return;
 
-  // ⭐ Клипът се показва отново в обяснението
+  // ⭐ Клипът се показва отново в обяснението (не пречи, че не се вижда изцяло)
   loadMedia(explanationMedia, q.video, true);
 
   explanationText.textContent = q.explanation || "";
@@ -677,48 +800,43 @@ async function renderExplanation(index) {
   statsBlock.innerHTML = html || "<p>Няма отговори.</p>";
 }
 
-async function renderRanking(index) {
-  showOnly(rankingDiv);
-  rankingList.innerHTML = "";
-
-  const playersSnap = await getDocs(
-    collection(db, "games", GAME_ID, "episodes", episodeId, "results")
-  );
+// ===============================
+// ⭐ ВРЕМЕННО/КРАЙНО КЛАСИРАНЕ (натрупано през всички изиграни въпроси)
+// ===============================
+async function computeStandings(uptoIndex) {
+  const all = await fetchAllAnswers();
 
   const scores = {};
+  all.playerNames.forEach(name => {
+    scores[name] = { points: 0, time: 0 };
+  });
 
-  for (const playerDoc of playersSnap.docs) {
-    const playerName = playerDoc.id;
-    const answersSnap = await getDocs(
-      collection(db, "games", GAME_ID, "episodes", episodeId, "results", playerName, "answers")
-    );
-
-    let totalPoints = 0;
-    let totalTime   = 0;
-
-    answersSnap.forEach(ansDoc => {
-      const qIndex = Number(ansDoc.id);
-      const data   = ansDoc.data();
-      const q      = questions[qIndex];
-      if (!q) return;
-
-      if (data.isCorrect) {
-        if (qIndex < 10)      totalPoints += 1;
-        else if (qIndex < 20) totalPoints += 2;
-        else                  totalPoints += 3;
-      }
-
-      if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
+  for (let i = 0; i <= uptoIndex; i++) {
+    if (!questions[i]) continue;
+    const stats = buildQuestionStats(i, all.byIndex.get(i));
+    stats.perPlayer.forEach(p => {
+      if (!scores[p.name]) scores[p.name] = { points: 0, time: 0 };
+      scores[p.name].points += p.points;
+      if (typeof p.data.thinkingTime === "number") scores[p.name].time += p.data.thinkingTime;
     });
-
-    scores[playerName] = { points: totalPoints, time: totalTime };
   }
 
-  const sorted = Object.entries(scores).sort((a, b) => {
+  Object.keys(scores).forEach(name => {
+    scores[name].points = Math.round(scores[name].points * 100) / 100;
+  });
+
+  return Object.entries(scores).sort((a, b) => {
     if (b[1].points !== a[1].points) return b[1].points - a[1].points;
     if (a[1].time   !== b[1].time)   return a[1].time   - b[1].time;
     return a[0].localeCompare(b[0], "bg");
   });
+}
+
+async function renderRanking(index) {
+  showOnly(rankingDiv);
+  rankingList.innerHTML = "Зареждам класирането...";
+
+  const sorted = await computeStandings(index);
 
   rankingList.innerHTML = sorted.map(([name, obj], i) => {
     const pts    = obj.points;
@@ -729,13 +847,60 @@ async function renderRanking(index) {
     if (i === 0) { cls = "gold";   medal = "🥇"; }
     else if (i === 1) { cls = "silver"; medal = "🥈"; }
     else if (i === 2) { cls = "bronze"; medal = "🥉"; }
-    const timeText = isLast ? ` (време: ${time} сек)` : "";
+    const timeText = isLast ? ` (общо време: ${time} сек)` : "";
     return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
       ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
     </div>`;
   }).join("");
 
   updateRankingTitle(index);
+}
+
+// ⭐ Класиране само по конкретния въпрос (нова фаза)
+async function renderQRanking(index) {
+  showOnly(qRankingDiv);
+  qRankingList.innerHTML = "Зареждам класирането по въпроса...";
+
+  const stats = await getQuestionStats(index);
+
+  const sorted = stats.perPlayer.slice().sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    const ta = typeof a.data.thinkingTime === "number" ? a.data.thinkingTime : Infinity;
+    const tb = typeof b.data.thinkingTime === "number" ? b.data.thinkingTime : Infinity;
+    if (ta !== tb) return ta - tb;
+    return a.name.localeCompare(b.name, "bg");
+  });
+
+  qRankingList.innerHTML = sorted.map((p, i) => {
+    const isMe = p.name === player;
+    let cls = "", medal = "";
+    if (i === 0) { cls = "gold";   medal = "🥇"; }
+    else if (i === 1) { cls = "silver"; medal = "🥈"; }
+    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+
+    const seconds = typeof p.data.thinkingTime === "number" ? (p.data.thinkingTime / 1000).toFixed(1) : "-";
+    const mark = p.correct ? "✔" : "✘";
+
+    let breakdown;
+    if (p.correct) {
+      const sBonus = typeof p.data.thinkingTime === "number" ? speedBonus(p.data.thinkingTime) : 0;
+      const pBonus = pctBonus(stats.pctCorrect);
+      breakdown = `1 + ${sBonus.toFixed(1)} (скорост) + ${pBonus.toFixed(2)} (надмощие) = ${p.points} т. · ${seconds} сек.`;
+    } else {
+      breakdown = `0 т. · ${seconds} сек.`;
+    }
+
+    return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+      ${i+1}. ${medal} ${p.name} ${mark} — ${p.points} т.
+      <span class="rank-breakdown">${breakdown}</span>
+    </div>`;
+  }).join("") || "<p>Никой не отговори на този въпрос.</p>";
+
+  const pctLine = document.createElement("p");
+  pctLine.style.marginTop = "12px";
+  pctLine.style.opacity = "0.85";
+  pctLine.textContent = `Отговорили: ${stats.total} | Познали: ${stats.correctCount} (${stats.pctCorrect}%)`;
+  qRankingList.appendChild(pctLine);
 }
 
 let lastPhaseSnapshot = null;
@@ -750,7 +915,7 @@ function applyPhaseImmediately(data) {
     globalTimer.style.display = "none";
     answeredList.style.display = "none";
     waitingTitle.textContent = "Играта още не е започнала.";
-    stopMedia(questionMedia);
+    stopMedia(questionMedia, fullscreenBtn);
     stopMedia(explanationMedia);
     return;
   }
@@ -760,7 +925,7 @@ function applyPhaseImmediately(data) {
     waitingTitle.textContent = "Играта започва след:";
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
-    stopMedia(questionMedia);
+    stopMedia(questionMedia, fullscreenBtn);
     stopMedia(explanationMedia);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -780,7 +945,7 @@ function applyPhaseImmediately(data) {
     ensureJokersLoaded().then(() => updateJokerButtonUI(q));
 
     // ⭐ Зареждаме клипа
-    loadMedia(questionMedia, q.video, true);
+    loadMedia(questionMedia, q.video, true, fullscreenBtn);
     qText.textContent = `${index+1}. ${q.question}`;
 
     letterInput.value = "";
@@ -853,8 +1018,18 @@ function applyPhaseImmediately(data) {
   if (phase === "explanation") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
-    stopMedia(questionMedia);
+    stopMedia(questionMedia, fullscreenBtn);
     renderExplanation(index);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  if (phase === "q-ranking" || phase === "qRanking") {
+    globalTimer.style.display = "block";
+    answeredList.style.display = "none";
+    stopMedia(questionMedia, fullscreenBtn);
+    stopMedia(explanationMedia);
+    renderQRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
@@ -862,7 +1037,7 @@ function applyPhaseImmediately(data) {
   if (phase === "ranking") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
-    stopMedia(questionMedia);
+    stopMedia(questionMedia, fullscreenBtn);
     stopMedia(explanationMedia);
     renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
