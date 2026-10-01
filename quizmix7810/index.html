@@ -69,6 +69,15 @@
   #questionMedia video, #questionMedia iframe,
   #explanationMedia video, #explanationMedia iframe { width: 100%; height: 100%; border: none; display: block; background: #000; }
   #questionMedia video, #explanationMedia video { object-fit: contain; }
+  /* ⭐ Аудио въпрос (mp3) — друг изглед, без видео кутия */
+  #questionMedia.audio-mode, #explanationMedia.audio-mode {
+    aspect-ratio: auto; max-height: none; height: auto;
+    padding: 28px 16px; display: flex !important; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    background: linear-gradient(135deg, #003d7a, #001a33);
+  }
+  .audio-icon { font-size: 2.8em; }
+  #questionMedia.audio-mode audio, #explanationMedia.audio-mode audio { width: 100%; max-width: 360px; }
   .fullscreen-btn {
     position: absolute; top: 10px; right: 10px; z-index: 5;
     width: 42px; height: 42px; padding: 0; margin: 0;
@@ -220,7 +229,7 @@
 
   <img id="lobby-image" src="https://i.imgur.com/Dmge8y4.jpeg" alt="Куиз Микс 7810" />
 
-  <div id="lobby-instructions">
+   <div id="lobby-instructions">
     <p>🧩 Очакват ви 3 кръга</p>
     <p>🧩 Преди всеки кръг има подробно обяснение за кръга и неговите жокери.</p>
     <p>🧩 Запознайте се преди да играете, а тук накратко:</p>
@@ -548,8 +557,13 @@ function extractStreamableId(url) {
   const m = url.match(/streamable\.com\/(?:e\/|o\/)?([a-zA-Z0-9]+)/);
   return m ? m[1] : null;
 }
+function isAudioUrl(url) {
+  return /\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/i.test(url.trim());
+}
+
 function loadMedia(container, url, autoplay, fsBtn) {
   container.innerHTML = "";
+  container.classList.remove("audio-mode");
   if (!url || url.trim() === "") {
     container.style.display = "none";
     if (fsBtn) fsBtn.style.display = "none";
@@ -573,6 +587,22 @@ function loadMedia(container, url, autoplay, fsBtn) {
     iframe.allow = "autoplay; fullscreen";
     iframe.allowFullscreen = true;
     container.appendChild(iframe);
+  } else if (isAudioUrl(url)) {
+    // ⭐ Аудио въпрос (mp3 и т.н.) — няма нужда от видео кутия/разтягане
+    container.classList.add("audio-mode");
+    if (fsBtn) fsBtn.style.display = "none";
+
+    const icon = document.createElement("div");
+    icon.className = "audio-icon";
+    icon.textContent = "🎵";
+    container.appendChild(icon);
+
+    const audio = document.createElement("audio");
+    audio.src = url;
+    audio.controls = true;
+    audio.preload = "auto";
+    container.appendChild(audio);
+    if (autoplay) audio.play().catch(() => {});
   } else {
     const video = document.createElement("video");
     video.src = url;
@@ -947,7 +977,12 @@ function buildGroupingUI(q, startTime) {
   roundTitle8.textContent = q.title || "Групиране";
 
   const items = [...q.items].sort();
-  const groups = q.groups;
+
+  let groups = q.groups;
+  if (!Array.isArray(groups)) {
+    groups = typeof groups === "string" ? groups.split(",").map(s => s.trim()) : [];
+  }
+  groups = groups.filter(g => g && String(g).trim() !== "");
 
   items.forEach(item => {
     const btn = document.createElement("button");
@@ -957,6 +992,12 @@ function buildGroupingUI(q, startTime) {
     btn.onclick = () => selectItem8(btn, item);
     itemsContainer.appendChild(btn);
   });
+
+  if (groups.length === 0) {
+    groupsContainer.innerHTML = '<p style="color:#ff5252;font-weight:bold;">⚠️ Няма разпознати групи за тази тема — провери полето "groups" в questions8.json (трябва да е списък като ["Група А","Група Б"]).</p>';
+    scoreDisplay8.textContent = "";
+    return;
+  }
 
   groups.forEach((group, gi) => {
     const color = GROUP_COLORS[gi % GROUP_COLORS.length];
@@ -1058,6 +1099,7 @@ function renderR8Question(chosenTopic, startTime, duration) {
   showOnly(quizDiv);
   roundTag.textContent = "Кръг 8 — Групиране: " + chosenTopic;
   qText.textContent = "";
+  stopMedia(questionMedia, fullscreenBtn);
   letterArea.style.display = "none";
   numberArea.style.display = "none";
   groupingArea.style.display = "block";
@@ -1341,9 +1383,9 @@ const ROUND_META = {
       <p>🎬 Очакват ви 15 въпроса с клипче (Музика, Кино и Спорт) — по 5 от всяка област.</p>
       <p>🎬 Отговаря се с изписване на първата буква от търсеното.</p>
       <p>⭐ Време за клипа и отговора — <strong>60 секунди</strong>. Всеки верен отговор носи <strong>4 точки</strong>.</p>
-      <p>🔤 Жокер <strong>Дай Три</strong> — Дава следващите три букви от търсената дума/израз.</p>
+      <p>🔤 Жокер <strong>Втора сричка</strong> — еднократен за целия кръг.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
-      <p>⭐ При 9 верни отговра печелите бонус от <strong>3 точки</strong>.</p>
+      <p>⭐ 15/15 верни носят бонус от <strong>3 точки</strong>.</p>
     `
   },
   8: {
