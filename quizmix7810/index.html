@@ -210,7 +210,7 @@
 
 <body>
 
-<h1> Игри на Знания <br> 🧩 Куиз Микс 7,8,10 🧩 <br>епизод 1-1</h1>
+<h1> Игри на Знания <br> 🧩 Куиз Микс 7810 🧩 <br>епизод 1</h1>
 
 <audio id="bg-music" src="games.mp3" loop preload="auto"></audio>
 
@@ -242,6 +242,7 @@
     <p>🧩 Ако отговорите правилно на всички въпроси в 7-ми и 8-ми кръг, получвате <strong> бонус от 3 точки </strong>, затова използвайте активно и разумно жокерите си, за да запазите безпогрешна серия.</p>
     <p>🧩 Всеки неизползван жокер се осребрява автоматично в края на играта и печелите по 1 точка</p>
   </div>
+
 
   <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
   <p style="margin-top:8px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
@@ -453,6 +454,7 @@ let lastClickTime8 = null;
 let currentGroupQuestion = null;
 let currentGroupStartTime = null;
 let currentChosenTopic = null;
+let autoSubmitTimeout8 = null;
 
 function slotId(round, index) { return `r${round}-${index}`; }
 
@@ -522,14 +524,10 @@ function setMusic(src) {
   } catch(e) {}
 }
 
-/* ⭐ Транслитерация (кръг 7) */
-const LATIN_TO_CYRILLIC = {
-  "A":"А","B":"В","C":"С","E":"Е","H":"Н",
-  "K":"К","M":"М","O":"О","P":"Р","T":"Т","X":"Х","Y":"У"
-};
+/* ⭐ Кръг 7: буквата се приема точно както е написана (главна буква),
+   БЕЗ превръщане на латиница в кирилица — някои отговори са нарочно на латиница. */
 function normalizeLetter(letter) {
-  const upper = (letter || "").toUpperCase();
-  return LATIN_TO_CYRILLIC[upper] || upper;
+  return (letter || "").toUpperCase();
 }
 function isCorrectLetterAnswer(q, input) {
   const typed = normalizeLetter((input || "").trim());
@@ -1111,11 +1109,15 @@ function renderR8Question(chosenTopic, startTime, duration) {
   buildGroupingUI(q, startTime);
   startAnswerListener("r8-0", (pName, data) => `${pName} — ${Object.keys(data.assignments || {}).length} обекта`);
 
-  timerInterval = setInterval(() => {
-    updateTimer(startTime, duration);
-    const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startTime)) / 1000));
-    if (remaining === 0 && !groupingSubmitted) submitGrouping8(startTime);
-  }, 200);
+  // ⭐ Визуалният таймер следва часа на хоста (само за показ — леко разминаване тук е козметично).
+  timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+
+  // ⭐ Автоматичното предаване НЕ зависи от часовника на устройството на играча (имунизирано
+  // срещу разминат системен час) — тръгва от момента, в който РЕАЛНО клиентът влезе в кръга.
+  clearTimeout(autoSubmitTimeout8);
+  autoSubmitTimeout8 = setTimeout(() => {
+    if (!groupingSubmitted) submitGrouping8(startTime);
+  }, duration);
 }
 
 async function renderR8Results() {
@@ -1124,13 +1126,24 @@ async function renderR8Results() {
 
   const q = currentGroupQuestion || questions8[0];
   let html = "";
-  q.groups.forEach((group, gi) => {
-    const color = GROUP_COLORS[gi % GROUP_COLORS.length];
-    html += `<div style="margin:10px 0;font-weight:bold;color:${color};">${group}:</div>`;
-    q.items.filter(item => q.answers[item] === group).sort().forEach(item => {
-      html += `<div class="result-row correct"><span>${item}</span><span>✔</span></div>`;
+
+  let groups = q.groups;
+  if (!Array.isArray(groups)) {
+    groups = typeof groups === "string" ? groups.split(",").map(s => s.trim()) : [];
+  }
+  groups = groups.filter(g => g && String(g).trim() !== "");
+
+  if (groups.length === 0 || !q.items || !q.answers) {
+    html = '<p style="color:#ff5252;font-weight:bold;">⚠️ Няма разпознати групи/отговори за тази тема в questions8.json.</p>';
+  } else {
+    groups.forEach((group, gi) => {
+      const color = GROUP_COLORS[gi % GROUP_COLORS.length];
+      html += `<div style="margin:10px 0;font-weight:bold;color:${color};">${group}:</div>`;
+      q.items.filter(item => q.answers[item] === group).sort().forEach(item => {
+        html += `<div class="result-row correct"><span>${item}</span><span>✔</span></div>`;
+      });
     });
-  });
+  }
 
   try {
     const ansSnap = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", "r8-0"));
@@ -1422,6 +1435,13 @@ const ROUND_META = {
 async function applyPhaseImmediately(data) {
   const { phase, round, index, startTime, duration } = data;
   if (timerInterval) clearInterval(timerInterval);
+  if (phase !== "question" || round !== 8) clearTimeout(autoSubmitTimeout8);
+
+  // ⭐ Спираме ВИНАГИ двата клип-контейнера по подразбиране при смяна на фаза —
+  // пречи на звуков "бокс" между клипове. Фазите, на които реално им трябва клип
+  // (question/explanation на кръг 7, explanation на кръг 10), го зареждат наново по-долу.
+  stopMedia(questionMedia, fullscreenBtn);
+  stopMedia(explanationMedia);
 
   if (phase === "lobby") {
     showOnly(waitingScreen);
@@ -1477,6 +1497,7 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "explanation") {
     globalTimer.style.display = "block";
+    stopMedia(questionMedia, fullscreenBtn);
     if (round === 7) renderR7Explanation(index);
     else if (round === 10) renderR10Explanation(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
