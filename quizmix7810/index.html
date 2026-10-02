@@ -210,7 +210,7 @@
 
 <body>
 
-<h1> Игри на Знания <br> 🧩 Куиз Микс 7,8,10 🧩 <br>епизод 1</h1>
+<h1> Игри на Знания <br> 🧩 Куиз Микс 7810 🧩 <br>епизод 1</h1>
 
 <audio id="bg-music" src="games.mp3" loop preload="auto"></audio>
 
@@ -227,7 +227,7 @@
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
 
-  <img id="lobby-image" src="https://i.imgur.com/Dmge8y4.jpeg" alt="Куиз Микс 7810" />
+    <img id="lobby-image" src="https://i.imgur.com/Dmge8y4.jpeg" alt="Куиз Микс 7810" />
 
    <div id="lobby-instructions">
     <p>🧩 Очакват ви 3 кръга</p>
@@ -242,7 +242,6 @@
     <p>🧩 Ако отговорите правилно на всички въпроси в 7-ми и 8-ми кръг, получвате <strong> бонус от 3 точки </strong>, затова използвайте активно и разумно жокерите си, за да запазите безпогрешна серия.</p>
     <p>🧩 Всеки неизползван жокер се осребрява автоматично в края на играта и печелите по 1 точка</p>
   </div>
-
 
   <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
   <p style="margin-top:8px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
@@ -1500,10 +1499,12 @@ async function applyPhaseImmediately(data) {
     stopMedia(questionMedia, fullscreenBtn);
     if (round === 7) renderR7Explanation(index);
     else if (round === 10) renderR10Explanation(index);
+    else if (round === 8) renderR8Results();
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
 
+  // ⭐ "results" остава поддържана и като самостоятелно име на фаза (ако някога я използваме пак)
   if (phase === "results") {
     globalTimer.style.display = "block";
     renderR8Results();
