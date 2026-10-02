@@ -92,13 +92,8 @@ if (!episodeId || !player) {
 
 playerTitle.textContent = "Играч: " + player;
 
-const LATIN_TO_CYRILLIC = {
-  "A":"А","B":"В","C":"С","E":"Е","H":"Н",
-  "K":"К","M":"М","O":"О","P":"Р","T":"Т","X":"Х","Y":"У"
-};
 function normalizeLetter(letter) {
-  const upper = (letter || "").toUpperCase();
-  return LATIN_TO_CYRILLIC[upper] || upper;
+  return (letter || "").toUpperCase();
 }
 
 function extractYouTubeId(url) {
@@ -118,6 +113,9 @@ function extractStreamableId(url) {
   const m = url.match(/streamable\.com\/(?:e\/|o\/)?([a-zA-Z0-9]+)/);
   return m ? m[1] : null;
 }
+function isAudioUrl(url) {
+  return /\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/i.test(url.trim());
+}
 function buildMediaHtml(url) {
   if (!url || url.trim() === "") return "";
   const ytId = extractYouTubeId(url);
@@ -126,6 +124,8 @@ function buildMediaHtml(url) {
     return `<div class="media-box"><iframe src="https://www.youtube.com/embed/${ytId}" allow="encrypted-media" allowfullscreen></iframe></div>`;
   } else if (url.includes("streamable.com") && stId) {
     return `<div class="media-box"><iframe src="https://streamable.com/e/${stId}" allowfullscreen></iframe></div>`;
+  } else if (isAudioUrl(url)) {
+    return `<div class="media-box" style="aspect-ratio:auto;display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(135deg,#003d7a,#001a33);"><audio src="${url}" controls style="width:100%;max-width:320px;"></audio></div>`;
   } else {
     return `<div class="media-box"><video src="${url}" controls playsinline></video></div>`;
   }
