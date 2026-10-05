@@ -1,0 +1,1301 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🛠 Куиз Конфигуратор — Самостоятелна игра 🛠</title>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PK66NTHPN8"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-PK66NTHPN8');
+</script>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+
+body {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start;
+  font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
+  max-width: 900px; margin: 0 auto; padding: 20px;
+  background: #00264d;
+  color: #ffffff;
+}
+
+h1 {
+  text-align: center; color: #ffd100;
+  font-size: clamp(1.3em, 4vw, 2em);
+  margin: 10px auto 15px auto;
+  text-shadow: 0 0 5px #ffb400;
+}
+
+h2 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-size: 1.3em;
+  color: #66ccff;
+  text-align: center;
+}
+
+.panel {
+  width: 100%; max-width: 640px; text-align: center;
+  margin-top: 25px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 16px; padding: 20px;
+  box-shadow: 0 0 10px rgba(255,209,0,0.2);
+}
+
+input {
+  padding: 10px; font-size: 1.1em; border-radius: 8px;
+  border: 1px solid #ccc; width: 80%; margin-bottom: 10px;
+}
+
+button, .btn {
+  margin-top: 10px; padding: 12px 20px; font-size: 1.1em;
+  border-radius: 8px; border: none;
+  background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
+}
+button:hover, .btn:hover { background:#ffcc33; transform:scale(1.03); }
+button:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
+
+.msg { margin-top: 12px; min-height: 22px; font-weight: bold; }
+.error { color:#ff8080; margin-top:10px; min-height:20px; }
+.ok { color:#7CFC00; }
+.note { font-size:0.95em; opacity:0.9; margin-top:8px; }
+
+/* ===== КОНФИГУРАЦИЯ: ТЕМИ ===== */
+#topicsList {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 6px 4px;
+  text-align: left;
+}
+
+.topic-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:6px 0;
+  font-size:1.05em;
+}
+
+.topic-emoji { width:44px; text-align:center; flex-shrink:0; }
+.topic-name { flex:1; text-align:left; }
+
+.topic-input {
+  width:64px;
+  padding:6px;
+  font-size:1em;
+  border:none;
+  border-radius:8px;
+  text-align:center;
+  margin-bottom:0;
+}
+
+.field-row {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:15px;
+  margin:10px 0;
+  font-size:1.05em;
+  flex-wrap: wrap;
+}
+
+.field-label { width:230px; text-align:right; }
+
+.field-input, .field-select {
+  width:150px;
+  padding:8px;
+  font-size:1em;
+  border:none;
+  border-radius:8px;
+  text-align:center;
+  margin-bottom:0;
+}
+
+/* ===== ИГРА ===== */
+#globalTimer, #timer {
+  text-align: center; font-weight: 800; margin: 20px 0;
+  font-size: clamp(1.6em, 5vw, 2.4em);
+  color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
+}
+#globalTimer.warning, #timer.warning { color: #ff4c4c; }
+
+#question { font-size: 1.5em; margin: 15px 0; font-weight: 600; }
+
+.answers button {
+  display: block; width: 100%; margin: 10px 0; padding: 16px;
+  border: none; border-radius: 10px; cursor: pointer;
+  font-size: 1.15em; background: #333; color: #fff;
+  transition: 0.2s;
+}
+.answers button:hover:not(:disabled) { background: #444; transform: scale(1.02); }
+.answers button.correct { background: #2e7d32; font-weight:bold; }
+.answers button.wrong { background: #b71c1c; }
+
+#currentScore {
+  margin: 15px 0; font-size: 1.25em;
+  color: #ffd100; font-weight: bold; display: none;
+}
+
+/* ===== БУКВА / ЧИСЛО ВЪВЕЖДАНЕ ===== */
+#letterArea, #numberArea {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+#letterInput {
+  width: 80px; height: 80px; font-size: 2.4em;
+  text-align: center; border-radius: 12px;
+  border: 3px solid #00509e; background: #001a33; color: #fff;
+  font-weight: bold; text-transform: uppercase;
+  caret-color: #ffd100; outline: none; margin-bottom: 0;
+}
+#letterInput:focus { border-color: #ffd100; box-shadow: 0 0 10px #ffd10066; }
+#letterInput.submitted { border-color:#00e676; background:#00264d; color:#00e676; }
+
+#numberInput { width: 220px; text-align:center; font-size:1.4em; margin-bottom:0; }
+
+.submit-btn { width: 220px; }
+
+.jokers-panel { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:10px; }
+.joker-btn {
+  background:#0d47a1; color:#fff; border:2px solid #1565c0;
+  border-radius:10px; padding:10px 16px; font-size:1.0em; font-weight:bold; cursor:pointer;
+}
+.joker-btn:hover:not(:disabled) { background:#1565c0; transform:scale(1.03); }
+.joker-btn:disabled { opacity:0.35; cursor:not-allowed; background:#555; border-color:#555; }
+#jokerNote { margin-top: 10px; min-height: 18px; font-size:1.0em; color:#ffd100; font-weight:bold; }
+
+/* ===== ОБЯСНЕНИЕ ===== */
+#explanation-panel #status { font-size:1.2em; font-weight:bold; margin-bottom:14px; }
+#explanationText { font-size:1.1em; line-height:1.5em; text-align:left; margin-bottom: 16px; }
+
+/* ===== ЛОБИ ===== */
+#lobbyTimer {
+  text-align:center; font-weight:800; margin:10px 0 20px 0;
+  font-size:clamp(1.6em,5vw,2.2em); color:#ffeb3b; text-shadow:0 0 12px #ffcc00;
+}
+#lobbyTimer.warning { color:#ff4c4c; }
+
+.instructions {
+  text-align:left; font-size:1em; line-height:1.8; color:#cce8ff;
+  margin-bottom:15px; background:rgba(255,255,255,0.05);
+  padding:12px; border-radius:10px;
+}
+.instructions p { margin-bottom:6px; }
+.instructions strong { color:#ffd100; }
+
+/* ===== ИСТОРИЯ ===== */
+#history-screen { text-align:left; }
+.history-item {
+  margin-bottom:16px; padding:12px; border-radius:8px;
+  border-left:6px solid #888; background:rgba(255,255,255,0.04);
+}
+.history-item.correct { border-left-color:#2ecc71; }
+.history-item.wrong { border-left-color:#e74c3c; }
+.history-item.skipped { border-left-color:#888; }
+
+.button-row { display:flex; justify-content:center; gap:12px; margin-top:20px; flex-wrap: wrap; }
+</style>
+</head>
+
+<body>
+
+<audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
+
+<h1>🛠 Куиз Конфигуратор<br><span style="font-size:0.7em;">Самостоятелна игра</span> 🛠</h1>
+
+<!-- ===================== STEP 0: ВХОД С КОД ===================== -->
+<div id="start-screen" class="panel">
+  <h2>Вход</h2>
+  <p>Въведете своя код:</p>
+  <input type="text" id="playerCode" placeholder="код..." autocomplete="off">
+  <br>
+  <button class="btn" id="enterBtn">Влез</button>
+  <div id="entryMsg" class="msg"></div>
+</div>
+
+<!-- ===================== STEP 1: КОНФИГУРАЦИЯ ===================== -->
+<div id="config-screen" class="panel" style="display:none;">
+  <h2>Теми и брой въпроси (общо 30)</h2>
+  <div id="topicsList"></div>
+  <div class="note" id="topicsSummary">Общо въпроси: 0 / 30</div>
+
+  <h2>Трудност на въпросите (общо 30)</h2>
+  <div id="difficultyList"></div>
+  <div class="note" id="difficultySummary">Общо по трудност: 0 / 30</div>
+
+  <h2>Формат, точки и време</h2>
+
+  <div class="field-row">
+    <span class="field-label">Формат на въпросите:</span>
+    <select id="format" class="field-select">
+      <option value="">-- избери --</option>
+      <option value="mcq">А, Б, В, Г</option>
+      <option value="open_first_letter">Отворен с първа буква</option>
+      <option value="number">Число (приблизителен)</option>
+    </select>
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Точки за въпросите:</span>
+    <select id="pointsMode" class="field-select">
+      <option value="">-- избери --</option>
+      <option value="equal">Еднакви точки</option>
+      <option value="by_difficulty">По трудност</option>
+    </select>
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">Време за въпрос (секунди):</span>
+    <input type="number" min="5" max="60" value="20" class="field-input" id="timePerQuestion">
+  </div>
+
+  <p class="note">При формат „Число“ точките винаги се дават по близост до вярното число (10 / 5 / 3 / 1 / 0), независимо от избрания режим за точки.</p>
+
+  <button class="btn" id="startQuizBtn">СТАРТ НА КУИЗА</button>
+  <div class="error" id="configError"></div>
+
+  <div id="difficultyFallback" class="note" style="display:none; margin-top:16px; padding:14px; background:rgba(255,209,0,0.08); border-radius:10px;">
+    <p style="color:#ffd100; font-weight:bold;">⚠️ Не мога да конфигурирам куиз точно с тези нива на трудност — липсват достатъчно въпроси в избраните теми за някои нива.</p>
+    <p style="margin-top:8px;">Искате ли да го пусна <b>без нива на трудност</b> (само по избраните теми, произволна трудност), или предпочитате да промените настройките?</p>
+    <div class="button-row">
+      <button class="btn" id="runWithoutDifficultyBtn">Пусни без нива</button>
+      <button class="btn" id="editSettingsBtn">Промени настройките</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== STEP 2: ЛОБИ ===================== -->
+<div id="lobby-screen" class="panel" style="display:none;">
+  <h2>Играта започва след:</h2>
+  <div id="lobbyTimer"><span id="lobbySeconds">15 сек.</span></div>
+  <div id="lobbyInstructions" class="instructions"></div>
+  <button class="btn" id="skipLobbyBtn">Продължи веднага</button>
+</div>
+
+<!-- ===================== STEP 3: ИГРА ===================== -->
+<div id="quiz-screen" class="panel" style="display:none;">
+  <div id="timer"><span id="secondsLeft">20</span> сек.</div>
+  <div id="question"></div>
+  <div id="answerArea"></div>
+  <div id="currentScore"></div>
+</div>
+
+<div id="explanation-panel" class="panel" style="display:none;">
+  <div id="status"></div>
+  <div id="explanationText"></div>
+  <button class="btn" id="nextBtn">Следващ въпрос</button>
+</div>
+
+<!-- ===================== STEP 4: КРАЙ ===================== -->
+<div id="finish-screen" class="panel" style="display:none;">
+  <div id="finishText"></div>
+  <div class="button-row">
+    <button class="btn" id="historyBtn">История на играта</button>
+    <button class="btn" id="newGameBtn" style="display:none;">Нова игра</button>
+  </div>
+</div>
+
+<div id="history-screen" class="panel" style="display:none;"></div>
+
+<!-- ===================== FIREBASE (module) ===================== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import {
+    getFirestore, doc, setDoc, getDoc
+  } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+    authDomain: "cifromania-ac182.firebaseapp.com",
+    projectId: "cifromania-ac182",
+    storageBucket: "cifromania-ac182.appspot.com",
+    messagingSenderId: "165208255580",
+    appId: "1:165208255580:web:b36744f0eb527b6571129"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.db = db;
+  window.doc = doc;
+  window.setDoc = setDoc;
+  window.getDoc = getDoc;
+</script>
+
+<script src="players.js"></script>
+
+<script>
+(function(){
+
+/* ================================================================
+   НАСТРОЙКИ / КОНСТАНТИ
+   ================================================================ */
+
+const TOTAL_QUESTIONS = 30;
+const LOBBY_SECONDS = 15;
+const RESULTS_COLLECTION = "selfquiz_results";
+const PROGRESS_KEY = "quizkonfigurator_progress";
+
+// 6-те кода на националните състезатели — неограничен брой игри на ден
+const NATIONAL_CODES = new Set([
+  "10107NE", "10309RS", "22344RS", "33333OK", "12203RK", "111807TA"
+]);
+
+/* ================================================================
+   ТЕМИ (31, по азбучен ред)
+   ================================================================ */
+const TOPICS = [
+  { id:"arhitektura",     name:"Архитектура",       emoji:"🏛️" },
+  { id:"geografia",       name:"География",         emoji:"🗺️" },
+  { id:"geografia_bg",    name:"География БГ",      emoji:"🗺️🇧🇬" },
+  { id:"izkustvo",        name:"Изкуство",          emoji:"🎨" },
+  { id:"istoria",         name:"История",           emoji:"📜" },
+  { id:"istoria_bg",      name:"История БГ",        emoji:"📜🇧🇬" },
+  { id:"kino",            name:"Кино",              emoji:"🎬" },
+  { id:"kino_bg",         name:"Кино БГ",           emoji:"🎬🇧🇬" },
+  { id:"kosmos",          name:"Космос",            emoji:"🌌" },
+  { id:"kulinaria",       name:"Кулинария",         emoji:"🍲" },
+  { id:"literatura",      name:"Литература",        emoji:"📚" },
+  { id:"literatura_bg",   name:"Литература БГ",     emoji:"📚🇧🇬" },
+  { id:"matematika",      name:"Математика",        emoji:"➗" },
+  { id:"medicina",        name:"Медицина",          emoji:"💊" },
+  { id:"mitologia",       name:"Митология",         emoji:"🐉" },
+  { id:"muzika",          name:"Музика",            emoji:"🎵" },
+  { id:"muzika_bg",       name:"Музика БГ",         emoji:"🎵🇧🇬" },
+  { id:"nauka",           name:"Наука",             emoji:"🔬" },
+  { id:"opera_balet",     name:"Опера и балет",     emoji:"🎭" },
+  { id:"religia",         name:"Религия",           emoji:"✝️" },
+  { id:"seriali",         name:"Сериали",           emoji:"📺" },
+  { id:"sport",           name:"Спорт",             emoji:"🏅" },
+  { id:"sport_bg",        name:"Спорт БГ",          emoji:"🏅🇧🇬" },
+  { id:"tehnika",         name:"Техника",           emoji:"⚙️" },
+  { id:"fizika",          name:"Физика",            emoji:"⚛️" },
+  { id:"filosofia",       name:"Философия",         emoji:"🧠" },
+  { id:"flora_fauna",     name:"Флора и Фауна",     emoji:"🌿" },
+  { id:"futbol",          name:"Футбол",            emoji:"⚽" },
+  { id:"futbol_bg",       name:"Футбол БГ",         emoji:"⚽🇧🇬" },
+  { id:"himia",           name:"Химия",             emoji:"⚗️" },
+  { id:"english",         name:"English",           emoji:"🇬🇧" }
+];
+
+const TOPIC_IDS = TOPICS.map(t => t.id);
+const TOPIC_MAP = Object.fromEntries(TOPICS.map(t => [t.id, t.name]));
+
+/* ================================================================
+   ТРУДНОСТ (6 нива)
+   q.hard = % от хората, отговорили правилно на въпроса
+   ================================================================ */
+const DIFFICULTY_TIERS = [
+  { id:"superEasy",  label:"Суперлесни (95–100%)",     min:95,  max:100 },
+  { id:"easy",        label:"Лесни (81–94%)",           min:81,  max:94  },
+  { id:"medium",       label:"Средни (61–80%)",          min:61,  max:80  },
+  { id:"hard",          label:"Трудни (31–60%)",          min:31,  max:60  },
+  { id:"superHard",      label:"Супертрудни (11–30%)",     min:11,  max:30  },
+  { id:"national",        label:"За националния (0–10%)",  min:0,   max:10  }
+];
+
+/* ================================================================
+   DOM
+   ================================================================ */
+const startScreen   = document.getElementById("start-screen");
+const configScreen  = document.getElementById("config-screen");
+const lobbyScreen   = document.getElementById("lobby-screen");
+const quizScreen    = document.getElementById("quiz-screen");
+const explanationPanel = document.getElementById("explanation-panel");
+const finishScreen  = document.getElementById("finish-screen");
+const historyScreen = document.getElementById("history-screen");
+
+const playerCodeInput = document.getElementById("playerCode");
+const enterBtn = document.getElementById("enterBtn");
+const entryMsg = document.getElementById("entryMsg");
+
+const topicsListDiv = document.getElementById("topicsList");
+const difficultyListDiv = document.getElementById("difficultyList");
+const topicsSummary = document.getElementById("topicsSummary");
+const difficultySummary = document.getElementById("difficultySummary");
+const configError = document.getElementById("configError");
+const difficultyFallback = document.getElementById("difficultyFallback");
+const runWithoutDifficultyBtn = document.getElementById("runWithoutDifficultyBtn");
+const editSettingsBtn = document.getElementById("editSettingsBtn");
+const startQuizBtn = document.getElementById("startQuizBtn");
+const formatSelect = document.getElementById("format");
+const pointsModeSelect = document.getElementById("pointsMode");
+
+const lobbySecondsSpan = document.getElementById("lobbySeconds");
+const lobbyTimerDiv = document.getElementById("lobbyTimer");
+const lobbyInstructions = document.getElementById("lobbyInstructions");
+const skipLobbyBtn = document.getElementById("skipLobbyBtn");
+
+const timerDiv = document.getElementById("timer");
+const secondsLeftSpan = document.getElementById("secondsLeft");
+const questionDiv = document.getElementById("question");
+const answerArea = document.getElementById("answerArea");
+const currentScoreDiv = document.getElementById("currentScore");
+
+const statusDiv = document.getElementById("status");
+const explanationTextDiv = document.getElementById("explanationText");
+const nextBtn = document.getElementById("nextBtn");
+
+const finishText = document.getElementById("finishText");
+const historyBtn = document.getElementById("historyBtn");
+const newGameBtn = document.getElementById("newGameBtn");
+
+const bgMusic = document.getElementById("bg-music");
+
+/* ================================================================
+   СЪСТОЯНИЕ
+   ================================================================ */
+let currentCode = "";
+let currentName = "";
+let isNational = false;
+
+let currentConfig = null;
+let currentCocktail = [];
+let currentIdx = 0;
+let currentScore = 0;
+let currentHistory = [];
+let jokerUsed = false;
+
+let questionTimer = null;
+let lobbyTimer = null;
+
+/* ================================================================
+   ПОМОЩНИ ФУНКЦИИ
+   ================================================================ */
+function todayStr(){
+  return new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD
+}
+
+function normalize(s){ return String(s == null ? "" : s).trim(); }
+function normalizeUpper(s){ return normalize(s).toUpperCase(); }
+
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function getIntValue(id){
+  const el = document.getElementById(id);
+  const v = parseInt(el.value, 10);
+  return isNaN(v) ? 0 : v;
+}
+
+/* ================================================================
+   LOCALSTORAGE — НАПРЕДЪК
+   ================================================================ */
+function saveProgress(){
+  try {
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify({
+      code: currentCode,
+      name: currentName,
+      date: todayStr(),
+      config: currentConfig,
+      cocktail: currentCocktail,
+      idx: currentIdx,
+      score: currentScore,
+      history: currentHistory,
+      jokerUsed
+    }));
+  } catch(e){ console.warn("Не мога да запиша напредъка:", e); }
+}
+
+function loadProgress(){
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e){ return null; }
+}
+
+function clearProgress(){
+  localStorage.removeItem(PROGRESS_KEY);
+}
+
+/* ================================================================
+   FIRESTORE — ДНЕВЕН ЛИМИТ + ЗАПИС НА РЕЗУЛТАТ
+   ================================================================ */
+function resultDocId(code){
+  return `${todayStr()}_${code}`;
+}
+
+async function hasPlayedToday(code){
+  const ref = window.doc(window.db, RESULTS_COLLECTION, resultDocId(code));
+  const snap = await window.getDoc(ref);
+  return snap.exists();
+}
+
+async function saveResult(code, name, score, maxScore, percent, national){
+  const id = national
+    ? `${resultDocId(code)}_${Date.now()}`
+    : resultDocId(code);
+
+  await window.setDoc(window.doc(window.db, RESULTS_COLLECTION, id), {
+    code, name, score, maxScore, percent,
+    date: todayStr(),
+    timestamp: Date.now()
+  });
+}
+
+/* ================================================================
+   ПОСТРОЯВАНЕ НА КОНФИГУРАЦИОННИЯ ЕКРАН (ТЕМИ + ТРУДНОСТ)
+   ================================================================ */
+function buildConfigScreen(){
+  topicsListDiv.innerHTML = TOPICS.map(t => `
+    <div class="topic-row">
+      <span class="topic-emoji">${t.emoji}</span>
+      <span class="topic-name">${t.name}</span>
+      <input type="number" min="0" max="${TOTAL_QUESTIONS}" value="0" class="topic-input" id="topic_${t.id}">
+    </div>
+  `).join("");
+
+  difficultyListDiv.innerHTML = DIFFICULTY_TIERS.map(d => `
+    <div class="field-row">
+      <span class="field-label">${d.label}:</span>
+      <input type="number" min="0" max="${TOTAL_QUESTIONS}" value="0" class="field-input" id="diff_${d.id}">
+    </div>
+  `).join("");
+
+  TOPIC_IDS.forEach(id => {
+    document.getElementById(`topic_${id}`).addEventListener("input", updateTopicsSummary);
+  });
+  DIFFICULTY_TIERS.forEach(d => {
+    document.getElementById(`diff_${d.id}`).addEventListener("input", updateDifficultySummary);
+  });
+}
+
+function updateTopicsSummary(){
+  const sum = TOPIC_IDS.reduce((acc, id) => acc + getIntValue(`topic_${id}`), 0);
+  topicsSummary.textContent = `Общо въпроси: ${sum} / ${TOTAL_QUESTIONS}`;
+  return sum;
+}
+
+function updateDifficultySummary(){
+  const sum = DIFFICULTY_TIERS.reduce((acc, d) => acc + getIntValue(`diff_${d.id}`), 0);
+  difficultySummary.textContent = `Общо по трудност: ${sum} / ${TOTAL_QUESTIONS}`;
+  return sum;
+}
+
+function resetConfigInputs(){
+  TOPIC_IDS.forEach(id => { document.getElementById(`topic_${id}`).value = 0; });
+  DIFFICULTY_TIERS.forEach(d => { document.getElementById(`diff_${d.id}`).value = 0; });
+  formatSelect.value = "";
+  pointsModeSelect.value = "";
+  document.getElementById("timePerQuestion").value = 20;
+  updateTopicsSummary();
+  updateDifficultySummary();
+  configError.textContent = "";
+  difficultyFallback.style.display = "none";
+  pendingParams = null;
+}
+
+/* ================================================================
+   ЗАРЕЖДАНЕ НА ВЪПРОСИ + ГЕНЕРИРАНЕ НА КОКТЕЙЛ
+   ================================================================ */
+async function loadJSON(name){
+  const res = await fetch(name);
+  if (!res.ok) throw new Error("Не мога да заредя " + name);
+  return res.json();
+}
+
+let allQuestionsCache = null;
+async function loadAllQuestions(){
+  if (allQuestionsCache) return allQuestionsCache;
+  const abwg  = await loadJSON("abwg.json");
+  const open  = await loadJSON("open.json");
+  const cifro = await loadJSON("cifromania.json");
+  allQuestionsCache = [...abwg, ...open, ...cifro];
+  return allQuestionsCache;
+}
+
+async function generateCocktail(config, useDifficulty){
+  const all = await loadAllQuestions();
+
+  let filtered = all;
+  if (config.format === "mcq") {
+    filtered = all.filter(q => Array.isArray(q.answers) && typeof q.correct === "string");
+  } else if (config.format === "open_first_letter") {
+    filtered = all.filter(q => typeof q.letter === "string" && q.letter.length === 1);
+  } else if (config.format === "number") {
+    filtered = all.filter(q => typeof q.number === "number");
+  }
+
+  const pool = filtered.filter(q =>
+    TOPIC_IDS.some(tid => config.topics[tid] > 0 && q.area === TOPIC_MAP[tid])
+  );
+
+  shuffle(pool);
+
+  let final = [];
+
+  for (const tid of TOPIC_IDS) {
+    const need = config.topics[tid];
+    if (!need) continue;
+
+    const topicName = TOPIC_MAP[tid];
+    const topicPool = pool.filter(q => q.area === topicName);
+
+    let chosen = [];
+
+    if (useDifficulty) {
+      // СТРИКТНО: само въпроси, попадащи в исканите нива на трудност за тази тема.
+      // Ако не достигат, темата остава недокомплектована (не се компенсира от друго ниво) —
+      // това умишлено позволява да установим, че конфигурацията не е изпълнима.
+      for (const tier of DIFFICULTY_TIERS) {
+        const want = config.difficulty[tier.id] || 0;
+        if (!want) continue;
+        const bucket = topicPool.filter(q =>
+          typeof q.hard === "number" && q.hard >= tier.min && q.hard <= tier.max
+        );
+        shuffle(bucket);
+        chosen.push(...bucket.slice(0, want));
+      }
+    } else {
+      // БЕЗ НИВА: вземаме нужния брой въпроси от темата, независимо от трудността.
+      const anyPool = [...topicPool];
+      shuffle(anyPool);
+      chosen.push(...anyPool.slice(0, need));
+    }
+
+    final.push(...chosen.slice(0, need));
+  }
+
+  final.sort((a, b) => (b.hard || 0) - (a.hard || 0));
+
+  return final.slice(0, TOTAL_QUESTIONS);
+}
+
+/* ================================================================
+   ТОЧКИ
+   ================================================================ */
+function pointsForBinary(i, pointsMode){
+  if (pointsMode === "equal") return 1;
+  if (i < 10) return 1;
+  if (i < 20) return 2;
+  return 3;
+}
+
+function maxScoreForConfig(config){
+  if (config.format === "number") {
+    return TOTAL_QUESTIONS * 10;
+  }
+  return config.pointsMode === "equal" ? TOTAL_QUESTIONS : (10*1 + 10*2 + 10*3);
+}
+
+function calcNumberPoints(diff, q){
+  const r = q.ranges;
+  if (diff === 0) return 10;
+  if (r && diff <= r.near) return 5;
+  if (r && diff <= r.mid) return 3;
+  if (r && diff <= r.far) return 1;
+  return 0;
+}
+
+/* ================================================================
+   ЕКРАНИ
+   ================================================================ */
+function showOnly(div){
+  [startScreen, configScreen, lobbyScreen, quizScreen, explanationPanel, finishScreen, historyScreen]
+    .forEach(d => d.style.display = "none");
+  div.style.display = "block";
+}
+
+/* ================================================================
+   СТЪПКА 0 — ВХОД
+   ================================================================ */
+enterBtn.onclick = async () => {
+  entryMsg.textContent = "";
+  entryMsg.classList.remove("ok");
+
+  const code = playerCodeInput.value.trim();
+  if (!code) { entryMsg.textContent = "Въведете код."; return; }
+
+  if (typeof PLAYERS === "undefined" || !PLAYERS[code]) {
+    entryMsg.textContent = "❌ Невалиден код.";
+    return;
+  }
+
+  currentCode = code;
+  currentName = PLAYERS[code];
+  isNational = NATIONAL_CODES.has(code);
+
+  try { bgMusic.volume = 0.35; bgMusic.play(); } catch(e){}
+
+  const saved = loadProgress();
+  if (saved && saved.code === currentCode && saved.date === todayStr()) {
+    resumeGame(saved);
+    return;
+  } else if (saved) {
+    // напредък от друг играч или друг ден — вече не е валиден
+    clearProgress();
+  }
+
+  entryMsg.textContent = "Проверявам...";
+
+  if (!isNational) {
+    let played = false;
+    try { played = await hasPlayedToday(currentCode); }
+    catch(e){ console.error(e); }
+
+    if (played) {
+      entryMsg.innerHTML = `Вече изигра своята игра за днес, <b>${currentName}</b>. Ела пак утре! 🙂`;
+      return;
+    }
+  }
+
+  entryMsg.textContent = "";
+  resetConfigInputs();
+  showOnly(configScreen);
+};
+
+/* ================================================================
+   СТЪПКА 1 — КОНФИГУРАЦИЯ
+   ================================================================ */
+let pendingParams = null; // теми/трудност/формат/точки/време, чакащи потвърждение при неуспешна строга генерация
+
+function launchGame(config, cocktail){
+  currentConfig = config;
+  currentCocktail = cocktail;
+  currentIdx = 0;
+  currentScore = 0;
+  currentHistory = new Array(TOTAL_QUESTIONS).fill(null);
+  jokerUsed = false;
+
+  saveProgress();
+  configError.textContent = "";
+  difficultyFallback.style.display = "none";
+  startQuizBtn.disabled = false;
+  showLobby();
+}
+
+startQuizBtn.onclick = async () => {
+  configError.textContent = "";
+  configError.classList.remove("ok");
+  difficultyFallback.style.display = "none";
+
+  const topicsTotal = updateTopicsSummary();
+  const diffTotal = updateDifficultySummary();
+  const timePerQuestion = getIntValue("timePerQuestion");
+  const format = formatSelect.value;
+  const pointsMode = pointsModeSelect.value;
+
+  const errors = [];
+  if (topicsTotal !== TOTAL_QUESTIONS) errors.push(`Общият брой въпроси по теми трябва да е точно ${TOTAL_QUESTIONS}.`);
+  if (diffTotal !== TOTAL_QUESTIONS) errors.push(`Общият брой въпроси по трудност трябва да е точно ${TOTAL_QUESTIONS}.`);
+  if (!timePerQuestion || timePerQuestion < 5) errors.push("Въведи валидно време за въпрос (минимум 5 секунди).");
+  if (!format) errors.push("Избери формат на въпросите.");
+  if (!pointsMode) errors.push("Избери режим за точките.");
+
+  if (errors.length) {
+    configError.textContent = errors.join(" ");
+    return;
+  }
+
+  const topics = Object.fromEntries(TOPIC_IDS.map(id => [id, getIntValue(`topic_${id}`)]));
+  const difficulty = Object.fromEntries(DIFFICULTY_TIERS.map(d => [d.id, getIntValue(`diff_${d.id}`)]));
+  const baseParams = { topics, difficulty, format, pointsMode, timePerQuestion };
+
+  configError.textContent = "Генерирам въпросите...";
+  configError.classList.add("ok");
+  startQuizBtn.disabled = true;
+
+  try {
+    const strictCocktail = await generateCocktail(baseParams, true);
+
+    if (strictCocktail.length >= TOTAL_QUESTIONS) {
+      launchGame({ ...baseParams, difficultyApplied: true }, strictCocktail);
+      return;
+    }
+
+    // Не достигат въпроси за точните нива на трудност — питаме потребителя
+    pendingParams = baseParams;
+    configError.textContent = "";
+    configError.classList.remove("ok");
+    startQuizBtn.disabled = false;
+    difficultyFallback.style.display = "block";
+  } catch(e) {
+    console.error(e);
+    configError.textContent = "❌ Грешка при генериране на въпросите. Виж конзолата.";
+    configError.classList.remove("ok");
+    startQuizBtn.disabled = false;
+  }
+};
+
+runWithoutDifficultyBtn.onclick = async () => {
+  if (!pendingParams) return;
+  runWithoutDifficultyBtn.disabled = true;
+  editSettingsBtn.disabled = true;
+
+  try {
+    const looseCocktail = await generateCocktail(pendingParams, false);
+
+    if (looseCocktail.length < TOTAL_QUESTIONS) {
+      configError.textContent = "❌ Дори без нива на трудност няма достатъчно въпроси за избраните теми. Намали броя теми/въпроси.";
+      configError.classList.remove("ok");
+      runWithoutDifficultyBtn.disabled = false;
+      editSettingsBtn.disabled = false;
+      return;
+    }
+
+    launchGame({ ...pendingParams, difficultyApplied: false }, looseCocktail);
+  } catch(e) {
+    console.error(e);
+    configError.textContent = "❌ Грешка при генериране на въпросите. Виж конзолата.";
+    configError.classList.remove("ok");
+  } finally {
+    runWithoutDifficultyBtn.disabled = false;
+    editSettingsBtn.disabled = false;
+  }
+};
+
+editSettingsBtn.onclick = () => {
+  pendingParams = null;
+  difficultyFallback.style.display = "none";
+};
+
+/* ================================================================
+   СТЪПКА 2 — ЛОБИ
+   ================================================================ */
+const FORMAT_INSTRUCTIONS = {
+  mcq: `
+    <p>⭐ Очакват ви ${TOTAL_QUESTIONS} въпроса с нарастваща степен на трудност.</p>
+    <p>⭐ Отговаря се с натискане на бутон върху един от четирите отговора.</p>
+    <p>⭐ Играете сами, в свое темпо.</p>
+  `,
+  open_first_letter: `
+    <p>⭐ Очакват ви ${TOTAL_QUESTIONS} отворени въпроса с нарастваща степен на трудност.</p>
+    <p>⭐ Отговаря се с изписване на първата буква от това, което сте намислили.</p>
+    <p>⭐ Ако се пита за име на човек, пише се фамилната му буква; ако е обект или термин — първата буква на първата дума.</p>
+    <p>⭐ Пример: за Стара планина пишем С, за Иван Вазов пишем В.</p>
+    <p>⭐ Ако се пита нещо различно — във въпроса ще пише „Търси се еди какво си...“.</p>
+    <p>⭐ След като напишете буква, натиснете „Изпрати“ (или Enter).</p>
+    <p>⭐ По време на играта имате достъп до жокер <strong>Втора сричка</strong> — еднократен за цялата игра.</p>
+  `,
+  number: `
+    <p>⭐ Очакват ви ${TOTAL_QUESTIONS} въпроса с числов отговор.</p>
+    <p>⭐ Пишете най-близкото число, което се сещате — точен отговор дава максимум точки, а близките отговори също носят точки.</p>
+    <p>⭐ Играете сами, в свое темпо.</p>
+  `
+};
+
+function showLobby(){
+  showOnly(lobbyScreen);
+  lobbyInstructions.innerHTML = `
+    <p>⭐ Време за мислене и отговор — <strong>${currentConfig.timePerQuestion} секунди</strong> на въпрос.</p>
+    ${FORMAT_INSTRUCTIONS[currentConfig.format] || ""}
+  `;
+
+  let secondsLeft = LOBBY_SECONDS;
+  lobbyTimerDiv.classList.remove("warning");
+  lobbySecondsSpan.textContent = `${secondsLeft} сек.`;
+
+  clearInterval(lobbyTimer);
+  lobbyTimer = setInterval(() => {
+    secondsLeft--;
+    lobbySecondsSpan.textContent = `${secondsLeft} сек.`;
+    if (secondsLeft <= 5) lobbyTimerDiv.classList.add("warning");
+    if (secondsLeft <= 0) {
+      clearInterval(lobbyTimer);
+      startQuizFromLobby();
+    }
+  }, 1000);
+}
+
+function startQuizFromLobby(){
+  clearInterval(lobbyTimer);
+  showOnly(quizScreen);
+  renderQuestion(currentIdx);
+}
+
+skipLobbyBtn.onclick = startQuizFromLobby;
+
+/* ================================================================
+   СТЪПКА 3 — ВЪПРОСИ
+   ================================================================ */
+function startTimer(seconds, onTimeout){
+  clearInterval(questionTimer);
+  let timeLeft = seconds;
+  secondsLeftSpan.textContent = timeLeft;
+  timerDiv.classList.remove("warning");
+
+  questionTimer = setInterval(() => {
+    timeLeft--;
+    secondsLeftSpan.textContent = timeLeft;
+    if (timeLeft <= 5) timerDiv.classList.add("warning");
+    if (timeLeft <= 0) {
+      clearInterval(questionTimer);
+      onTimeout();
+    }
+  }, 1000);
+}
+
+function renderQuestion(i){
+  const q = currentCocktail[i];
+  if (!q) { finishGame(); return; }
+
+  showOnly(quizScreen);
+  questionDiv.textContent = `${i+1}. ${q.question}`;
+  answerArea.innerHTML = "";
+  currentScoreDiv.style.display = "none";
+
+  if (currentConfig.format === "mcq") renderMCQ(q, i);
+  else if (currentConfig.format === "open_first_letter") renderLetter(q, i);
+  else if (currentConfig.format === "number") renderNumber(q, i);
+
+  startTimer(currentConfig.timePerQuestion, () => handleTimeout(q, i));
+}
+
+function lockAnswerArea(){
+  Array.from(answerArea.querySelectorAll("button, input")).forEach(el => el.disabled = true);
+}
+
+/* ---------- MCQ ---------- */
+function renderMCQ(q, i){
+  const wrap = document.createElement("div");
+  wrap.className = "answers";
+
+  const shuffled = shuffle([...q.answers]);
+  shuffled.forEach(ans => {
+    const btn = document.createElement("button");
+    btn.textContent = ans;
+    btn.onclick = () => submitMCQ(q, i, ans, btn, wrap);
+    wrap.appendChild(btn);
+  });
+
+  answerArea.appendChild(wrap);
+}
+
+function submitMCQ(q, i, chosen, btn, wrap){
+  clearInterval(questionTimer);
+  Array.from(wrap.children).forEach(b => b.disabled = true);
+
+  const correct = normalize(q.correct);
+  const isCorrect = normalize(chosen) === correct;
+
+  btn.classList.add(isCorrect ? "correct" : "wrong");
+  if (!isCorrect) {
+    Array.from(wrap.children).forEach(b => {
+      if (normalize(b.textContent) === correct) b.classList.add("correct");
+    });
+  }
+
+  const pts = isCorrect ? pointsForBinary(i, currentConfig.pointsMode) : 0;
+  currentScore += pts;
+
+  recordAnswer(i, q, chosen, isCorrect, false);
+
+  finishTurn(
+    isCorrect ? "✅ Верен отговор!" : `❌ Грешно! Верният отговор е: ${q.correct}`,
+    q.explanation
+  );
+}
+
+/* ---------- ПЪРВА БУКВА ---------- */
+function renderLetter(q, i){
+  const wrap = document.createElement("div");
+  wrap.id = "letterArea";
+
+  const hint = document.createElement("div");
+  hint.textContent = q.hint_text || "Впиши първата буква:";
+  wrap.appendChild(hint);
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.id = "letterInput";
+  input.maxLength = 1;
+  input.oninput = () => { input.value = input.value.slice(0, 1).toUpperCase(); };
+  wrap.appendChild(input);
+
+  const submitBtn = document.createElement("button");
+  submitBtn.className = "btn submit-btn";
+  submitBtn.textContent = "Изпрати";
+  wrap.appendChild(submitBtn);
+
+  input.onkeydown = (e) => { if (e.key === "Enter") doSubmit(); };
+  submitBtn.onclick = () => doSubmit();
+
+  function doSubmit(){
+    submitLetter(q, i, input.value, input, submitBtn, jokerBtn);
+  }
+
+  // жокер "Втора сричка" — еднократен за цялата игра
+  let jokerBtn = null;
+  if (q.syllable2) {
+    const jokerPanel = document.createElement("div");
+    jokerPanel.className = "jokers-panel";
+
+    jokerBtn = document.createElement("button");
+    jokerBtn.type = "button";
+    jokerBtn.className = "joker-btn";
+    jokerBtn.textContent = "🔤 Втора сричка";
+    jokerBtn.disabled = jokerUsed;
+    jokerBtn.onclick = () => {
+      jokerUsed = true;
+      jokerBtn.disabled = true;
+      jokerNote.textContent = `🔤 Втора сричка: "${q.syllable2}"`;
+      saveProgress();
+    };
+    jokerPanel.appendChild(jokerBtn);
+    wrap.appendChild(jokerPanel);
+
+    var jokerNote = document.createElement("div");
+    jokerNote.id = "jokerNote";
+    wrap.appendChild(jokerNote);
+  }
+
+  answerArea.appendChild(wrap);
+  input.focus();
+}
+
+function submitLetter(q, i, typed, input, submitBtn, jokerBtn){
+  clearInterval(questionTimer);
+  input.disabled = true;
+  submitBtn.disabled = true;
+  if (jokerBtn) jokerBtn.disabled = true;
+
+  const mainLetter = normalizeUpper(q.letter);
+  const altLetters = (q.alt_letters || []).map(normalizeUpper);
+  const typedNorm = normalizeUpper(typed);
+
+  const isCorrect = typedNorm.length > 0 && (typedNorm === mainLetter || altLetters.includes(typedNorm));
+
+  input.classList.add("submitted");
+
+  const pts = isCorrect ? pointsForBinary(i, currentConfig.pointsMode) : 0;
+  currentScore += pts;
+
+  recordAnswer(i, q, typed, isCorrect, false);
+
+  const correctList = [mainLetter, ...altLetters].join(" / ");
+  finishTurn(
+    isCorrect ? "✅ Верен отговор!" : `❌ Грешно! Верният отговор е: ${correctList}`,
+    q.explanation
+  );
+}
+
+/* ---------- ЧИСЛО ---------- */
+function renderNumber(q, i){
+  const wrap = document.createElement("div");
+  wrap.id = "numberArea";
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.id = "numberInput";
+  input.placeholder = "Въведи число";
+  wrap.appendChild(input);
+
+  const submitBtn = document.createElement("button");
+  submitBtn.className = "btn submit-btn";
+  submitBtn.textContent = "Отговори";
+  wrap.appendChild(submitBtn);
+
+  input.onkeydown = (e) => { if (e.key === "Enter") doSubmit(); };
+  submitBtn.onclick = () => doSubmit();
+
+  function doSubmit(){
+    submitNumber(q, i, input.value, input, submitBtn);
+  }
+
+  answerArea.appendChild(wrap);
+  input.focus();
+}
+
+function submitNumber(q, i, typedValue, input, submitBtn){
+  clearInterval(questionTimer);
+  input.disabled = true;
+  submitBtn.disabled = true;
+
+  const correct = Number(q.number);
+  const user = Number(typedValue);
+  const diff = (typedValue === "" || isNaN(user)) ? Infinity : Math.abs(user - correct);
+
+  const pts = calcNumberPoints(diff, q);
+  currentScore += pts;
+
+  const isCorrect = diff === 0;
+  recordAnswer(i, q, typedValue === "" ? null : typedValue, isCorrect, false);
+
+  finishTurn(
+    `✔ Верен отговор: ${q.number} | Твоят отговор: ${typedValue || "—"} → ${pts} точки`,
+    q.explanation
+  );
+}
+
+/* ---------- ИЗТИЧАНЕ НА ВРЕМЕТО ---------- */
+function handleTimeout(q, i){
+  lockAnswerArea();
+
+  recordAnswer(i, q, null, false, true);
+
+  let correctText = "";
+  if (currentConfig.format === "mcq") correctText = q.correct;
+  else if (currentConfig.format === "open_first_letter") {
+    const mainLetter = normalizeUpper(q.letter);
+    const altLetters = (q.alt_letters || []).map(normalizeUpper);
+    correctText = [mainLetter, ...altLetters].join(" / ");
+  } else if (currentConfig.format === "number") {
+    correctText = String(q.number);
+  }
+
+  finishTurn(`⏰ Времето изтече! Верен отговор: ${correctText}`, q.explanation);
+}
+
+/* ---------- ОБЩИ ЗА ВСИЧКИ ФОРМАТИ ---------- */
+function recordAnswer(i, q, yourAnswer, isCorrect, timedOut){
+  currentHistory[i] = {
+    question: q.question,
+    yourAnswer,
+    correctAnswer: currentConfig.format === "mcq" ? q.correct
+                   : currentConfig.format === "number" ? q.number
+                   : q.letter,
+    correct: isCorrect,
+    timedOut,
+    explanation: q.explanation || ""
+  };
+}
+
+function finishTurn(statusMsg, explanation){
+  showOnly(explanationPanel);
+  statusDiv.textContent = statusMsg;
+  explanationTextDiv.textContent = explanation || "";
+  currentScoreDiv.textContent = `Текущ резултат: ${currentScore} точки`;
+  currentScoreDiv.style.display = "block";
+
+  saveProgress();
+}
+
+nextBtn.onclick = () => {
+  currentIdx++;
+  saveProgress();
+  if (currentIdx >= TOTAL_QUESTIONS) {
+    finishGame();
+  } else {
+    showOnly(quizScreen);
+    renderQuestion(currentIdx);
+  }
+};
+
+/* ================================================================
+   ВЪЗОБНОВЯВАНЕ НА НЕДОВЪРШЕНА ИГРА
+   ================================================================ */
+function resumeGame(saved){
+  currentConfig = saved.config;
+  currentCocktail = saved.cocktail;
+  currentIdx = saved.idx;
+  currentScore = saved.score;
+  currentHistory = saved.history || new Array(TOTAL_QUESTIONS).fill(null);
+  jokerUsed = !!saved.jokerUsed;
+
+  entryMsg.textContent = "";
+  showOnly(quizScreen);
+  renderQuestion(currentIdx);
+}
+
+/* ================================================================
+   СТЪПКА 4 — КРАЙ НА ИГРАТА
+   ================================================================ */
+function finishGame(){
+  clearInterval(questionTimer);
+
+  const maxScore = maxScoreForConfig(currentConfig);
+  const percent = maxScore > 0 ? Math.round((currentScore / maxScore) * 100) : 0;
+
+  showOnly(finishScreen);
+  finishText.innerHTML = `
+    🏁 Край на играта, <b>${currentName}</b>!<br><br>
+    Резултат: <b>${currentScore}</b> от <b>${maxScore}</b> точки (${percent}%).
+    ${isNational ? "" : "<br><br>Играй пак утре 🙂"}
+  `;
+
+  newGameBtn.style.display = isNational ? "inline-block" : "none";
+
+  saveResult(currentCode, currentName, currentScore, maxScore, percent, isNational)
+    .catch(e => console.error("Грешка при запис на резултат:", e));
+
+  clearProgress();
+}
+
+/* ================================================================
+   ИСТОРИЯ НА ИГРАТА
+   ================================================================ */
+historyBtn.onclick = () => {
+  showOnly(historyScreen);
+
+  let html = "<h2>📘 История на играта</h2><br>";
+
+  currentCocktail.forEach((q, i) => {
+    const h = currentHistory[i];
+    let answerLine, cls;
+
+    if (!h || (h.yourAnswer === null && h.timedOut)) {
+      answerLine = `<span style="color:#aaaaaa; font-style:italic;">⬜ Не е отговорено (изтекло време)</span>`;
+      cls = "skipped";
+    } else if (h.correct) {
+      answerLine = `Твоят отговор: <span style="color:#2ecc71">${h.yourAnswer}</span> ✔`;
+      cls = "correct";
+    } else {
+      answerLine = `Твоят отговор: <span style="color:#e74c3c">${h.yourAnswer}</span> ✘`;
+      cls = "wrong";
+    }
+
+    html += `
+      <div class="history-item ${cls}">
+        <b>${i+1}. ${q.question}</b><br><br>
+        ${answerLine}<br>
+        Верен отговор: <b style="color:#2ecc71">${h ? h.correctAnswer : "-"}</b><br>
+        <div style="margin-top:10px;color:#ddd;"><i>${(h && h.explanation) || ""}</i></div>
+      </div>
+    `;
+  });
+
+  html += `<div class="button-row"><button class="btn" id="backFromHistoryBtn">Назад</button></div>`;
+  historyScreen.innerHTML = html;
+
+  document.getElementById("backFromHistoryBtn").onclick = () => {
+    showOnly(finishScreen);
+  };
+};
+
+/* ================================================================
+   НОВА ИГРА (само за националните — неограничени игри)
+   ================================================================ */
+newGameBtn.onclick = () => {
+  resetConfigInputs();
+  showOnly(configScreen);
+};
+
+/* ================================================================
+   СТАРТИРАНЕ
+   ================================================================ */
+buildConfigScreen();
+
+window.addEventListener("load", () => {
+  const saved = loadProgress();
+  if (saved && saved.date === todayStr()) {
+    playerCodeInput.value = saved.code;
+    entryMsg.textContent = "Имаш недовършена игра от днес — въведи същия код и натисни „Влез“, за да продължиш.";
+  } else if (saved) {
+    clearProgress();
+  }
+});
+
+})();
+</script>
+
+</body>
+</html>
