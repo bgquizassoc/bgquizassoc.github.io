@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История на играта – Куиз Микс 100</title>
+  <style>
+    body {
+      background: #0a1a3a; color: white; font-family: Arial, sans-serif;
+      padding: 20px; max-width: 900px; margin: auto; line-height: 1.6;
+    }
+    h1 { color: #7fffd4; text-align: center; margin-bottom: 5px; text-shadow: 0 0 5px #00e5ff44; }
+    #playerTitle { text-align: center; color: #ffd100; font-size: 1.2em; margin-bottom: 15px; }
+    .round-header {
+      margin: 30px 0 15px 0; padding: 10px 15px;
+      background: rgba(255,209,0,0.1); border: 1px solid #ffd100; border-radius: 10px;
+      color: #ffd100; font-weight: bold; font-size: 1.2em;
+    }
+    .round-summary { font-size: 1em; color: #aaddff; margin-bottom: 10px; }
+    .question-block {
+      margin-bottom: 20px; padding: 15px; border-radius: 12px;
+      background: rgba(255,255,255,0.06); border-left: 6px solid #ffd100;
+    }
+    .question-block.correct-block { border-left-color: #00e676; }
+    .question-block.wrong-block { border-left-color: #ff5252; }
+    .question-block.skipped-block { border-left-color: #888; opacity: 0.7; }
+    .label { color: #7fffd4; font-weight: bold; }
+    .correct { color: #00e676; font-weight: bold; }
+    .wrong { color: #ff5252; font-weight: bold; }
+    .skipped { color: #aaa; font-style: italic; }
+    .explanation { margin-top: 10px; opacity: 0.85; }
+    .media-box {
+      width: 100%; max-width: 400px; aspect-ratio: 16/9;
+      border-radius: 10px; margin: 10px 0; background: #001a33; overflow: hidden;
+    }
+    .media-box video, .media-box iframe { width: 100%; height: 100%; border: none; }
+    .group-row, .pair-row { display: flex; gap: 8px; padding: 4px 0; }
+    .group-row.correct, .pair-row.correct { color: #00e676; }
+    .group-row.wrong, .pair-row.wrong { color: #ff5252; }
+    .backBtn {
+      display: block; margin: 30px auto; padding: 12px 30px;
+      background: #ffd100; color: #003344; border: none; border-radius: 8px;
+      font-size: 1.2em; cursor: pointer; font-weight: bold; text-align: center; width: 200px;
+    }
+    .backBtn:hover { background: #ffcc33; }
+    #summary { text-align: center; margin-bottom: 10px; font-size: 1.1em; color: #aaddff; }
+    #pointsSummary { text-align: center; margin-bottom: 25px; font-size: 1.4em; color: #ffd100; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>📘 История на играта — Куиз Микс 100</h1>
+<div id="playerTitle"></div>
+<div id="pointsSummary">Зареждане...</div>
+<div id="summary"></div>
+<div id="content"></div>
+<button class="backBtn" onclick="window.history.back()">Назад</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const GAME_ID = "quizmix100";
+
+const params    = new URLSearchParams(window.location.search);
+const episodeId = params.get("episodeId");
+const player    = params.get("player");
+
+const playerTitle   = document.getElementById("playerTitle");
+const summary       = document.getElementById("summary");
+const pointsSummary = document.getElementById("pointsSummary");
+const content       = document.getElementById("content");
+
+if (!episodeId || !player) {
+  summary.textContent = "Липсва информация за епизод или играч.";
+  throw new Error("Missing params");
+}
+playerTitle.textContent = "Играч: " + player;
+
+const LATIN_TO_CYRILLIC = { "A":"А","B":"В","C":"С","E":"Е","H":"Н","K":"К","M":"М","O":"О","P":"Р","T":"Т","X":"Х","Y":"У" };
+function normalizeLetter(letter) { const u=(letter||"").toUpperCase(); return LATIN_TO_CYRILLIC[u] || u; }
+function normalizeLetterPlain(letter) { return (letter||"").toUpperCase(); }
+
+function extractYouTubeId(url) {
+  const patterns = [/youtu\.be\/([a-zA-Z0-9_-]{6,})/, /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{6,})/, /youtube\.com\/embed\/([a-zA-Z0-9_-]{6,})/, /youtube\.com\/shorts\/([a-zA-Z0-9_-]{6,})/];
+  for (const p of patterns) { const m = url.match(p); if (m) return m[1]; }
+  return null;
+}
+function extractStreamableId(url) { const m = url.match(/streamable\.com\/(?:e\/|o\/)?([a-zA-Z0-9]+)/); return m ? m[1] : null; }
+function isAudioUrl(url) { return /\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/i.test(url.trim()); }
+function buildMediaHtml(url) {
+  if (!url || url.trim() === "") return "";
+  const ytId = extractYouTubeId(url);
+  const stId = !ytId ? extractStreamableId(url) : null;
+  if (ytId) return `<div class="media-box"><iframe src="https://www.youtube.com/embed/${ytId}" allow="encrypted-media" allowfullscreen></iframe></div>`;
+  if (url.includes("streamable.com") && stId) return `<div class="media-box"><iframe src="https://streamable.com/e/${stId}" allowfullscreen></iframe></div>`;
+  if (isAudioUrl(url)) return `<div class="media-box" style="aspect-ratio:auto;display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(135deg,#003d7a,#001a33);"><audio src="${url}" controls style="width:100%;max-width:320px;"></audio></div>`;
+  return `<div class="media-box"><video src="${url}" controls playsinline></video></div>`;
+}
+
+function calcPoints5(userAnswer, q) {
+  const correct = Number(q.answer); const diff = Math.abs(userAnswer - correct); const r = q.ranges || {};
+  if (diff === 0) return 5; if (diff <= r.near) return 3; if (diff <= r.mid) return 2; if (diff <= r.far) return 1; return 0;
+}
+function calcPoints10_0(diffs, myDiff) { const u=[...new Set(diffs)].sort((a,b)=>a-b); const r=u.indexOf(myDiff); return (r<0||r>=9)?0:parseFloat((0.9-r*0.1).toFixed(2)); }
+function calcPoints10_1(diffs, myDiff) { const u=[...new Set(diffs)].sort((a,b)=>a-b); const r=u.indexOf(myDiff); return (r<0||r>=9)?0:parseFloat((0.09-r*0.01).toFixed(4)); }
+function calcPoints10_2(diffs, myDiff) { const u=[...new Set(diffs)].sort((a,b)=>a-b); const r=u.indexOf(myDiff); return (r<0||r>=99)?0:parseFloat((0.0099-r*0.0001).toFixed(6)); }
+function calcPoints10(index, diffs, myDiff) { if(index===0)return calcPoints10_0(diffs,myDiff); if(index===1)return calcPoints10_1(diffs,myDiff); if(index===2)return calcPoints10_2(diffs,myDiff); return 0; }
+
+function isR1Correct(data, q) { if (data.guaranteed === true) return true; return (data.answer||"").trim() === (q.correct||"").trim(); }
+function isR2Correct(data, q) {
+  const correctNorm=(q.correct||"").trim(); const c1=(data.answer||"").trim(); const c2=data.answer2?String(data.answer2).trim():null;
+  return c1===correctNorm || (c2!==null && c2===correctNorm);
+}
+function computeCashInFinalBonus(jokers) {
+  const j = jokers || {}; let bonus = 0;
+  ["r1_pancake","r2_doubleChance","r2_majority","r2_spy","r3_syllable2","r4_syllable2","r7_syllable2"].forEach(k => { if (!j[k]) bonus += 1; });
+  return bonus;
+}
+function fmtPoints(pts) { return pts.toFixed(4).replace(/\.?0+$/, "") || "0"; }
+
+async function loadHistory() {
+  let Q = {};
+  try {
+    const [q1,q2,q3,q4,q5,q6,q7,q8,q10,pool] = await Promise.all([
+      fetch("questions1.json").then(r=>r.json()), fetch("questions2.json").then(r=>r.json()),
+      fetch("questions3.json").then(r=>r.json()), fetch("questions4.json").then(r=>r.json()),
+      fetch("questions5.json").then(r=>r.json()), fetch("questions6.json").then(r=>r.json()),
+      fetch("questions7.json").then(r=>r.json()), fetch("questions8.json").then(r=>r.json()),
+      fetch("questions10.json").then(r=>r.json()), fetch("izbor/pull.json").then(r=>r.json())
+    ]);
+    Q = { q1,q2,q3,q4,q5,q6,q7,q8,q10,pool };
+  } catch(e) {
+    summary.textContent = "Не мога да заредя въпросите.";
+    return;
+  }
+
+  let answers = {};
+  try {
+    const answersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers"));
+    answersSnap.forEach(d => answers[d.id] = d.data());
+  } catch(e) {
+    summary.textContent = "Нямате история за този епизод."; return;
+  }
+  if (Object.keys(answers).length === 0) {
+    summary.textContent = "Нямате записани отговори за този епизод."; return;
+  }
+
+  let jokersData = {};
+  try {
+    const resultDoc = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player));
+    if (resultDoc.exists()) jokersData = resultDoc.data().jokers || {};
+  } catch(e) {}
+
+  let chosenTopic6 = null, chosenTopic8 = null;
+  try { const s = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "choicePicks", "r6-choice")); if (s.exists()) chosenTopic6 = s.data().topic; } catch(e) {}
+  try { const s = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "choicePicks", "r8-choice")); if (s.exists()) chosenTopic8 = s.data().topic; } catch(e) {}
+
+  // ⭐ За кръг 10 и дузпите ни трябват отклоненията на ВСИЧКИ играчи
+  const r10diffsByIndex = [[], [], []];
+  const tbDiffsByCheckpoint = {};
+  try {
+    const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
+    for (const pDoc of playersSnap.docs) {
+      const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
+      ansSnap.forEach(ansDoc => {
+        if (ansDoc.id.startsWith("r10-")) {
+          const idx = Number(ansDoc.id.split("-")[1]);
+          if (idx >= 0 && idx <= 2) r10diffsByIndex[idx].push(ansDoc.data().diff);
+        }
+      });
+    }
+  } catch(e) {}
+
+  let grandTotal = 0, overallCorrect = 0, overallWrong = 0, overallSkipped = 0;
+  let html = "";
+
+  // ---- Кръгове 1-3 ----
+  const roundsSimple = [
+    { num: 1, title: "Кръг 1 — Твърдение или сравнение", questions: Q.q1, pts: 2, checkFn: isR1Correct },
+    { num: 2, title: "Кръг 2 — Ако не го знаеш, уцели го", questions: Q.q2, pts: 3, checkFn: isR2Correct, doubleable: true },
+    { num: 3, title: "Кръг 3 — Буквомания", questions: Q.q3, pts: 4, letterRound: true, normalize: normalizeLetter },
+    { num: 4, title: "Кръг 4 — Фотомания", questions: Q.q4, pts: 4, letterRound: true, normalize: normalizeLetter, hasImage: true },
+    { num: 7, title: "Кръг 7 — Мултимедия 3 в 1", questions: Q.q7, pts: 4, letterRound: true, normalize: normalizeLetterPlain, hasVideo: true }
+  ];
+
+  roundsSimple.forEach(rd => {
+    let roundCorrect = 0, roundWrong = 0, roundSkipped = 0, roundPoints = 0;
+    let roundHtml = `<div class="round-header">${rd.title}</div>`;
+    rd.questions.forEach((q, i) => {
+      const ans = answers[`r${rd.num}-${i}`];
+      let statusClass = "skipped-block", statusText = '<span class="skipped">⬜ Не е отговорено</span>', yourAnswer = "—", correctDisplay = "";
+
+      if (!ans) { roundSkipped++; correctDisplay = rd.letterRound ? (q.letter||"").toUpperCase() : (q.correct||""); }
+      else if (rd.letterRound) {
+        const isCorrect = !!ans.isCorrect;
+        yourAnswer = rd.normalize(ans.answer || "");
+        correctDisplay = (q.letter||"").toUpperCase();
+        statusClass = isCorrect ? "correct-block" : "wrong-block";
+        statusText = isCorrect ? `<span class="correct">✔ Вярно (${rd.pts} т.)</span>` : '<span class="wrong">✘ Грешно</span>';
+        if (isCorrect) { roundCorrect++; roundPoints += rd.pts; } else roundWrong++;
+      } else {
+        const isCorrect = rd.checkFn(ans, q);
+        yourAnswer = ans.answer2 ? `${ans.answer} + ${ans.answer2}` : (ans.answer ?? "—");
+        correctDisplay = q.correct;
+        statusClass = isCorrect ? "correct-block" : "wrong-block";
+        let pts = isCorrect ? rd.pts : 0;
+        if (isCorrect && rd.doubleable && ans.doubled) pts *= 2;
+        statusText = isCorrect ? `<span class="correct">✔ Вярно (${pts} т.)</span>` : '<span class="wrong">✘ Грешно</span>';
+        if (isCorrect) { roundCorrect++; roundPoints += pts; } else roundWrong++;
+      }
+
+      roundHtml += `<div class="question-block ${statusClass}">
+        <div class="label">${i+1}. ${q.question}</div>
+        ${rd.hasImage ? buildMediaHtml(q.image) : ""}
+        ${rd.hasVideo ? buildMediaHtml(q.video) : ""}
+        <div><span class="label">Твоят отговор:</span> ${yourAnswer}</div>
+        <div><span class="label">Верен отговор:</span> ${correctDisplay}</div>
+        <div style="margin-top:6px;">${statusText}</div>
+        ${q.explanation ? `<div class="explanation">${q.explanation}</div>` : ""}
+      </div>`;
+    });
+
+    let roundBonus = 0;
+    if (roundCorrect === rd.questions.length && rd.questions.length > 0) { roundBonus = 3; roundPoints += roundBonus; }
+    roundHtml = `<div class="round-summary">Верни: <span style="color:#00e676;">${roundCorrect}</span> | Грешни: <span style="color:#ff5252;">${roundWrong}</span> | Пропуснати: <span style="color:#aaa;">${roundSkipped}</span> | Точки: <strong style="color:#ffd100;">${roundPoints}</strong>${roundBonus ? ` (вкл. +${roundBonus} бонус)` : ""}</div>` + roundHtml;
+
+    html += roundHtml;
+    grandTotal += roundPoints; overallCorrect += roundCorrect; overallWrong += roundWrong; overallSkipped += roundSkipped;
+  });
+
+  // ---- Кръг 5 — Цифромания ----
+  {
+    let roundCorrect = 0, roundWrong = 0, roundSkipped = 0, roundPoints = 0;
+    let roundHtml = `<div class="round-header">Кръг 5 — Цифромания</div>`;
+    Q.q5.forEach((q, i) => {
+      const ans = answers[`r5-${i}`];
+      if (!ans) { roundSkipped++; roundHtml += `<div class="question-block skipped-block"><div class="label">${i+1}. ${q.question}</div><div class="skipped">⬜ Не е отговорено</div></div>`; return; }
+      const pts = ans.points || 0;
+      if (pts === 5) roundCorrect++; else if (pts === 0) roundWrong++;
+      roundPoints += pts;
+      roundHtml += `<div class="question-block ${pts>0?"correct-block":"wrong-block"}">
+        <div class="label">${i+1}. ${q.question}</div>
+        <div><span class="label">Твоят отговор:</span> ${ans.answer} (отклонение: ${ans.diff})</div>
+        <div><span class="label">Верен отговор:</span> ${q.answer}</div>
+        <div style="margin-top:6px;"><strong style="color:#ffd100;">${pts} т.</strong></div>
+        ${q.explanation ? `<div class="explanation">${q.explanation}</div>` : ""}
+      </div>`;
+    });
+    let roundBonus = 0;
+    if (roundCorrect === Q.q5.length && Q.q5.length > 0) { roundBonus = 3; roundPoints += roundBonus; }
+    roundHtml = `<div class="round-summary">Точни: <span style="color:#00e676;">${roundCorrect}</span> | С 0 т.: <span style="color:#ff5252;">${roundWrong}</span> | Пропуснати: <span style="color:#aaa;">${roundSkipped}</span> | Точки: <strong style="color:#ffd100;">${roundPoints}</strong>${roundBonus ? ` (вкл. +${roundBonus} бонус)` : ""}</div>` + roundHtml;
+    html += roundHtml; grandTotal += roundPoints;
+    overallCorrect += roundCorrect; overallWrong += roundWrong; overallSkipped += roundSkipped;
+  }
+
+  // ---- Кръг 6 — Чифтосване ----
+  {
+    let roundHtml = `<div class="round-header">Кръг 6 — Чифтосване</div>`;
+    const q6 = Q.q6.find(t => t.title === chosenTopic6) || null;
+    const ans = answers["r6-0"];
+    if (q6) {
+      if (ans) {
+        Object.entries(q6.pairs).sort().forEach(([left, right]) => {
+          const mine = (ans.pairs || []).find(p => p.left === left);
+          if (mine && mine.right === right) roundHtml += `<div class="pair-row correct">✔ ${left} → ${right}</div>`;
+          else if (mine) roundHtml += `<div class="pair-row wrong">✘ ${left} → ${mine.right} <span style="opacity:0.7;">(вярно: ${right})</span></div>`;
+          else roundHtml += `<div class="pair-row">⬜ ${left} → <span style="opacity:0.7;">(вярно: ${right})</span></div>`;
+        });
+        roundHtml += `<div style="margin-top:8px;"><strong style="color:#ffd100;">${ans.correct} верни + ${ans.bonus} бонус = ${ans.total} т.</strong></div>`;
+        grandTotal += ans.total || 0; overallCorrect += ans.correct || 0;
+        overallWrong += (Object.keys(q6.pairs).length - (ans.correct || 0));
+      } else {
+        roundHtml += `<div class="skipped">⬜ Не е играно</div>`;
+        overallSkipped += Object.keys(q6.pairs).length;
+      }
+    } else {
+      roundHtml += `<div class="skipped">⬜ Няма данни за избраната тема.</div>`;
+    }
+    html += `<div class="question-block">${roundHtml}</div>`;
+  }
+
+  // ---- Кръг 8 — Групиране ----
+  {
+    let roundHtml = `<div class="round-header">Кръг 8 — Групиране</div>`;
+    const q8 = Q.q8.find(t => t.title === chosenTopic8) || null;
+    const ans = answers["r8-0"];
+    if (q8) {
+      if (ans) {
+        q8.items.forEach(item => {
+          const correctGroup = q8.answers[item];
+          const mine = (ans.assignments || {})[item];
+          if (mine === correctGroup) roundHtml += `<div class="group-row correct">✔ ${item} → ${correctGroup}</div>`;
+          else if (mine) roundHtml += `<div class="group-row wrong">✘ ${item} → ${mine} <span style="opacity:0.7;">(вярно: ${correctGroup})</span></div>`;
+          else roundHtml += `<div class="group-row">⬜ ${item} → <span style="opacity:0.7;">(вярно: ${correctGroup})</span></div>`;
+        });
+        roundHtml += `<div style="margin-top:8px;"><strong style="color:#ffd100;">${ans.correct} верни + ${ans.bonus} бонус = ${ans.total} т.</strong></div>`;
+        grandTotal += ans.total || 0; overallCorrect += ans.correct || 0;
+        overallWrong += (q8.items.length - (ans.correct || 0));
+      } else {
+        roundHtml += `<div class="skipped">⬜ Не е играно</div>`;
+        overallSkipped += q8.items.length;
+      }
+    } else {
+      roundHtml += `<div class="skipped">⬜ Няма данни за избраната тема.</div>`;
+    }
+    html += `<div class="question-block">${roundHtml}</div>`;
+  }
+
+  // ---- Кръг 9 — Избор ----
+  {
+    let roundHtml = `<div class="round-header">Кръг 9 — Избор</div>`;
+    const r9slots = Object.keys(answers).filter(id => id.startsWith("r9-choice"));
+    if (r9slots.length === 0) {
+      roundHtml += `<div class="question-block skipped-block"><div class="skipped">⬜ Не е играно</div></div>`;
+    } else {
+      let r9Total = 0;
+      r9slots.forEach(slotId => {
+        const ans = answers[slotId];
+        const q = ans.q;
+        if (!q) return;
+        const ranking = ans.ranking || [];
+        const pos = ranking.findIndex(a => (a||"").trim() === (q.correct||"").trim());
+        const pts = ans.points || 0;
+        r9Total += pts;
+        const statusClass = pos === -1 ? "wrong-block" : "correct-block";
+        const statusText = pos === -1
+          ? '<span class="wrong">✘ Извън подредбата</span>'
+          : `<span class="correct">✔ Позиция ${pos+1} → ${pts} т.</span>`;
+        if (pos === -1) overallWrong++; else overallCorrect++;
+        roundHtml += `<div class="question-block ${statusClass}">
+          <div class="label">${slotId}: ${q.question}</div>
+          <div><span class="label">Подредба:</span> ${ranking.join(" → ") || "—"}</div>
+          <div><span class="label">Верен отговор:</span> ${q.correct}</div>
+          <div style="margin-top:6px;">${statusText}</div>
+          ${q.explanation ? `<div class="explanation">${q.explanation}</div>` : ""}
+        </div>`;
+      });
+      roundHtml = `<div class="round-summary">Точки от кръг 9: <strong style="color:#ffd100;">${fmtPoints(r9Total)}</strong></div>` + roundHtml;
+      grandTotal += r9Total;
+    }
+    html += roundHtml;
+  }
+
+  // ---- Кръг 10 — Дузпи ----
+  {
+    let roundHtml = `<div class="round-header">Кръг 10 — По 3 дузпи към всички</div>`;
+    let round10Points = 0;
+    for (let i = 0; i < 3; i++) {
+      const ans = answers[`r10-${i}`];
+      if (!ans) { roundHtml += `<div class="question-block skipped-block"><div class="label">Дузпа ${i+1}</div><div class="skipped">⬜ Не е отговорено</div></div>`; continue; }
+      const pts = calcPoints10(i, r10diffsByIndex[i], ans.diff);
+      round10Points += pts;
+      const q = ans.q || {};
+      roundHtml += `<div class="question-block correct-block">
+        <div class="label">Дузпа ${i+1}: ${q.question || ""}</div>
+        <div><span class="label">Твоят отговор:</span> ${ans.answer} (отклонение: ${ans.diff})</div>
+        <div><span class="label">Верен отговор:</span> ${ans.correct}</div>
+        <div style="margin-top:6px;"><strong style="color:#ffd100;">${fmtPoints(pts)} т.</strong></div>
+      </div>`;
+    }
+    roundHtml = `<div class="round-summary">Точки от дузпите: <strong style="color:#ffd100;">${fmtPoints(round10Points)}</strong></div>` + roundHtml;
+    html += roundHtml;
+    grandTotal += round10Points;
+  }
+
+  // ---- Дузпи при равенство ----
+  {
+    const tbSlots = Object.keys(answers).filter(id => id.startsWith("tb-"));
+    if (tbSlots.length > 0) {
+      let roundHtml = `<div class="round-header">⚽ Дузпи при равенство</div>`;
+      let tbTotal = 0;
+      tbSlots.forEach(slotId => {
+        const ans = answers[slotId];
+        const pts = ans.points || 0;
+        tbTotal += pts;
+        roundHtml += `<div class="question-block ${pts>0?"correct-block":""}">
+          <div class="label">${slotId.replace("tb-", "Контролна точка: ")}</div>
+          <div><span class="label">Твоят отговор:</span> ${ans.answer ?? "—"} (отклонение: ${ans.diff ?? "—"})</div>
+          <div style="margin-top:6px;"><strong style="color:#ffd100;">${fmtPoints(pts)} т.</strong></div>
+        </div>`;
+      });
+      roundHtml = `<div class="round-summary">Точки от дузпи: <strong style="color:#ffd100;">${fmtPoints(tbTotal)}</strong></div>` + roundHtml;
+      html += roundHtml;
+      grandTotal += tbTotal;
+    }
+  }
+
+  const cashInBonus = computeCashInFinalBonus(jokersData);
+  grandTotal += cashInBonus;
+
+  let pointsLine = `🏁 Общо точки: ${fmtPoints(grandTotal)}`;
+  if (cashInBonus > 0) pointsLine += ` <span style="color:#00e676; font-size:0.7em;">(вкл. +${cashInBonus} за неизползвани жокери)</span>`;
+  pointsSummary.innerHTML = pointsLine;
+
+  summary.innerHTML = `Верни: <span style="color:#00e676;font-weight:bold;">${overallCorrect}</span> &nbsp;|&nbsp; Грешни: <span style="color:#ff5252;font-weight:bold;">${overallWrong}</span> &nbsp;|&nbsp; Пропуснати: <span style="color:#aaa;">${overallSkipped}</span>`;
+
+  content.innerHTML = html;
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>
