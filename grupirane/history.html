@@ -3,61 +3,52 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>История – Куиз Групиране</title>
+  <title>История на играта – Куиз Групиране</title>
   <style>
     body {
-      background: #0a1a3a; color: white;
-      font-family: Arial, sans-serif;
+      background: #0a1a3a; color: white; font-family: Arial, sans-serif;
       padding: 20px; max-width: 900px; margin: auto; line-height: 1.6;
     }
-    h1 { color: #7fffd4; text-align: center; margin-bottom: 5px; }
-    #playerTitle { text-align: center; color: #ffd100; font-size: 1.2em; margin-bottom: 20px; }
-    #summary { text-align: center; margin-bottom: 25px; font-size: 1.1em; color: #aaddff; }
-
-    .round-block {
-      margin-bottom: 30px; padding: 15px;
-      border-radius: 12px; background: rgba(255,255,255,0.06);
-      border-left: 6px solid #ffd100;
+    h1 { color: #7fffd4; text-align: center; margin-bottom: 5px; text-shadow: 0 0 5px #00e5ff44; }
+    #playerTitle { text-align: center; color: #ffd100; font-size: 1.2em; margin-bottom: 15px; }
+    .round-header {
+      margin: 30px 0 15px 0; padding: 10px 15px;
+      background: rgba(255,209,0,0.1); border: 1px solid #ffd100; border-radius: 10px;
+      color: #ffd100; font-weight: bold; font-size: 1.2em;
     }
-    .round-title-h { color: #ffd100; font-size: 1.2em; font-weight: bold; margin-bottom: 12px; }
-
-    .item-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 7px 12px; margin: 4px 0; border-radius: 8px; font-size: 1em;
+    .question-block {
+      margin-bottom: 20px; padding: 15px; border-radius: 12px;
+      background: rgba(255,255,255,0.06); border-left: 6px solid #ffd100;
     }
-    .item-row.correct { background: #1b5e20; }
-    .item-row.wrong   { background: #7f2020; }
-    .item-row.skipped { background: #333; opacity: 0.7; }
-
-    .item-icon { font-size: 1.1em; }
-    .correct-ans { color: #00e676; font-size: 0.9em; margin-left: auto; }
-
-    .score-row {
-      margin-top: 12px; padding: 10px;
-      background: rgba(255,215,0,0.1); border-radius: 8px;
-      font-size: 1.1em; color: #ffd100; font-weight: bold;
-    }
-
+    .question-block.skipped-block { border-left-color: #888; opacity: 0.7; }
+    .question-block.correct-block { border-left-color: #00e676; }
+    .skipped { color: #aaa; font-style: italic; }
+    .group-row { display: flex; gap: 8px; padding: 4px 0; }
+    .group-row.correct { color: #00e676; }
+    .group-row.wrong { color: #ff5252; }
     .backBtn {
       display: block; margin: 30px auto; padding: 12px 30px;
-      background: #ffd100; color: #003344; border: none;
-      border-radius: 8px; font-size: 1.2em; cursor: pointer;
-      font-weight: bold; width: 200px;
+      background: #ffd100; color: #003344; border: none; border-radius: 8px;
+      font-size: 1.2em; cursor: pointer; font-weight: bold; text-align: center; width: 200px;
     }
     .backBtn:hover { background: #ffcc33; }
+    #summary { text-align: center; margin-bottom: 10px; font-size: 1.1em; color: #aaddff; }
+    #pointsSummary { text-align: center; margin-bottom: 25px; font-size: 1.4em; color: #ffd100; font-weight: bold; }
   </style>
 </head>
 <body>
-<h1>🗂️ История – Куиз Групиране</h1>
+
+<h1>📘 История на играта — Куиз Групиране</h1>
 <div id="playerTitle"></div>
-<div id="summary">Зареждане...</div>
+<div id="pointsSummary">Зареждане...</div>
+<div id="summary"></div>
 <div id="content"></div>
 <button class="backBtn" onclick="window.history.back()">Назад</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, collection, getDocs, doc, getDoc
+  getFirestore, doc, getDoc, collection, getDocs
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -72,94 +63,108 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
+const GAME_ID = "grupirane";
+
 const params    = new URLSearchParams(window.location.search);
 const episodeId = params.get("episodeId");
 const player    = params.get("player");
 
-document.getElementById("playerTitle").textContent = "Играч: " + player;
-const summary = document.getElementById("summary");
-const content = document.getElementById("content");
+const playerTitle   = document.getElementById("playerTitle");
+const summary       = document.getElementById("summary");
+const pointsSummary = document.getElementById("pointsSummary");
+const content       = document.getElementById("content");
 
 if (!episodeId || !player) {
-  summary.textContent = "Липсва информация.";
+  summary.textContent = "Липсва информация за епизод или играч.";
   throw new Error("Missing params");
 }
 
+playerTitle.textContent = "Играч: " + player;
+
+function renderRoundBlock(i, q, ans) {
+  if (!ans) {
+    return `<div class="question-block skipped-block">
+      <div class="round-header" style="margin-top:0;">Кръг ${i+1}: ${q.title}</div>
+      <div class="skipped">⬜ Не е играно</div>
+    </div>`;
+  }
+
+  const myAssignments = ans.assignments || {};
+  let rows = "";
+  q.items.forEach(item => {
+    const correctGroup = q.answers[item];
+    const mine = myAssignments[item];
+    if (mine === correctGroup) {
+      rows += `<div class="group-row correct">✔ ${item} → ${correctGroup}</div>`;
+    } else if (mine) {
+      rows += `<div class="group-row wrong">✘ ${item} → ${mine} <span style="opacity:0.7;">(вярно: ${correctGroup})</span></div>`;
+    } else {
+      rows += `<div class="group-row" style="opacity:0.7;">⬜ ${item} → <span>(вярно: ${correctGroup})</span></div>`;
+    }
+  });
+
+  return `<div class="question-block correct-block">
+    <div class="round-header" style="margin-top:0;">Кръг ${i+1}: ${q.title}</div>
+    ${rows}
+    <div style="margin-top:8px;"><strong style="color:#ffd100;">${ans.correct} верни + ${ans.bonus} бонус = ${ans.total} т.</strong></div>
+  </div>`;
+}
+
 async function loadHistory() {
-  // Зареждаме въпросите от state
   let questions = [];
   try {
-    const stateDoc = await getDoc(doc(db, "games", "grupirane", "state", "current"));
-    if (stateDoc.exists() && stateDoc.data().questions) {
-      questions = stateDoc.data().questions;
-    }
-  } catch(e) {}
+    const res = await fetch("questions.json");
+    questions = await res.json();
+  } catch(e) {
+    summary.textContent = "Не мога да заредя въпросите.";
+    return;
+  }
 
-  // Зареждаме отговорите
-  const answersSnap = await getDocs(
-    collection(db, "games", "grupirane", "episodes", episodeId, "results", player, "answers")
-  );
+  let answers = {};
+  try {
+    const answersSnap = await getDocs(
+      collection(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers")
+    );
+    answersSnap.forEach(d => answers[d.id] = d.data());
+  } catch(e) {
+    summary.textContent = "Нямате история за този епизод.";
+    return;
+  }
 
-  if (answersSnap.empty) {
+  if (Object.keys(answers).length === 0) {
     summary.textContent = "Нямате записани отговори за този епизод.";
     return;
   }
 
-  const answers = {};
-  answersSnap.forEach(d => answers[Number(d.id)] = d.data());
-
-  let totalCorrect = 0, totalBonus = 0, totalPts = 0;
-  Object.values(answers).forEach(a => {
-    totalCorrect += (a.correct || 0);
-    totalBonus   += (a.bonus || 0);
-    totalPts     += (a.total || 0);
-  });
-
-  summary.innerHTML = `
-    Верни обекта: <span style="color:#00e676;font-weight:bold;">${totalCorrect}</span> &nbsp;|&nbsp;
-    Бонус: <span style="color:#ffd700;font-weight:bold;">${totalBonus}</span> &nbsp;|&nbsp;
-    Общо: <span style="color:#ffd700;font-weight:bold;">${totalPts} т.</span>
-  `;
-
+  let grandTotal = 0;
+  let totalCorrect = 0, totalItems = 0, roundsPlayed = 0, roundsSkipped = 0;
   let html = "";
 
   questions.forEach((q, i) => {
-    const ans = answers[i];
-    html += `<div class="round-block"><div class="round-title-h">${q.title || "Кръг " + (i+1)}</div>`;
-
-    if (!ans) {
-      html += `<div style="color:#aaa;font-style:italic;">Не е участвал в този кръг.</div>`;
+    const ans = answers[String(i)];
+    html += renderRoundBlock(i, q, ans);
+    totalItems += q.items.length;
+    if (ans) {
+      roundsPlayed++;
+      grandTotal += ans.total || 0;
+      totalCorrect += ans.correct || 0;
     } else {
-      q.items.sort().forEach(item => {
-        const correctGroup = q.answers[item];
-        const myGroup = ans.assignments?.[item];
-        const isCorrect = myGroup === correctGroup;
-        const isWrong   = myGroup && myGroup !== correctGroup;
-
-        let cls = "skipped", icon = "⬜";
-        if (isCorrect) { cls = "correct"; icon = "✔"; }
-        else if (isWrong) { cls = "wrong"; icon = "✘"; }
-
-        html += `<div class="item-row ${cls}">
-          <span class="item-icon">${icon}</span>
-          <span>${item}</span>
-          <span style="color:#aaddff;font-size:0.9em;">→ ${myGroup || "—"}</span>
-          ${isWrong ? `<span class="correct-ans">(верно: ${correctGroup})</span>` : ""}
-        </div>`;
-      });
-
-      html += `<div class="score-row">
-        Верни: ${ans.correct} / ${q.items.length} &nbsp;+&nbsp; Бонус: ${ans.bonus} &nbsp;=&nbsp; ${ans.total} т.
-      </div>`;
+      roundsSkipped++;
     }
-
-    html += `</div>`;
   });
+
+  pointsSummary.innerHTML = `🏁 Общо точки: ${grandTotal}`;
+  summary.innerHTML = `
+    Изиграни кръгове: <span style="color:#00e676;font-weight:bold;">${roundsPlayed}</span> &nbsp;|&nbsp;
+    Пропуснати кръгове: <span style="color:#aaa;">${roundsSkipped}</span> &nbsp;|&nbsp;
+    Верни обекти общо: <span style="color:#00e676;font-weight:bold;">${totalCorrect}</span> / ${totalItems}
+  `;
 
   content.innerHTML = html;
 }
 
 loadHistory();
 </script>
+
 </body>
 </html>
