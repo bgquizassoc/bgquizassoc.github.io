@@ -63,13 +63,13 @@ const FOLDER = "quizmix/";
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) — нагласи ги спокойно след теста =====
 const LOBBY_TIME     = 10000;
 
-const LOBBY_TIME1 = 30000, Q1 = 20000, EXPL1 = 15000, RANK1 = 10000;
-const LOBBY_TIME2 = 30000, Q2 = 20000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
-const LOBBY_TIME3 = 30000, Q3 = 25000, EXPL3 = 15000, RANK3 = 10000;
-const LOBBY_TIME4 = 30000, Q4 = 25000, EXPL4 = 15000, RANK4 = 10000;
+const LOBBY_TIME1 = 30000, Q1 = 30000, EXPL1 = 15000, RANK1 = 10000;
+const LOBBY_TIME2 = 30000, Q2 = 40000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
+const LOBBY_TIME3 = 30000, Q3 = 45000, EXPL3 = 15000, RANK3 = 10000;
+const LOBBY_TIME4 = 30000, Q4 = 45000, EXPL4 = 15000, RANK4 = 10000;
 const BREAK_TIME  = 100000; // 5 минути почивка (след кръг 4 и кръг 8)
 
-const LOBBY_TIME5 = 30000, Q5 = 25000, EXPL5 = 15000, RANK5 = 10000;
+const LOBBY_TIME5 = 30000, Q5 = 45000, EXPL5 = 15000, RANK5 = 10000;
 
 const LOBBY_TIME6 = 30000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 90000, EXPL6 = 15000, RANK6 = 10000;
 
@@ -120,7 +120,7 @@ async function loadAllQuestions() {
     fetch(FOLDER + "questions6.json").then(r => r.json()),
     fetch(FOLDER + "questions7.json").then(r => r.json()),
     fetch(FOLDER + "questions8.json").then(r => r.json()),
-    fetch(FOLDER + "izbor/pull.json").then(r => r.json()),
+    fetch("izbor/pull.json").then(r => r.json()),
     fetch(FOLDER + "questions10.json").then(r => r.json())
   ]);
   questions1=r1; questions2=r2; questions3=r3; questions4=r4; questions5=r5; questions6=r6;
