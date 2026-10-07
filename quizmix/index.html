@@ -357,7 +357,7 @@
 
 <h1> Игри на Знания <br> 🧩 Куиз Микс 100 🧩 <br>епизод 1</h1>
 
-<audio id="bg-music" src="music/games.mp3" loop preload="auto"></audio>
+<audio id="bg-music" src="../music/games.mp3" loop preload="auto"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
 
@@ -811,8 +811,8 @@ async function loadAllQuestions() {
     fetch("questions6.json").then(r => r.json()),
     fetch("questions7.json").then(r => r.json()),
     fetch("questions8.json").then(r => r.json()),
-    fetch("izbor/warmup10.json").then(r => r.json()),
-    fetch("izbor/pull.json").then(r => r.json()),
+    fetch("../izbor/warmup10.json").then(r => r.json()),
+    fetch("../izbor/pull.json").then(r => r.json()),
     fetch("questions10.json").then(r => r.json())
   ]);
   questions1 = r1; questions2 = r2; questions3 = r3;
@@ -921,7 +921,7 @@ startBtn.onclick = async () => {
   ready = true;
   showOnly(waitingScreen);
   globalTimer.style.display = "none";
-  setMusic("music/games.mp3");
+  setMusic("../music/games.mp3");
 
   if (!episodeId) return;
 
@@ -1114,7 +1114,7 @@ async function renderRanking(isFinal) {
 const ROUND_META = {
   1: {
     title: "🧩 Кръг 1 — Твърдение или сравнение",
-    music: "music/despa.mp3",
+    music: "../music/despa.mp3",
     image: "https://i.imgur.com/pjkY1GH.jpeg",
     html: `
       <p>⭐ Очакват ви 10 твърдения / сравнения — възможните отговори са само <strong>два</strong>.</p>
@@ -1128,7 +1128,7 @@ const ROUND_META = {
   },
   2: {
     title: "🧩 Кръг 2 — Ако не го знаеш, уцели го",
-    music: "music/dance.mp3",
+    music: "../music/dance.mp3",
     image: "https://i.imgur.com/5QDXD26.jpeg",
     html: `
       <p>⚡ Очакват ви 10 въпроса с повишаваща степен на трудност.</p>
@@ -1149,7 +1149,7 @@ const ROUND_META = {
   },
   3: {
     title: "🧩 Кръг 3 — Буквомания",
-    music: "music/Ellie.mp3",
+    music: "../music/Ellie.mp3",
     image: "https://i.imgur.com/pmIhEXf.jpeg",
     html: `
       <p>🅰️ Очакват ви 10 отворени въпроса с нарастваща степен на трудност.</p>
@@ -1168,7 +1168,7 @@ const ROUND_META = {
   },
   4: {
     title: "📷 Кръг 4 — Фотомания",
-    music: "music/VeronicaApo.mp3",
+    music: "../music/VeronicaApo.mp3",
     image: "https://i.imgur.com/90Xs576.jpeg",
     html: `
       <p>📷 Очакват ви 10 въпроса, придружени със снимка, от различни области.</p>
@@ -1181,7 +1181,7 @@ const ROUND_META = {
   },
   5: {
     title: "🔢 Кръг 5 — Цифромания",
-    music: "music/music.mp3",
+    music: "../music/music.mp3",
     image: "https://i.imgur.com/CJ665Up.jpeg",
     html: `
       <p>🔢 Очакват ви 10 цифрови въпроса от различни области.</p>
@@ -1192,7 +1192,7 @@ const ROUND_META = {
   },
   6: {
     title: "🔗 Кръг 6 — Чифтосване",
-    music: "music/Analog.mp3",
+    music: "../music/Analog.mp3",
     image: "https://i.imgur.com/mUbjQU6.jpeg",
     html: `
       <p>🔗 Последният в класирането избира тема от възможните.</p>
@@ -1204,7 +1204,7 @@ const ROUND_META = {
   },
   7: {
     title: "🎬 Кръг 7 — Мултимедия 3 в 1",
-    music: "music/VeronicaSafe.mp3",
+    music: "../music/VeronicaSafe.mp3",
     image: "https://i.imgur.com/CJ665Up.jpeg",
     html: `
       <p>🎬 10 въпроса с клипче (Музика, Кино, Спорт).</p>
@@ -1216,7 +1216,7 @@ const ROUND_META = {
   },
   8: {
     title: "🧱 Кръг 8 — Групиране",
-    music: "music/zahira.mp3",
+    music: "../music/zahira.mp3",
     image: "https://i.imgur.com/o2elJRG.jpeg",
     html: `
       <p>🧱 Последният в класирането (който не е избирал преди кръг 6) избира тема.</p>
@@ -1227,7 +1227,7 @@ const ROUND_META = {
   },
   9: {
     title: "🎯 Кръг 9 — Избор",
-    music: "music/Future.mp3",
+    music: "../music/Future.mp3",
     image: "https://i.imgur.com/pjkY1GH.jpeg",
     html: `
       <p>🎯 Играчите избират теми отзад напред по замразеното класиране — на два пъти.</p>
@@ -1239,7 +1239,7 @@ const ROUND_META = {
   },
   10: {
     title: "⚽ Кръг 10 — По 3 дузпи към всички",
-    music: "music/VeronicaDeep.mp3",
+    music: "../music/VeronicaDeep.mp3",
     image: "https://i.imgur.com/Q0g6uca.jpeg",
     html: `
       <p>⚽ 3 специални въпроса с число за отговор.</p>
@@ -3364,7 +3364,7 @@ async function applyPhaseImmediately(data) {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
     waitingTitle.textContent = "Играта още не е започнала.";
-    setMusic("music/games.mp3");
+    setMusic("../music/games.mp3");
     return;
   }
 
@@ -3392,7 +3392,7 @@ async function applyPhaseImmediately(data) {
   if (phase === "break") {
     globalTimer.style.display = "block";
     renderBreak();
-    setMusic("music/games.mp3");
+    setMusic("../music/games.mp3");
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
@@ -3488,14 +3488,14 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "final-reveal") {
     globalTimer.style.display = "none";
-    setMusic("music/final.mp3");
+    setMusic("../music/final.mp3");
     renderFinalReveal(data);
     return;
   }
 
   if (phase === "finalRanking") {
     globalTimer.style.display = "block";
-    setMusic("music/final.mp3");
+    setMusic("../music/final.mp3");
     renderRanking(true);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
