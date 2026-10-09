@@ -616,7 +616,7 @@ async function loadJSON(name){
 let allQuestionsCache = null;
 async function loadAllQuestions(){
   if (allQuestionsCache) return allQuestionsCache;
-  const abwg  = await loadJSON("abwg.json");
+  const abwg  = await loadJSON("abvg.json");
   const open  = await loadJSON("open.json");
   const cifro = await loadJSON("cifromania.json");
   allQuestionsCache = [...abwg, ...open, ...cifro];
