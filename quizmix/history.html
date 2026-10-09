@@ -136,14 +136,14 @@ function fmtPoints(pts) { return pts.toFixed(4).replace(/\.?0+$/, "") || "0"; }
 async function loadHistory() {
   let Q = {};
   try {
-    const [q1,q2,q3,q4,q5,q6,q7,q8,q10,pool] = await Promise.all([
+    const [q1,q2,q3,q4,q5,q6,q7,q8,q10,pull] = await Promise.all([
       fetch("questions1.json").then(r=>r.json()), fetch("questions2.json").then(r=>r.json()),
       fetch("questions3.json").then(r=>r.json()), fetch("questions4.json").then(r=>r.json()),
       fetch("questions5.json").then(r=>r.json()), fetch("questions6.json").then(r=>r.json()),
       fetch("questions7.json").then(r=>r.json()), fetch("questions8.json").then(r=>r.json()),
-      fetch("questions10.json").then(r=>r.json()), fetch("izbor/pull.json").then(r=>r.json())
+      fetch("questions10.json").then(r=>r.json()), fetch("../izbor/pull.json").then(r=>r.json())
     ]);
-    Q = { q1,q2,q3,q4,q5,q6,q7,q8,q10,pool };
+    Q = { q1,q2,q3,q4,q5,q6,q7,q8,q10,pull };
   } catch(e) {
     summary.textContent = "Не мога да заредя въпросите.";
     return;
