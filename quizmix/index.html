@@ -340,12 +340,22 @@
   }
 
   /* ⭐ ПОЧИВКА / ДУЗПА / SITOUT — общи панели като останалите екрани */
-  #choose-screen, #sitout-screen, #break-screen, #tiebreak-screen, #results, #q-ranking {
+  #choose-screen, #sitout-screen, #break-screen, #secret-screen, #tiebreak-screen, #results, #q-ranking {
     width: 100%; max-width: 650px; text-align: center; margin-top: 30px;
     background: rgba(255,255,255,0.05); border-radius: 16px; padding: 20px;
     box-shadow: 0 0 10px rgba(255,209,0,0.2);
   }
   #break-screen h2 { font-size: 1.8em; }
+  #secret-screen h2 { font-size: 1.7em; line-height: 1.4; }
+  #tiebreakResultBox .tb-group { margin: 14px 0; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.06); text-align: left; }
+  #tiebreakResultBox .tb-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  #tiebreakResultBox .tb-row:last-child { border-bottom: none; }
+  #tiebreakResultBox .tb-row.winner { color: #ffd100; font-weight: 800; }
+  #tiebreakResultBox .tb-chooser {
+    margin-top: 16px; padding: 16px; border-radius: 14px; font-size: 1.3em; font-weight: 800;
+    background: rgba(0,229,255,0.15); border: 2px solid #00e5ff; color: #fff;
+  }
+  #tiebreakResultBox .tb-chooser span { display: block; color: #00e5ff; font-size: 1.25em; margin-top: 6px; }
   #thanks-screen {
     display: flex; align-items: center; justify-content: center;
     min-height: 50vh; text-align: center;
@@ -372,8 +382,8 @@
 <div id="globalTimer" style="display:none;">-</div>
 
 <div id="start-screen">
-  <p>Въведете Вашето ID:</p>
-  <input type="text" id="player-id" placeholder="въведи кода си..." />
+  <p>Въведете Двете си имена:</p>
+  <input type="text" id="player-id" placeholder="Име ..." />
   <button id="start-btn">Започни!</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
@@ -414,7 +424,7 @@
   <div id="chooseTitle"></div>
   <div class="choose-layout">
     <div>
-      <h3 style="color:#ffd100; margin-bottom:8px;">Класиране</h3>
+      <h3 id="chooseRankingTitle" style="color:#ffd100; margin-bottom:8px;">Класиране</h3>
       <div id="chooseRankingList"></div>
     </div>
     <div>
@@ -437,6 +447,12 @@
   <p style="margin-top:10px; opacity:0.9;">Играта продължава съвсем скоро...</p>
 </div>
 
+<!-- ⭐ ТАЙНО КЛАСИРАНЕ (последните 2 въпроса на кръг 9 и дузпите на кръг 10) -->
+<div id="secret-screen" style="display:none;">
+  <h2 style="color:#ffd100;">🤫 Класирането се пази в тайна</h2>
+  <p style="margin-top:10px; opacity:0.9;">Ще го разкрием чак в самия край на играта...</p>
+</div>
+
 <!-- ⭐ БЛАГОДАРНОСТИ (преди драматичното финално класиране) -->
 <div id="thanks-screen" style="display:none;">
   <p id="thanksText">Ако днешният куиз ви е харесал, ще се видим отново, точно след седмица на същото място.<br>Благодарим ви!</p>
@@ -444,7 +460,8 @@
 
 <!-- ⭐ ДУЗПА ПРИ РАВЕНСТВО -->
 <div id="tiebreak-screen" style="display:none;">
-  <h2 style="color:#ffd100;">⚽ Дузпа за точното класиране!</h2>
+  <h2 id="tiebreakTitle" style="color:#ffd100;">⚽ Дузпа за точното класиране!</h2>
+  <div id="tiebreakResultBox" style="display:none; margin-top:12px;"></div>
   <div id="tiebreakTeams" style="margin:12px 0; font-size:1.1em; color:#aaddff;"></div>
   <div id="tiebreakQuestionBlock" style="margin-top:14px;">
     <div id="tiebreakQuestion" style="font-size:1.3em; font-weight:600;"></div>
@@ -564,8 +581,6 @@
   <button id="historyBtn" style="display:none;">История на играта</button>
 </div>
 
-<script src="players.js"></script>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
@@ -598,6 +613,7 @@ const chooseScreen   = document.getElementById("choose-screen");
 const sitoutScreen   = document.getElementById("sitout-screen");
 const breakScreen    = document.getElementById("break-screen");
 const thanksScreen   = document.getElementById("thanks-screen");
+const secretScreen   = document.getElementById("secret-screen");
 const tiebreakScreen = document.getElementById("tiebreak-screen");
 const quizDiv        = document.getElementById("quiz");
 const explanationDiv = document.getElementById("explanation");
@@ -623,6 +639,9 @@ const sitoutAnswers     = document.getElementById("sitoutAnswers");
 const chooserTag        = document.getElementById("chooserTag");
 
 const tiebreakTeams       = document.getElementById("tiebreakTeams");
+const tiebreakTitle       = document.getElementById("tiebreakTitle");
+const tiebreakResultBox   = document.getElementById("tiebreakResultBox");
+const tiebreakQuestionBlock = document.getElementById("tiebreakQuestionBlock");
 const tiebreakQuestionEl  = document.getElementById("tiebreakQuestion");
 const tiebreakAnswerArea  = document.getElementById("tiebreakAnswerArea");
 const tiebreakInput       = document.getElementById("tiebreakInput");
@@ -838,7 +857,7 @@ async function loadAllQuestions() {
 
 function showOnly(div) {
   [startScreen, waitingScreen, roundIntroDiv, chooseScreen, sitoutScreen, breakScreen,
-   thanksScreen, tiebreakScreen, quizDiv, explanationDiv, resultsDiv, qRankingDiv, rankingDiv]
+   secretScreen, thanksScreen, tiebreakScreen, quizDiv, explanationDiv, resultsDiv, qRankingDiv, rankingDiv]
     .forEach(d => d.style.display = "none");
   div.style.display = "block";
 }
@@ -920,15 +939,15 @@ function isR2Correct(data, q) {
 }
 
 // ===============================
-// ВХОД (код от players.js — по образец на Спокойна игра)
+// ВХОД (с две имена, свободен текст — по образец на Куиз Микс 7810)
 // ===============================
 startBtn.onclick = async () => {
-  const id = playerIdInput.value.trim();
-  if (!id) return alert("Въведете ID!");
-  if (!PLAYERS[id]) { alert("Невалидно ID!"); return; }
+  // махаме символи, които чупят Firestore идентификатори или HTML-а на класиранията
+  const name = playerIdInput.value.replace(/[<>&"'`\/\\]/g, "").replace(/\s+/g, " ").trim();
+  if (!name) return alert("Въведете две имена!");
 
-  playerId = id;
-  player   = PLAYERS[id];
+  playerId = name;
+  player   = name;
 
   await loadAllQuestions();
   ready = true;
@@ -2191,13 +2210,17 @@ async function renderR5Explanation(index) {
 // ===============================
 // ⭐ ОБЩИ ПОМОЩНИЦИ ЗА ИЗБОР НА ТЕМА (кръгове 6, 8, 9x2)
 // ===============================
-function renderChooseRanking(container, frozenRanking, chooserName) {
+function renderChooseRanking(container, frozenRanking, chooserName, hidePoints) {
   if (!frozenRanking) { container.innerHTML = "<p>Зареждане…</p>"; return; }
+  // ⭐ Когато класирането е тайно, показваме само реда на избиране (без точки)
+  const titleEl = document.getElementById("chooseRankingTitle");
+  if (titleEl) titleEl.textContent = hidePoints ? "Ред на избиране" : "Класиране";
   container.innerHTML = frozenRanking.map((entry, i) => {
     const isActive = entry.name === chooserName;
     const isMe = entry.name === player;
+    const label = hidePoints ? `${i+1}. ${entry.name}` : `${i+1}. ${entry.name} — ${entry.points} т.`;
     return `<div class="rank-item ${isActive ? "active-chooser" : ""} ${!isActive && isMe ? "myself" : ""}">
-      ${i+1}. ${entry.name} — ${entry.points} т.
+      ${label}
     </div>`;
   }).join("");
 }
@@ -2236,7 +2259,7 @@ function renderChoosePhase(round, chosenKey, questionsForTopics) {
       ? `Твой ред е — избери тема за ${data.roundLabel || ("кръг " + round)}!`
       : `${data.chooserName} избира тема за ${data.roundLabel || ("кръг " + round)}…`;
 
-    renderChooseRanking(chooseRankingList, data.frozenRanking, data.chooserName);
+    renderChooseRanking(chooseRankingList, data.frozenRanking, data.chooserName, data.hidePoints);
     renderTopicsGrid(questionsForTopics.map(t => t.title || t), null, isMyTurn, async (topic, btn) => {
       document.querySelectorAll("#topicsGrid .topic-btn").forEach(b => b.disabled = true);
       btn.classList.add("chosen-now");
@@ -2255,7 +2278,7 @@ function renderChooseRevealGeneric(round, questionsForTopics) {
     chooseTitle.textContent = data.autoChosen
       ? "⏰ Времето изтече — темата бе избрана на случаен принцип"
       : `${data.chooserName} избра тема!`;
-    renderChooseRanking(chooseRankingList, data.frozenRanking, data.chooserName);
+    renderChooseRanking(chooseRankingList, data.frozenRanking, data.chooserName, data.hidePoints);
     renderTopicsGrid(questionsForTopics.map(t => t.title || t), data.chosenTopic, false, () => {}, data.burnedTopics);
   };
 }
@@ -2522,9 +2545,25 @@ function loadMedia(container, url, autoplay, fsBtn) {
   }
 }
 function stopMedia(container, fsBtn) {
-  container.innerHTML = "";
-  container.style.display = "none";
+  if (container) {
+    // ⭐ Не стига да изчистим HTML-а: спираме изрично <video>/<audio> и "убиваме" iframe-овете,
+    // иначе клипът продължава да свири скрит и се застъпва със следващия въпрос.
+    container.querySelectorAll("video, audio").forEach(m => {
+      try { m.pause(); m.removeAttribute("src"); m.load(); } catch(e) {}
+    });
+    container.querySelectorAll("iframe").forEach(f => {
+      try { f.src = "about:blank"; } catch(e) {}
+    });
+    container.innerHTML = "";
+    container.classList.remove("audio-mode");   // .audio-mode има display:flex !important и държи кутията видима
+    container.style.display = "none";
+  }
   if (fsBtn) fsBtn.style.display = "none";
+}
+// ⭐ Спира и двата клип-контейнера (въпрос + обяснение)
+function killAllMedia() {
+  stopMedia(questionMedia, fullscreenBtn);
+  stopMedia(explanationMedia);
 }
 function toggleFullscreen(container) {
   const video  = container.querySelector("video");
@@ -2574,6 +2613,7 @@ function renderR7Question(index, startTime, duration) {
   ensureJokersLoaded().then(() => updateJokerButtonsUI(7));
 
   if (bgMusic && !bgMusic.paused) bgMusic.pause();
+  stopMedia(explanationMedia);   // ⭐ старият клип от обяснението да не свири под новия въпрос
   loadMedia(questionMedia, q.video, true, fullscreenBtn);
 
   qText.textContent = `${index + 1}. ${q.question}`;
@@ -3374,19 +3414,21 @@ async function renderR10Explanation(data) {
 
   explanationText.textContent = q.explanation || "";
 
-  const results = await getR10AnswersForQuestion(index);
-  results.sort((a, b) => a.diff - b.diff);
+  // ⭐ Без класиране по дузпата — показваме само верния отговор и собствения отговор.
+  // Класирането за дузпите се разкрива в края на играта.
+  let mine = null;
+  try {
+    const mySnap = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(10, index)));
+    if (mySnap.exists()) mine = mySnap.data();
+  } catch(e) {}
 
   let html = `<div class="stat-row correct-answer"><span>✔ Верен отговор: <strong>${q.answer}</strong></span></div>`;
-  results.forEach(r => {
-    const isMe = r.name === player;
-    html += `<div class="stat-row ${isMe ? "myself" : ""}">
-      <span>${r.name}: <strong>${r.answer}</strong> (±${r.diff})</span>
-      <span class="pts">${r.points} т.</span>
-    </div>`;
-  });
+  html += mine
+    ? `<div class="stat-row myself"><span>Твоят отговор: <strong>${mine.answer}</strong> (±${mine.diff})</span></div>`
+    : `<div class="stat-row"><span>Не отговори на тази дузпа</span></div>`;
+  html += `<p style="margin-top:14px; opacity:0.85;">🤫 Класирането за дузпите ще се разкрие в края на играта.</p>`;
 
-  statsBlock.innerHTML = html || "<p>Няма отговори.</p>";
+  statsBlock.innerHTML = html;
 }
 
 // ===============================
@@ -3395,6 +3437,10 @@ async function renderR10Explanation(data) {
 // ===============================
 function renderTiebreak(data) {
   showOnly(tiebreakScreen);
+  tiebreakTitle.textContent = "⚽ Дузпа за точното класиране!";
+  tiebreakResultBox.style.display = "none";
+  tiebreakTeams.style.display = "block";
+  tiebreakQuestionBlock.style.display = "block";
   const checkpoint = data.checkpoint;
   const groups = (data.tiedGroups || []).map(g => Array.isArray(g) ? g : (g.names || []));
   const myGroup = groups.find(g => g.includes(player));
@@ -3446,6 +3492,70 @@ function renderTiebreak(data) {
   tiebreakInput.onkeydown = (e) => { if (e.key === "Enter" && !tiebreakSubmitBtn.disabled) tiebreakSubmitBtn.click(); };
 }
 
+// ⭐ РЕЗУЛТАТ ОТ ДУЗПАТА ПРИ РАВЕНСТВО — ясно кой печели и кой има право да избира тема
+function renderTiebreakResult(data) {
+  showOnly(tiebreakScreen);
+  tiebreakTitle.textContent = "⚽ Резултат от дузпата";
+  tiebreakQuestionBlock.style.display = "none";
+  tiebreakTeams.style.display = "none";
+  tiebreakResultBox.style.display = "block";
+
+  let html = "";
+  if (data.question) {
+    html += `<div style="font-size:1.05em; color:#cce8ff;">${data.question}</div>`;
+  }
+  if (data.correctAnswer !== null && data.correctAnswer !== undefined) {
+    html += `<div style="margin:8px 0 4px; font-size:1.2em;">Верен отговор: <strong style="color:#00e676;">${data.correctAnswer}</strong></div>`;
+  }
+
+  (data.groups || []).forEach(g => {
+    html += `<div class="tb-group">`;
+    (g.rows || []).forEach((r, k) => {
+      const isWinner = k === 0 && !g.noAnswer;
+      const isMe = r.name === player;
+      const ans = (r.answer === null || r.answer === undefined) ? "не отговори" : `${r.answer} (±${r.diff})`;
+      const bonus = r.points > 0 ? ` · +${fmtPoints(r.points)} т.` : "";
+      html += `<div class="tb-row ${isWinner ? "winner" : ""}">
+        <span>${isWinner ? "🏆 " : ""}${r.name}${isMe ? " (ти)" : ""}</span>
+        <span>${ans}${bonus}</span>
+      </div>`;
+    });
+    if (g.noAnswer) {
+      html += `<div style="margin-top:8px; opacity:0.85;">Никой не отговори — решава се по общото време за целия куиз.</div>`;
+    }
+    html += `</div>`;
+  });
+
+  if (data.chooserName) {
+    const itsMe = data.chooserName === player;
+    html += `<div class="tb-chooser">${data.chooserLabel || "Право да избира тема има:"}
+      <span>👉 ${data.chooserName}${itsMe ? " — това си ТИ!" : ""}</span></div>`;
+  }
+  tiebreakResultBox.innerHTML = html;
+}
+
+// ⭐ ПОВТОРЕНИЕ НА СКРИТИТЕ КЛАСИРАНИЯ (преди края на играта)
+function renderReplay(data) {
+  showOnly(rankingDiv);
+  rankingTitle.textContent = data.title || "Класиране";
+  historyBtn.style.display = "none";
+  const rows = data.rows || [];
+  rankingList.innerHTML = rows.map((r, i) => {
+    const isMe = r.name === player;
+    let cls = "", medal = "";
+    if (i === 0) { cls = "gold"; medal = "🥇"; }
+    else if (i === 1) { cls = "silver"; medal = "🥈"; }
+    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+    let extra = "";
+    if (r.tag) extra = `<span class="rank-breakdown">${r.tag}</span>`;
+    else if (typeof r.delta === "number") extra = `<span class="rank-breakdown">${r.delta > 0 ? "+" : ""}${fmtPoints(r.delta)} т. от този въпрос</span>`;
+    return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+      ${i+1}. ${medal} ${r.name} — ${fmtPoints(r.points)} т.
+      ${extra}
+    </div>`;
+  }).join("") + (data.note ? `<p style="margin-top:12px; opacity:0.8;">${data.note}</p>` : "");
+}
+
 // ===============================
 // ⭐ ДРАМАТИЧНО ФИНАЛНО КЛАСИРАНЕ — разкрива се отзад напред, на стъпки
 // ===============================
@@ -3491,6 +3601,10 @@ async function applyPhaseImmediately(data) {
   const { phase, round, index, startTime, duration } = data;
   if (timerInterval) clearInterval(timerInterval);
   if (phase !== "question" || round !== 8) clearTimeout(autoSubmitTimeoutR);
+
+  // ⭐ При ВСЯКА смяна на фаза спираме клиповете. Фазите, на които реално им трябва клип
+  // (въпрос и обяснение на кръг 7), го зареждат наново по-долу.
+  killAllMedia();
 
   if (phase === "lobby") {
     showOnly(waitingScreen);
@@ -3538,6 +3652,14 @@ async function applyPhaseImmediately(data) {
   if (phase === "tiebreak") {
     globalTimer.style.display = "block";
     renderTiebreak(data);
+    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    return;
+  }
+
+  // ⭐ резултат от дузпата + кой има право да избира тема
+  if (phase === "tiebreak-result") {
+    globalTimer.style.display = "block";
+    renderTiebreakResult(data);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
@@ -3606,12 +3728,11 @@ async function applyPhaseImmediately(data) {
     return;
   }
 
-  // ⭐ "драматично" скриваме класирането за последните 2 въпроса на кръг 9
+  // ⭐ "драматично" скриваме класирането за последните 2 въпроса на кръг 9 и за дузпите на кръг 10
   if (phase === "ranking") {
     globalTimer.style.display = "block";
     if (data.hideRanking) {
-      showOnly(waitingScreen);
-      waitingTitle.textContent = "👀 Класирането се пази в тайна за финала...";
+      showOnly(secretScreen);
     } else {
       renderRanking(false);
     }
@@ -3626,11 +3747,18 @@ async function applyPhaseImmediately(data) {
     return;
   }
 
+  // ⭐ повторение на скритите класирания (предпоследен въпрос, последен въпрос, 3 дузпи)
+  if (phase === "replay") {
+    globalTimer.style.display = "none";
+    renderReplay(data);
+    return;
+  }
+
+  // ⭐ крайно класиране — остава завинаги, без таймер
   if (phase === "finalRanking") {
-    globalTimer.style.display = "block";
+    globalTimer.style.display = "none";
     setMusic("../music/final.mp3");
     renderRanking(true);
-    timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
 }
