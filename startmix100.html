@@ -20,7 +20,7 @@
 </style>
 </head>
 <body>
-<h1>🧩 Старт на Куиз Микс 100</h1>
+<h1>🧩 Старт на Куиз Микс 100 - 1</h1>
 
 <div class="field-row">
   <label>Име на епизод:</label>
@@ -67,7 +67,7 @@ const LOBBY_TIME1 = 20000, Q1 = 10000, EXPL1 = 15000, RANK1 = 10000;
 const LOBBY_TIME2 = 20000, Q2 = 10000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
 const LOBBY_TIME3 = 20000, Q3 = 15000, EXPL3 = 15000, RANK3 = 10000;
 const LOBBY_TIME4 = 20000, Q4 = 15000, EXPL4 = 15000, RANK4 = 10000;
-const BREAK_TIME  = 300000; // 5 минути почивка (след кръг 4 и кръг 8)
+const BREAK_TIME  = 100000; // 5 минути почивка (след кръг 4 и кръг 8)
 
 const LOBBY_TIME5 = 20000, Q5 = 15000, EXPL5 = 15000, RANK5 = 10000;
 
@@ -85,15 +85,20 @@ const TIEBREAK_TIME = 20000, TIEBREAK_REVEAL = 10000;
 
 const THANKS_TIME = 15000;
 const REVEAL_STEP_TIME = 5000; // колко остава видим всеки откриващ се ред
-const REVEAL_SETTLE_TIME = 30000; // колко стои напълно разкритото класиране
-const FINAL_RANK_TIME = 60000;
+const REVEAL_SETTLE_TIME = 20000; // колко стои напълно разкритото класиране, преди да започне повторението
+const REPLAY_STEP_TIME = 15000;   // колко стои всяко от скритите класирания (предпоследен въпрос, последен въпрос, 3 дузпи)
+const FINAL_RANK_TIME = 60000;    // само за таймера на състоянието — крайното класиране остава завинаги
 
 const RANK_POINTS9 = [6, 4, 3, 2, 1];
 
 let questions1=[], questions2=[], questions3=[], questions4=[], questions5=[], questions6=[];
 let questions7=[], questions8=[], questions10=[];
 let izborPool=[], izborAreas=[];
-let tiebreakPoolIndex = 0; // ⭐ брояч — колко въпроса от questions10.json вече са "изгорени"
+// ⭐ Първите 3 въпроса от questions10.json са РЕЗЕРВИРАНИ за дузпите на кръг 10 (по реда им във файла).
+// Дузпите при равенство (преди кръгове 6, 8, 9) теглят от 4-тия въпрос нататък.
+const R10_RESERVED = 3;
+let tiebreakPoolIndex = R10_RESERVED; // брояч за дузпите при равенство
+let hiddenSteps = [];      // ⭐ скритите класирания (кръг 9 — последните 2 въпроса, кръг 10 — 3 дузпи), пазени за финалното повторение
 
 function log(msg) {
   const el = document.getElementById("log");
@@ -293,10 +298,49 @@ function findTiedGroups(standings, onlyLastPlace, excludeNames) {
   return groups;
 }
 
+// ⭐ Запомняме класирането ТОЧНО както е в момента (без бонуса за жокерите), за да го покажем накрая.
+// deltaFn(name) връща { delta } или { tag } — точките от въпроса за този играч.
+async function snapshotHiddenStep(ep, title, deltaFn, note) {
+  const standings = await computeStandingsHost(ep, false);
+  const rows = [];
+  for (const st of standings) {
+    let extra = {};
+    try { extra = (await deltaFn(st.name)) || {}; } catch(e) {}
+    const row = { name: st.name, points: st.points };
+    if (typeof extra.delta === "number") row.delta = extra.delta;
+    if (extra.tag) row.tag = extra.tag;
+    rows.push(row);
+  }
+  hiddenSteps.push({ title, rows, note: note || "" });
+  log(`🤫 Запазено скрито класиране: ${title}`);
+}
+
+// точки на всеки играч за дадена дузпа от кръг 10 (относително точкуване)
+async function r10DeltaMap(ep, tier) {
+  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results"));
+  const diffs = {};
+  for (const pDoc of playersSnap.docs) {
+    try {
+      const sn = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "results", pDoc.id, "answers", `r10-${tier}`));
+      if (sn.exists() && typeof sn.data().diff === "number") diffs[pDoc.id] = sn.data().diff;
+    } catch(e) {}
+  }
+  const all = Object.values(diffs);
+  const out = {};
+  Object.entries(diffs).forEach(([n, d]) => { out[n] = calcPoints10(tier, all, d); });
+  return out;
+}
+
+function pickChooser(standings, excludeNames) {
+  const excl = excludeNames || [];
+  const eligible = standings.filter(st => !excl.includes(st.name));
+  return eligible.length ? eligible[eligible.length - 1].name : null;
+}
+
 function nextTiebreakQuestion() {
   if (tiebreakPoolIndex >= questions10.length) {
-    log("⚠️ Пулът с въпроси за дузпи е изчерпан — повтаряме от началото.");
-    tiebreakPoolIndex = 0;
+    log("⚠️ Пулът с въпроси за дузпи при равенство е изчерпан — повтаряме от 4-тия въпрос.");
+    tiebreakPoolIndex = R10_RESERVED;
   }
   const q = questions10[tiebreakPoolIndex];
   tiebreakPoolIndex++;
@@ -306,13 +350,13 @@ function nextTiebreakQuestion() {
 // ⭐ Решава ВСИЧКИ завързани групи в дадената проверка с ЕДНА обща дузпа (един и същ въпрос
 // за всички засегнати). Победител във всяка група +0.1 т., при 3 отбора в група — вторият +0.05 т.
 // При пак точно равенство — решава по-бързият отговор (без втора дузпа).
-async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames) {
+async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames, chooserLabel) {
   let standings = await computeStandingsHost(ep, false);
   const groups = findTiedGroups(standings, onlyLastPlace, excludeNames);
 
   if (groups.length === 0) {
     log(`Няма равенства за проверка "${checkpoint}".`);
-    return standings;
+    return { standings, chooserName: pickChooser(standings, excludeNames), tied: false };
   }
 
   log(`⚽ Равенство преди ${checkpoint} — групи: ` + groups.map(g => "[" + g.join(", ") + "]").join(" | "));
@@ -324,6 +368,7 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames) 
   await setState(ep, "tiebreak", TIEBREAK_TIME, { checkpoint, tiedGroups: groups.map(g => ({ names: g })), question: q });
   await sleep(TIEBREAK_TIME);
 
+  const resultGroups = [];
   for (const group of groups) {
     const results = [];
     for (const name of group) {
@@ -331,41 +376,62 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames) 
         const ansSnap = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "results", name, "answers", slotIdStr));
         if (ansSnap.exists()) {
           const d = ansSnap.data();
-          results.push({ name, diff: d.diff, time: d.thinkingTime ?? Infinity });
+          results.push({ name, answer: d.answer ?? null, diff: d.diff, time: d.thinkingTime ?? Infinity });
         } else {
-          results.push({ name, diff: Infinity, time: Infinity });
+          results.push({ name, answer: null, diff: Infinity, time: Infinity });
         }
       } catch(e) {
-        results.push({ name, diff: Infinity, time: Infinity });
+        results.push({ name, answer: null, diff: Infinity, time: Infinity });
       }
     }
     const cmp = (x, y) => x === y ? 0 : (x < y ? -1 : 1);
     results.sort((a, b) => cmp(a.diff, b.diff) || cmp(a.time, b.time));
 
-    if (!Number.isFinite(results[0].diff)) {
-      log(`  → в групата [${group.join(", ")}] никой не отговори — равенството остава (решава се по общото време).`);
-      continue;
-    }
+    const noAnswer = !Number.isFinite(results[0].diff);
+    const rowsOut = [];
 
-    for (let k = 0; k < results.length; k++) {
-      let pts = 0;
-      if (k === 0) pts = 0.1;
-      else if (k === 1 && results.length >= 3 && Number.isFinite(results[k].diff)) pts = 0.05;
-      try {
-        await setDoc(
-          doc(db, "games", GAME_ID, "episodes", ep, "results", results[k].name, "answers", slotIdStr),
-          { points: pts }, { merge: true }
-        );
-      } catch(e) {}
+    if (noAnswer) {
+      log(`  → в групата [${group.join(", ")}] никой не отговори — равенството остава (решава се по общото време).`);
+      results.forEach(r => rowsOut.push({ name: r.name, answer: null, diff: null, points: 0 }));
+    } else {
+      for (let k = 0; k < results.length; k++) {
+        let pts = 0;
+        if (k === 0) pts = 0.1;
+        else if (k === 1 && results.length >= 3 && Number.isFinite(results[k].diff)) pts = 0.05;
+        try {
+          await setDoc(
+            doc(db, "games", GAME_ID, "episodes", ep, "results", results[k].name, "answers", slotIdStr),
+            { points: pts }, { merge: true }
+          );
+        } catch(e) {}
+        rowsOut.push({
+          name: results[k].name,
+          answer: results[k].answer,
+          diff: Number.isFinite(results[k].diff) ? results[k].diff : null,
+          points: pts
+        });
+      }
+      log(`  → в групата [${group.join(", ")}] печели ${results[0].name}`);
     }
-    log(`  → в групата [${group.join(", ")}] печели ${results[0].name}`);
+    resultGroups.push({ rows: rowsOut, noAnswer });
   }
 
+  // ⭐ Класиране СЛЕД дузпата и ясно обявяване кой има правото да избира тема
   standings = await computeStandingsHost(ep, false);
-  await setState(ep, "ranking", TIEBREAK_REVEAL, { isFinal: false });
+  const chooserName = pickChooser(standings, excludeNames);
+  log(`👉 ${chooserLabel || "Право на избор има"} ${chooserName || "—"}`);
+
+  await setState(ep, "tiebreak-result", TIEBREAK_REVEAL, {
+    checkpoint,
+    question: q.question ?? "",
+    correctAnswer: q.answer ?? null,
+    groups: resultGroups,
+    chooserName: chooserName || null,
+    chooserLabel: chooserLabel || "Право да избира тема има:"
+  });
   await sleep(TIEBREAK_REVEAL);
 
-  return standings;
+  return { standings, chooserName, tied: true };
 }
 
 // ===============================
@@ -403,7 +469,7 @@ async function runStandardRound(ep, round, questions, Q, EXPL, RANK, introTime) 
 // КРЪГ 6/8 — избор на тема (един играч) + самия кръг
 // ===============================
 async function runChooseAndRound(ep, round, questions, {
-  lobbyTime, chooseTime, revealTime, Q, explDurations, chooserExcluded, topicKeyField
+  lobbyTime, chooseTime, revealTime, Q, explDurations, chooserExcluded, topicKeyField, presetChooser
 }) {
   log(`=== Кръг ${round}: обяснение (${lobbyTime/1000} сек.) ===`);
   await setState(ep, "roundIntro", lobbyTime, { round });
@@ -411,7 +477,8 @@ async function runChooseAndRound(ep, round, questions, {
 
   const standings = await computeStandingsHost(ep, false);
   const eligible = chooserExcluded ? standings.filter(s => !chooserExcluded.includes(s.name)) : standings;
-  const chooserName = eligible.length ? eligible[eligible.length - 1].name : null;
+  // ⭐ Избиращият вече е определен (и обявен) след дузпата — ползваме същия човек, за да няма разминаване
+  const chooserName = presetChooser || (eligible.length ? eligible[eligible.length - 1].name : null);
   log(`Кръг ${round} — избиращ (последен в класирането${chooserExcluded ? ", без " + chooserExcluded.join(",") : ""}): ${chooserName || "—"}`);
 
   const slotId = `r${round}-choice`;
@@ -489,13 +556,20 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
     const chooserName = entry.name;
     const slotId = `r9-choice${choiceRoundNumber}-${chooserName}`;
 
+    // ⭐ Последните 2 въпроса на кръг 9: никакво класиране — нито от въпроса, нито временно
+    const hidden = (totalSlotsOverall - (done + 1)) < 2;
+
     if (topicPool.length === 0) topicPool = [...izborAreas];
 
-    const frozenNow = await computeStandingsHost(ep, false);
+    // при скрито класиране екранът за избор показва само реда на избиране (без точки)
+    const frozenNow = hidden
+      ? frozenRanking.map(e => ({ name: e.name }))
+      : await computeStandingsHost(ep, false);
     await setState(ep, "choose", CHOOSE_TIME9, {
       round: 9, slotId, chooserName,
       roundLabel: `Избор ${choiceRoundNumber}`,
-      frozenRanking: frozenNow
+      frozenRanking: frozenNow,
+      hidePoints: hidden
     });
 
     let chosenTopic = null, autoChosen = false;
@@ -520,7 +594,8 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
 
     await setState(ep, "choose-reveal", CHOOSE_REVEAL9, {
       round: 9, chooserName, roundLabel: `Избор ${choiceRoundNumber}`,
-      frozenRanking: frozenNow, chosenTopic, autoChosen, slotId
+      frozenRanking: frozenNow, chosenTopic, autoChosen, slotId,
+      hidePoints: hidden
     });
     await sleep(CHOOSE_REVEAL9);
 
@@ -538,15 +613,31 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
 
     await scoreSlot9(ep, slotId, q.correct, chooserName, multiplier);
 
+    // ⭐ запазваме скритото класиране за финалното повторение
+    if (hidden) {
+      const isSecondToLast = (done + 1) === (totalSlotsOverall - 1);
+      await snapshotHiddenStep(
+        ep,
+        isSecondToLast ? "Класиране след предпоследния въпрос (Кръг 9)" : "Класиране след последния въпрос (Кръг 9)",
+        async (name) => {
+          if (name === excludedPlayer) return { tag: "не участва в този въпрос" };
+          const sn = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "results", name, "answers", slotId));
+          return sn.exists() ? { delta: sn.data().points || 0 } : { tag: "не е отговорил на този въпрос" };
+        }
+      );
+    }
+
     await setState(ep, "explanation", EXPL9, extra);
     await sleep(EXPL9);
 
-    await setState(ep, "q-ranking", QRANK9, { round: 9, slotId, correct: q.correct });
-    await sleep(QRANK9);
+    // класиране по въпроса — само докато не сме в последните 2 въпроса
+    if (!hidden) {
+      await setState(ep, "q-ranking", QRANK9, { round: 9, slotId, correct: q.correct });
+      await sleep(QRANK9);
+    }
 
     done++;
-    const hideRanking = (totalSlotsOverall - done) < 2;
-    await setState(ep, "ranking", RANK9, { round: 9, isFinal: false, hideRanking });
+    await setState(ep, "ranking", RANK9, { round: 9, isFinal: false, hideRanking: hidden });
     await sleep(RANK9);
   }
 
@@ -578,16 +669,25 @@ async function runRound10(ep) {
   await sleep(LOBBY_TIME10);
 
   for (let tier = 0; tier < 3; tier++) {
-    const q = nextTiebreakQuestion();
+    const q = questions10[tier];   // ⭐ винаги първите 3 въпроса от файла, по ред
     log(`Кръг 10, дузпа ${tier+1}/3`);
 
     await setState(ep, "question", Q10, { round: 10, index: tier, tier, q });
     await sleep(Q10);
 
+    // ⭐ запазваме класирането след дузпата, но НЕ го показваме сега
+    const deltaMap = await r10DeltaMap(ep, tier);
+    await snapshotHiddenStep(
+      ep,
+      `Класиране след дузпа ${tier + 1} от 3 (Кръг 10)`,
+      async (name) => (name in deltaMap) ? { delta: deltaMap[name] } : { tag: "не е отговорил на тази дузпа" },
+      tier === 2 ? "Това е класирането преди добавянето на бонуса за неизползвани жокери." : ""
+    );
+
     await setState(ep, "explanation", EXPL10, { round: 10, index: tier, tier, q });
     await sleep(EXPL10);
 
-    await setState(ep, "ranking", RANK10, { round: 10, isFinal: false });
+    await setState(ep, "ranking", RANK10, { round: 10, isFinal: false, hideRanking: true });
     await sleep(RANK10);
   }
 }
@@ -611,7 +711,14 @@ async function runThanksAndFinalReveal(ep) {
   await setState(ep, "final-reveal", REVEAL_SETTLE_TIME, { revealedCount: total });
   await sleep(REVEAL_SETTLE_TIME);
 
-  log("Играта приключи — крайно класиране.");
+  // ⭐ Едва сега показваме скритите класирания — как се е стигнало до крайния резултат
+  log(`Показваме скритите класирания (${hiddenSteps.length} стъпки)...`);
+  for (const step of hiddenSteps) {
+    await setState(ep, "replay", REPLAY_STEP_TIME, { title: step.title, rows: step.rows, note: step.note });
+    await sleep(REPLAY_STEP_TIME);
+  }
+
+  log("Играта приключи — крайно класиране (остава завинаги).");
   await setState(ep, "finalRanking", FINAL_RANK_TIME, { isFinal: true });
 }
 
@@ -633,12 +740,12 @@ async function runGame(ep) {
   await runStandardRound(ep, 5, questions5, Q5, EXPL5, RANK5, LOBBY_TIME5);
 
   // ⭐ Дузпа при равенство на ПОСЛЕДНОТО място преди избора в кръг 6
-  await runTiebreakIfNeeded(ep, "r5", true, []);
+  const tb5 = await runTiebreakIfNeeded(ep, "r5", true, [], "Право да избере тема за Кръг 6 има:");
 
   const r6Chooser = await runChooseAndRound(ep, 6, questions6, {
     lobbyTime: LOBBY_TIME6, chooseTime: CHOOSE_TIME6, revealTime: CHOOSE_REVEAL6, Q: Q6,
     explDurations: [["explanation", EXPL6], ["q-ranking", RESULTS6], ["ranking", RANK6]],
-    chooserExcluded: []
+    chooserExcluded: [], presetChooser: tb5.chooserName
   });
   try {
     await setDoc(doc(db, "games", GAME_ID, "episodes", ep, "meta", "r6chooser"), { name: r6Chooser });
@@ -648,12 +755,12 @@ async function runGame(ep) {
 
   // ⭐ Дузпа при равенство на ПОСЛЕДНОТО (допустимо) място преди избора в кръг 8 —
   // изключваме вече избиралия в кръг 6.
-  await runTiebreakIfNeeded(ep, "r7", true, [r6Chooser]);
+  const tb7 = await runTiebreakIfNeeded(ep, "r7", true, [r6Chooser], "Право да избере тема за Кръг 8 има:");
 
   await runChooseAndRound(ep, 8, questions8, {
     lobbyTime: LOBBY_TIME8, chooseTime: CHOOSE_TIME8, revealTime: CHOOSE_REVEAL8, Q: Q8,
     explDurations: [["explanation", EXPL8], ["q-ranking", RESULTS8], ["ranking", RANK8]],
-    chooserExcluded: [r6Chooser]
+    chooserExcluded: [r6Chooser], presetChooser: tb7.chooserName
   });
 
   log("☕ Почивка (5 мин.)...");
@@ -661,9 +768,9 @@ async function runGame(ep) {
   await sleep(BREAK_TIME);
 
   // ⭐ Пълно разчистване на равенства (навсякъде в класирането) — нужно за реда на избор в кръг 9
-  const cleanStandings = await runTiebreakIfNeeded(ep, "r8", false, []);
+  const tb8 = await runTiebreakIfNeeded(ep, "r8", false, [], "Първи избира тема в Кръг 9 (последен в класирането):");
 
-  await runRound9(ep, cleanStandings);
+  await runRound9(ep, tb8.standings);
 
   await runRound10(ep);
 
