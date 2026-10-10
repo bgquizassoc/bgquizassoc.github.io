@@ -233,6 +233,16 @@
   }
   .fullscreen-btn:hover { background: rgba(0,0,0,0.75); transform: none; }
 
+  /* ⭐ статистика за кръгове 5 и 10 — по-едър шрифт, подравнено вляво */
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; margin: 8px 0; padding: 14px 16px;
+    border-radius: 10px; background: #333; color: #fff;
+    font-size: 1.3em; text-align: left;
+  }
+  .stat-row.correct-answer { background: #2e7d32; font-weight: bold; }
+  .stat-row .pts { color: #ffd100; font-weight: bold; white-space: nowrap; margin-left: 14px; }
+
   /* ⭐ числов вход (кръгове 5, 10) */
   #numberArea { margin: 16px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
   #numberHint { font-size: 1em; color: #aaddff; }
@@ -357,7 +367,7 @@
 
 <h1> Игри на Знания <br> 🧩 Куиз Микс 100 🧩 <br>епизод 1</h1>
 
-<audio id="bg-music" src="../music/games.mp3" loop preload="auto"></audio>
+<audio id="bg-music" src="music/games.mp3" loop preload="auto"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
 
@@ -372,7 +382,7 @@
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
 
-  <img id="lobby-image" src="https://i.imgur.com/hwZGsfM.jpeg" alt="Куиз Микс 100" />
+  <img id="lobby-image" src="https://i.imgur.com/76DTHXj.jepg" alt="Куиз Микс 123" />
 
   <div id="lobby-instructions">
     <p>🧩 Очакват ви 3 кръга с по 10 въпроса от 10 различни области.</p>
@@ -687,7 +697,7 @@ let questionPhaseStartTime = null;
 let questions1 = [], questions2 = [], questions3 = [];
 let questions4 = [], questions5 = [], questions6 = [];
 let questions7 = [], questions8 = [];
-let izborWarmup = [], izborPool = [], izborAreas = [];
+let izborPool = [], izborAreas = [];
 let questions10 = [];
 
 // ⭐ ЖОКЕРИ — намиращи се на всеки кръг, но НЕ се застъпват
@@ -697,8 +707,11 @@ let playerJokers = {
   r2_doubled: false, r2_bullets: 5, r2_correction: 0,
   r3_syllable2: false, r3_correction: 0,
   r4_syllable2: false, r4_correction: 0,
+  r5_correction: 0,
   r6_correction: 0,
-  r7_syllable2: false, r7_correction: 0
+  r7_syllable2: false, r7_correction: 0,
+  r8_correction: 0,
+  r10_correction: 0
 };
 let jokersLoaded = false;
 let currentQuestionJokerFlags = { round: null, index: -1, pancake: false, doubleChance: false, doubled: false, majority: false, spy: false, spyTarget: null };
@@ -708,6 +721,7 @@ const GROUP_COLORS = ["#3498db","#9b59b6","#e67e22","#1abc9c","#00bcd4","#8bc34a
 let selectedLeft = null, pairs = [], matchSubmitted = false, lastClickTime6 = null;
 let currentMatchQuestion = null, currentMatchStartTime = null;
 let selectedItem = null, assignments = {}, groupingSubmitted = false, lastClickTime8 = null;
+let assignOrder8 = [], assignTags8 = {}; // ⭐ ред на групиране + етикетите им (за Поправка)
 let currentGroupQuestion = null, currentGroupStartTime = null;
 let autoSubmitTimeoutR = null;
 let currentChosenTopic = {}; // { 6: "...", 8: "...", "9-1": "...", "9-2": "..." }
@@ -783,7 +797,7 @@ function updateJokerButtonsUI(round) {
     document.getElementById("joker-syllable2").style.display = playerJokers.r4_syllable2 ? "none" : "inline-block";
     document.getElementById("joker-correction").style.display = "inline-block";
     document.getElementById("joker-correction").disabled = true;
-  } else if (round === 6) {
+  } else if (round === 5 || round === 6 || round === 8 || round === 10) {
     document.getElementById("joker-correction").style.display = "inline-block";
     document.getElementById("joker-correction").disabled = true;
   } else if (round === 7) {
@@ -791,7 +805,7 @@ function updateJokerButtonsUI(round) {
     document.getElementById("joker-correction").style.display = "inline-block";
     document.getElementById("joker-correction").disabled = true;
   }
-  // кръгове 5, 8, 9, 10 — без жокери (всички бутони вече скрити по подразбиране)
+  // кръг 9 — има собствен бутон Поправка (correctionBtn9); тук няма жокери
 }
 
 document.getElementById("archiveBtn").onclick = () => { window.location.href = "archive.html"; };
@@ -802,7 +816,7 @@ historyBtn.onclick = () => {
 };
 
 async function loadAllQuestions() {
-  const [r1, r2, r3, r4, r5, r6, r7, r8, warmup, pool, r10] = await Promise.all([
+  const [r1, r2, r3, r4, r5, r6, r7, r8, pool, r10] = await Promise.all([
     fetch("questions1.json").then(r => r.json()),
     fetch("questions2.json").then(r => r.json()),
     fetch("questions3.json").then(r => r.json()),
@@ -811,14 +825,13 @@ async function loadAllQuestions() {
     fetch("questions6.json").then(r => r.json()),
     fetch("questions7.json").then(r => r.json()),
     fetch("questions8.json").then(r => r.json()),
-    fetch("../izbor/warmup10.json").then(r => r.json()),
     fetch("../izbor/pull.json").then(r => r.json()),
     fetch("questions10.json").then(r => r.json())
   ]);
   questions1 = r1; questions2 = r2; questions3 = r3;
   questions4 = r4; questions5 = r5; questions6 = r6;
   questions7 = r7; questions8 = r8;
-  izborWarmup = warmup; izborPool = pool;
+  izborPool = pool;
   izborAreas = [...new Set(pool.map(q => q.area.trim()))];
   questions10 = r10;
 }
@@ -921,7 +934,7 @@ startBtn.onclick = async () => {
   ready = true;
   showOnly(waitingScreen);
   globalTimer.style.display = "none";
-  setMusic("../music/games.mp3");
+  setMusic("music/games.mp3");
 
   if (!episodeId) return;
 
@@ -1114,7 +1127,7 @@ async function renderRanking(isFinal) {
 const ROUND_META = {
   1: {
     title: "🧩 Кръг 1 — Твърдение или сравнение",
-    music: "../music/despa.mp3",
+    music: "music/despa.mp3",
     image: "https://i.imgur.com/pjkY1GH.jpeg",
     html: `
       <p>⭐ Очакват ви 10 твърдения / сравнения — възможните отговори са само <strong>два</strong>.</p>
@@ -1128,8 +1141,8 @@ const ROUND_META = {
   },
   2: {
     title: "🧩 Кръг 2 — Ако не го знаеш, уцели го",
-    music: "../music/dance.mp3",
-    image: "https://i.imgur.com/QLiqx4w.jpeg",
+    music: "music/dance.mp3",
+    image: "https://i.imgur.com/5QDXD26.jpeg",
     html: `
       <p>⚡ Очакват ви 10 въпроса с повишаваща степен на трудност.</p>
       <p>⚡ Отговаря се с натискане на бутон върху някой от четирите отговора.</p>
@@ -1149,7 +1162,7 @@ const ROUND_META = {
   },
   3: {
     title: "🧩 Кръг 3 — Буквомания",
-    music: "../music/Ellie.mp3",
+    music: "music/Ellie.mp3",
     image: "https://i.imgur.com/pmIhEXf.jpeg",
     html: `
       <p>🅰️ Очакват ви 10 отворени въпроса с нарастваща степен на трудност.</p>
@@ -1168,7 +1181,7 @@ const ROUND_META = {
   },
   4: {
     title: "📷 Кръг 4 — Фотомания",
-    music: "../music/VeronicaApo.mp3",
+    music: "music/VeronicaApo.mp3",
     image: "https://i.imgur.com/90Xs576.jpeg",
     html: `
       <p>📷 Очакват ви 10 въпроса, придружени със снимка, от различни области.</p>
@@ -1181,18 +1194,19 @@ const ROUND_META = {
   },
   5: {
     title: "🔢 Кръг 5 — Цифромания",
-    music: "../music/music.mp3",
+    music: "music/music.mp3",
     image: "https://i.imgur.com/CJ665Up.jpeg",
     html: `
       <p>🔢 Очакват ви 10 цифрови въпроса от различни области.</p>
       <p>⭐ Време за отговор — <strong>45 секунди</strong>.</p>
       <p>⭐ Точкуване — 5 / 3 / 2 / 1 точки според близостта до верния отговор.</p>
       <p>⭐ 10/10 точни отговора носят бонус от <strong>3 точки</strong>.</p>
+      <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате числото наново.</p>
     `
   },
   6: {
     title: "🔗 Кръг 6 — Чифтосване",
-    music: "../music/Analog.mp3",
+    music: "music/Analog.mp3",
     image: "https://i.imgur.com/mUbjQU6.jpeg",
     html: `
       <p>🔗 Последният в класирането избира тема от възможните.</p>
@@ -1204,7 +1218,7 @@ const ROUND_META = {
   },
   7: {
     title: "🎬 Кръг 7 — Мултимедия 3 в 1",
-    music: "../music/VeronicaSafe.mp3",
+    music: "music/VeronicaSafe.mp3",
     image: "https://i.imgur.com/CJ665Up.jpeg",
     html: `
       <p>🎬 10 въпроса с клипче (Музика, Кино, Спорт).</p>
@@ -1216,19 +1230,20 @@ const ROUND_META = {
   },
   8: {
     title: "🧱 Кръг 8 — Групиране",
-    music: "../music/zahira.mp3",
+    music: "music/zahira.mp3",
     image: "https://i.imgur.com/o2elJRG.jpeg",
     html: `
       <p>🧱 Последният в класирането (който не е избирал преди кръг 6) избира тема.</p>
       <p>🧱 10 обекта, разпределят се по групи.</p>
       <p>⭐ Време за целия кръг — <strong>90 секунди</strong>.</p>
       <p>⭐ По <strong>1 точка</strong> за верен обект. При 10/10 — бонус от <strong>3 точки</strong>.</p>
+      <p>🔁 <strong>Поправка</strong> — маха последния групиран обект, неограничена.</p>
     `
   },
   9: {
     title: "🎯 Кръг 9 — Избор",
-    music: "../music/Future.mp3",
-    image: "https://i.imgur.com/fYVFGFf.jpeg",
+    music: "music/Future.mp3",
+    image: "https://i.imgur.com/pjkY1GH.jpeg",
     html: `
       <p>🎯 Играчите избират теми отзад напред по замразеното класиране — на два пъти.</p>
       <p>🎯 Избор 1 — темата, която избирате, Ви носи ×2 точки, ако я познаете.</p>
@@ -1239,12 +1254,13 @@ const ROUND_META = {
   },
   10: {
     title: "⚽ Кръг 10 — По 3 дузпи към всички",
-    music: "../music/VeronicaDeep.mp3",
+    music: "music/VeronicaDeep.mp3",
     image: "https://i.imgur.com/Q0g6uca.jpeg",
     html: `
       <p>⚽ 3 специални въпроса с число за отговор.</p>
       <p>⚽ Точките се печелят спрямо близостта ви до верния отговор В СРАВНЕНИЕ С ОСТАНАЛИТЕ играчи.</p>
       <p>⭐ Време за отговор — <strong>25 секунди</strong> на въпрос.</p>
+      <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате числото наново.</p>
     `
   }
 };
@@ -2042,7 +2058,7 @@ function calcPoints5(userAnswer, q) {
 function renderR5Question(index, startTime, duration) {
   showOnly(quizDiv);
   roundTag.textContent = "Кръг 5 — Цифромания";
-  document.getElementById("jokers").style.display = "none";
+  document.getElementById("jokers").style.display = "flex";
   showImage(questionImage, "");
   answersDiv.style.display = "none";
   letterAreaDiv.style.display = "none";
@@ -2064,15 +2080,21 @@ function renderR5Question(index, startTime, duration) {
   numberSubmitBtn.disabled = false;
   myPoints.textContent = "";
 
+  updateJokerButtonsUI(5);
+
   answeredNames.innerHTML = "";
   answeredList.style.display = "block";
   startAnswerListener(slotId(5, index));
 
+  let answered = false;
+
   async function submitR5() {
     const raw = numberInput.value.trim();
     if (raw === "") { alert("Въведи число!"); return; }
+    if (answered) return;
     const userAnswer = Number(raw);
     if (isNaN(userAnswer)) { alert("Въведи валидно число!"); return; }
+    answered = true;
 
     const pts = calcPoints5(userAnswer, q);
 
@@ -2097,10 +2119,33 @@ function renderR5Question(index, startTime, duration) {
         timestamp: Date.now(), thinkingTime
       }
     );
+
+    document.getElementById("joker-correction").disabled = false;
   }
 
   numberSubmitBtn.onclick = submitR5;
   numberInput.onkeydown = (e) => { if (e.key === "Enter" && !numberSubmitBtn.disabled) submitR5(); };
+
+  // ⭐ Поправка (неограничена) — изтрива отговора и позволява ново въвеждане
+  document.getElementById("joker-correction").onclick = async () => {
+    if (!answered) return;
+    playerJokers.r5_correction = (playerJokers.r5_correction || 0) + 1;
+    answered = false;
+    numberInput.value = "";
+    numberInput.disabled = false;
+    numberInput.classList.remove("submitted");
+    numberSubmitBtn.disabled = false;
+    myPoints.textContent = "";
+    try {
+      await deleteDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(5, index)));
+    } catch(e) {}
+    await setDoc(
+      doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+      { jokers: playerJokers }, { merge: true }
+    );
+    jokerStatusNote("🔁 Поправка използвана — въведи числото наново.");
+    updateJokerButtonsUI(5);
+  };
 
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
@@ -2108,7 +2153,8 @@ function renderR5Question(index, startTime, duration) {
 async function renderR5Explanation(index) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = ""; explanationText.textContent = "";
-  explTextTitle.style.display = "block";
+  // ⭐ В кръг 5 няма обяснение — само статистика
+  explTextTitle.style.display = "none";
   showImage(explanationImage, "");
   stopMedia(explanationMedia);
   answeredList.style.display = "none"; answeredNames.innerHTML = "";
@@ -2117,7 +2163,6 @@ async function renderR5Explanation(index) {
   if (!q) return;
 
   const correct = Number(q.answer);
-  explanationText.textContent = q.explanation || "";
 
   const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
   const results = [];
@@ -2385,7 +2430,7 @@ async function renderR6Results() {
   resultsTitle.textContent = "Верни чифтове";
   if (answersUnsub) { answersUnsub(); answersUnsub = null; }
 
-  const q = currentMatchQuestion || questions6[0];
+  const q = currentMatchQuestion || questions6.find(t => t.title === currentChosenTopic[6]) || questions6[0];
   let html = "";
   Object.entries(q.pairs).sort().forEach(([left, right]) => {
     html += `<div class="stat-answer correct"><span>${left} → ${right}</span><span>✔</span></div>`;
@@ -2671,6 +2716,8 @@ async function renderR7Explanation(index) {
 function buildGroupingUI(q, startTime) {
   selectedItem = null;
   assignments = {};
+  assignOrder8 = [];
+  assignTags8 = {};
   groupingSubmitted = false;
   lastClickTime8 = null;
   currentGroupQuestion = q;
@@ -2758,17 +2805,53 @@ function assignToGroup8(group, gi, color, startTime) {
     tag.style.background = color;
     tag.textContent = selectedItem;
     gItemsEl.appendChild(tag);
+    assignTags8[selectedItem] = tag;
   }
 
   assignments[selectedItem] = group;
+  assignOrder8.push(selectedItem);
   lastClickTime8 = Date.now() - startTime;
   selectedItem = null;
 
   const total = currentGroupQuestion?.items.length || 10;
   const done = Object.keys(assignments).length;
   scoreDisplay8.textContent = `Групирани: ${done} / ${total}`;
+  document.getElementById("joker-correction").disabled = false;
 
   saveCurrentAssignments8(startTime);
+}
+
+// ⭐ Поправка (неограничена) — маха последния групиран обект
+function undoLastAssign8() {
+  if (groupingSubmitted) return;
+  if (assignOrder8.length === 0) return;
+
+  const item = assignOrder8.pop();
+  delete assignments[item];
+  playerJokers.r8_correction = (playerJokers.r8_correction || 0) + 1;
+
+  const itemBtn = [...itemsContainer.querySelectorAll(".item-btn")].find(b => b.dataset.item === item);
+  if (itemBtn) {
+    itemBtn.classList.remove("grouped", "selected");
+    itemBtn.style.background = "";
+    itemBtn.style.borderColor = "";
+  }
+  const tag = assignTags8[item];
+  if (tag && tag.parentNode) tag.parentNode.removeChild(tag);
+  delete assignTags8[item];
+
+  if (selectedItem === item) selectedItem = null;
+
+  const total = currentGroupQuestion?.items.length || 10;
+  scoreDisplay8.textContent = `Групирани: ${Object.keys(assignments).length} / ${total}`;
+  document.getElementById("joker-correction").disabled = assignOrder8.length === 0;
+  jokerStatusNote("🔁 Поправка — последният обект е върнат.");
+
+  saveCurrentAssignments8(currentGroupStartTime);
+  setDoc(
+    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+    { jokers: playerJokers }, { merge: true }
+  ).catch(() => {});
 }
 
 async function saveCurrentAssignments8(startTime) {
@@ -2806,7 +2889,7 @@ function renderR8Question(chosenTopic, startTime, duration) {
   showOnly(quizDiv);
   roundTag.textContent = "Кръг 8 — Групиране: " + chosenTopic;
   qText.textContent = "";
-  document.getElementById("jokers").style.display = "none";
+  document.getElementById("jokers").style.display = "flex";
   showImage(questionImage, "");
   stopMedia(questionMedia, fullscreenBtn);
   answersDiv.style.display = "none";
@@ -2819,6 +2902,8 @@ function renderR8Question(chosenTopic, startTime, duration) {
 
   const q = questions8.find(t => t.title === chosenTopic) || questions8[0];
   buildGroupingUI(q, startTime);
+  updateJokerButtonsUI(8);
+  document.getElementById("joker-correction").onclick = undoLastAssign8;
   startAnswerListener("r8-0", (pName, data) => `${pName} — ${Object.keys(data.assignments || {}).length} обекта`);
 
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
@@ -2834,7 +2919,7 @@ async function renderR8Results() {
   resultsTitle.textContent = "Верни групи";
   if (answersUnsub) { answersUnsub(); answersUnsub = null; }
 
-  const q = currentGroupQuestion || questions8[0];
+  const q = currentGroupQuestion || questions8.find(t => t.title === currentChosenTopic[8]) || questions8[0];
   let html = "";
 
   let groups = q.groups;
@@ -2868,9 +2953,24 @@ async function renderR8Results() {
   resultsBlock.innerHTML = html;
 }
 
-async function renderR8QRanking() {
+// ⭐ Класиране САМО за кръга — общо за кръг 6 (чифтосване) и кръг 8 (групиране)
+function getRoundQuestionObj(round) {
+  if (round === 6) {
+    return currentMatchQuestion || questions6.find(t => t.title === currentChosenTopic[6]) || questions6[0];
+  }
+  return currentGroupQuestion || questions8.find(t => t.title === currentChosenTopic[8]) || questions8[0];
+}
+
+async function renderRoundQRanking(round) {
   showOnly(qRankingDiv);
-  qRankingTitle.textContent = "Класиране за 8-ми кръг";
+  qRankingTitle.textContent = `Класиране за ${round}-ти кръг`;
+  qRankingList.innerHTML = "<p>Зареждане…</p>";
+
+  const qObj = getRoundQuestionObj(round);
+  const totalItems = round === 6
+    ? Object.keys(qObj?.pairs || {}).length
+    : (qObj?.items?.length || 10);
+  const slot = `r${round}-0`;
 
   try {
     const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
@@ -2878,7 +2978,7 @@ async function renderR8QRanking() {
     for (const playerDoc of playersSnap.docs) {
       const pName = playerDoc.id;
       const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pName, "answers"));
-      const ansDoc = ansSnap.docs.find(d => d.id === "r8-0");
+      const ansDoc = ansSnap.docs.find(d => d.id === slot);
       if (ansDoc) {
         const data = ansDoc.data();
         scores.push({ name: pName, pts: data.total || 0, correct: data.correct || 0, time: data.thinkingTime || 0 });
@@ -2892,13 +2992,16 @@ async function renderR8QRanking() {
       else if (i === 1) { cls = "silver"; medal = "🥈"; }
       else if (i === 2) { cls = "bronze"; medal = "🥉"; }
       return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
-        ${i+1}. ${medal} ${obj.name} — ${obj.correct}/${currentGroupQuestion?.items.length || 10} верни → <strong>${obj.pts} т.</strong>
+        ${i+1}. ${medal} ${obj.name} — ${obj.correct}/${totalItems} верни → <strong>${obj.pts} т.</strong>
       </div>`;
     }).join("") || "<p>Няма данни.</p>";
   } catch(e) {
     qRankingList.innerHTML = "<p>Грешка при зареждане.</p>";
   }
 }
+
+function renderR6QRanking() { return renderRoundQRanking(6); }
+function renderR8QRanking() { return renderRoundQRanking(8); }
 
 // ===============================
 // КРЪГ 9 — ИЗБОР (подредба по увереност, без warmup, от замразеното класиране след кръг 8)
@@ -3156,7 +3259,7 @@ function renderR10Question(data, startTime, duration) {
   const index = data.tier ?? data.index ?? 0;
   showOnly(quizDiv);
   roundTag.textContent = `Кръг 10 — Дузпа ${index + 1} от 3`;
-  document.getElementById("jokers").style.display = "none";
+  document.getElementById("jokers").style.display = "flex";
   showImage(questionImage, "");
   stopMedia(questionMedia, fullscreenBtn);
   answersDiv.style.display = "none";
@@ -3178,13 +3281,19 @@ function renderR10Question(data, startTime, duration) {
   numberSubmitBtn.disabled = false;
   myPoints.textContent = "";
 
+  updateJokerButtonsUI(10);
+
   startAnswerListener(slotId(10, index));
+
+  let answered = false;
 
   async function submitR10() {
     const raw = numberInput.value.trim();
     if (raw === "") { alert("Въведи число!"); return; }
+    if (answered) return;
     const userAnswer = Number(raw);
     if (isNaN(userAnswer)) { alert("Въведи валидно число!"); return; }
+    answered = true;
 
     const diff = Math.abs(userAnswer - Number(q.answer));
 
@@ -3204,10 +3313,33 @@ function renderR10Question(data, startTime, duration) {
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(10, index)),
       { answer: userAnswer, correct: Number(q.answer), diff, points: 0, q, timestamp: Date.now(), thinkingTime }
     );
+
+    document.getElementById("joker-correction").disabled = false;
   }
 
   numberSubmitBtn.onclick = submitR10;
   numberInput.onkeydown = (e) => { if (e.key === "Enter" && !numberSubmitBtn.disabled) submitR10(); };
+
+  // ⭐ Поправка (неограничена)
+  document.getElementById("joker-correction").onclick = async () => {
+    if (!answered) return;
+    playerJokers.r10_correction = (playerJokers.r10_correction || 0) + 1;
+    answered = false;
+    numberInput.value = "";
+    numberInput.disabled = false;
+    numberInput.classList.remove("submitted");
+    numberSubmitBtn.disabled = false;
+    myPoints.textContent = "";
+    try {
+      await deleteDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(10, index)));
+    } catch(e) {}
+    await setDoc(
+      doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
+      { jokers: playerJokers }, { merge: true }
+    );
+    jokerStatusNote("🔁 Поправка използвана — въведи числото наново.");
+    updateJokerButtonsUI(10);
+  };
 
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
@@ -3264,7 +3396,7 @@ async function renderR10Explanation(data) {
 function renderTiebreak(data) {
   showOnly(tiebreakScreen);
   const checkpoint = data.checkpoint;
-  const groups = data.tiedGroups || [];
+  const groups = (data.tiedGroups || []).map(g => Array.isArray(g) ? g : (g.names || []));
   const myGroup = groups.find(g => g.includes(player));
 
   tiebreakTeams.innerHTML = groups.map(g =>
@@ -3306,7 +3438,7 @@ function renderTiebreak(data) {
     );
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotIdStr),
-      { answer: userAnswer, diff, thinkingTime, timestamp: Date.now() },
+      { answer: userAnswer, diff, thinkingTime, q: data.question || null, timestamp: Date.now() },
       { merge: true }
     );
   };
@@ -3364,7 +3496,7 @@ async function applyPhaseImmediately(data) {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
     waitingTitle.textContent = "Играта още не е започнала.";
-    setMusic("../music/games.mp3");
+    setMusic("music/games.mp3");
     return;
   }
 
@@ -3392,7 +3524,7 @@ async function applyPhaseImmediately(data) {
   if (phase === "break") {
     globalTimer.style.display = "block";
     renderBreak();
-    setMusic("../music/games.mp3");
+    setMusic("music/games.mp3");
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
@@ -3467,7 +3599,8 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "q-ranking" || phase === "qRanking") {
     globalTimer.style.display = "block";
-    if (round === 8) renderR8QRanking();
+    if (round === 6) renderR6QRanking();
+    else if (round === 8) renderR8QRanking();
     else if (round === 9) renderR9QRanking(data);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -3488,14 +3621,14 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "final-reveal") {
     globalTimer.style.display = "none";
-    setMusic("../music/final.mp3");
+    setMusic("music/final.mp3");
     renderFinalReveal(data);
     return;
   }
 
   if (phase === "finalRanking") {
     globalTimer.style.display = "block";
-    setMusic("../music/final.mp3");
+    setMusic("music/final.mp3");
     renderRanking(true);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
