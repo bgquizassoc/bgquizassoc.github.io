@@ -63,25 +63,25 @@ const FOLDER = "quizmix/";
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) — нагласи ги спокойно след теста =====
 const LOBBY_TIME     = 10000;
 
-const LOBBY_TIME1 = 10000, Q1 = 10000, EXPL1 = 15000, RANK1 = 10000;
-const LOBBY_TIME2 = 10000, Q2 = 10000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
-const LOBBY_TIME3 = 10000, Q3 = 10000, EXPL3 = 15000, RANK3 = 10000;
-const LOBBY_TIME4 = 10000, Q4 = 10000, EXPL4 = 15000, RANK4 = 10000;
-const BREAK_TIME  = 100000; // 5 минути почивка (след кръг 4 и кръг 8)
+const LOBBY_TIME1 = 20000, Q1 = 10000, EXPL1 = 15000, RANK1 = 10000;
+const LOBBY_TIME2 = 20000, Q2 = 10000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
+const LOBBY_TIME3 = 20000, Q3 = 15000, EXPL3 = 15000, RANK3 = 10000;
+const LOBBY_TIME4 = 20000, Q4 = 15000, EXPL4 = 15000, RANK4 = 10000;
+const BREAK_TIME  = 300000; // 5 минути почивка (след кръг 4 и кръг 8)
 
-const LOBBY_TIME5 = 10000, Q5 = 10000, EXPL5 = 15000, RANK5 = 10000;
+const LOBBY_TIME5 = 20000, Q5 = 15000, EXPL5 = 15000, RANK5 = 10000;
 
-const LOBBY_TIME6 = 10000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 90000, EXPL6 = 15000, RANK6 = 10000;
+const LOBBY_TIME6 = 20000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 90000, EXPL6 = 15000, RESULTS6 = 15000, RANK6 = 10000;
 
-const LOBBY_TIME7 = 10000, Q7 = 20000, EXPL7 = 15000, RANK7 = 10000;
+const LOBBY_TIME7 = 20000, Q7 = 20000, EXPL7 = 15000, RANK7 = 10000;
 
-const LOBBY_TIME8 = 30000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 90000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 10000;
+const LOBBY_TIME8 = 20000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 90000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 10000;
 
-const LOBBY_TIME9 = 30000, CHOOSE_TIME9 = 20000, CHOOSE_REVEAL9 = 5000, Q9 = 50000, EXPL9 = 10000, QRANK9 = 10000, RANK9 = 10000;
+const LOBBY_TIME9 = 20000, CHOOSE_TIME9 = 20000, CHOOSE_REVEAL9 = 5000, Q9 = 50000, EXPL9 = 10000, QRANK9 = 10000, RANK9 = 10000;
 
-const LOBBY_TIME10 = 30000, Q10 = 25000, EXPL10 = 15000, RANK10 = 10000;
+const LOBBY_TIME10 = 20000, Q10 = 15000, EXPL10 = 15000, RANK10 = 10000;
 
-const TIEBREAK_TIME = 30000, TIEBREAK_REVEAL = 10000;
+const TIEBREAK_TIME = 20000, TIEBREAK_REVEAL = 10000;
 
 const THANKS_TIME = 15000;
 const REVEAL_STEP_TIME = 5000; // колко остава видим всеки откриващ се ред
@@ -320,7 +320,8 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames) 
   const q = nextTiebreakQuestion();
   const slotIdStr = "tb-" + checkpoint;
 
-  await setState(ep, "tiebreak", TIEBREAK_TIME, { checkpoint, tiedGroups: groups, question: q });
+  // ⚠️ Firestore не поддържа масив в масив — затова всяка група е обект { names: [...] }
+  await setState(ep, "tiebreak", TIEBREAK_TIME, { checkpoint, tiedGroups: groups.map(g => ({ names: g })), question: q });
   await sleep(TIEBREAK_TIME);
 
   for (const group of groups) {
@@ -338,12 +339,18 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames) 
         results.push({ name, diff: Infinity, time: Infinity });
       }
     }
-    results.sort((a, b) => (a.diff - b.diff) || (a.time - b.time));
+    const cmp = (x, y) => x === y ? 0 : (x < y ? -1 : 1);
+    results.sort((a, b) => cmp(a.diff, b.diff) || cmp(a.time, b.time));
+
+    if (!Number.isFinite(results[0].diff)) {
+      log(`  → в групата [${group.join(", ")}] никой не отговори — равенството остава (решава се по общото време).`);
+      continue;
+    }
 
     for (let k = 0; k < results.length; k++) {
       let pts = 0;
       if (k === 0) pts = 0.1;
-      else if (k === 1 && results.length >= 3) pts = 0.05;
+      else if (k === 1 && results.length >= 3 && Number.isFinite(results[k].diff)) pts = 0.05;
       try {
         await setDoc(
           doc(db, "games", GAME_ID, "episodes", ep, "results", results[k].name, "answers", slotIdStr),
@@ -630,7 +637,7 @@ async function runGame(ep) {
 
   const r6Chooser = await runChooseAndRound(ep, 6, questions6, {
     lobbyTime: LOBBY_TIME6, chooseTime: CHOOSE_TIME6, revealTime: CHOOSE_REVEAL6, Q: Q6,
-    explDurations: [["explanation", EXPL6], ["ranking", RANK6]],
+    explDurations: [["explanation", EXPL6], ["q-ranking", RESULTS6], ["ranking", RANK6]],
     chooserExcluded: []
   });
   try {
@@ -692,7 +699,12 @@ document.getElementById("startBtn").onclick = async () => {
   await sleep(prestartDuration);
 
   log("Играта започва!");
-  await runGame(ep);
+  try {
+    await runGame(ep);
+  } catch (err) {
+    log("❌ ГРЕШКА — играта спря: " + (err && err.message ? err.message : err));
+    console.error(err);
+  }
 };
 </script>
 </body>
