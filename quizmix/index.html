@@ -424,13 +424,14 @@
     <p> 🧩 Време за размисъл — <strong>25 сек.</strong> на въпрос, <strong>20 сек.</strong> за избор на тема.</p>
     <p>🧩 10-ти кръг – По 3 дузпи към всички.</p>
     <p>🧩 Време - <strong> 25 секунди </strong></p>
-    <p>🧩Ако отговорите правилно на всички въпроси в даден кръг, получвате <strong>  бонус от 3 точки </strong> , затова използвайте активно и разумно жокерите си, за да запазите безпогрешна серия.</p>
-    <p>🧩Неизполваните жокери автоматично се осребряват в края на играта и печелите по 1 точка за всеки от тях <strong>  без Патрондаж </strong> (който не се осребрява)</p>
+    <p>🧩Ако отговорите правилно на всички въпроси в даден кръг, получавате <strong>  бонус от 3 точки </strong> , затова използвайте активно и разумно жокерите си, за да запазите безпогрешна серия.</p>
+    <p>🧩Неизползваните жокери автоматично се осребряват в края на играта и печелите по 1 точка за всеки от тях <strong>  без Патрондаш </strong> (който не се осребрява)</p>
 
 
   <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
   <p style="margin-top:8px; opacity:0.9;">Пожелаваме ви приятна игра 🙂</p>
   <div id="lobbyList">Още няма други играчи.</div>
+  </div>
 </div>
 
 <div id="round-intro" style="display:none;">
@@ -1251,7 +1252,6 @@ const ROUND_META = {
       <p>🔗 Очакват ви 10 имена вляво и 10 имена вдясно от избраната тема — трябва да ги съчетаете правилно.</p>
       <p>🔗 Време за целия кръг — <strong>60 секунди</strong>.</p>
       <p>🔗 Точкуване - По <strong>1 точка</strong> за верен чифт. При 10/10 — бонус от <strong>3 точки</strong>.</p>
-      <p>🔗 Точкуване - По <strong>1 точка</strong> за верен чифт. При 10/10 — бонус от <strong>3 точки</strong>.</p>
       <p>🔁 <strong>Поправка</strong> — маха последния чифт, неограничена.</p>
     `
   },
@@ -1672,7 +1672,7 @@ async function renderR2Buffer(index, startTime, duration) {
     let candidates = [];
     try {
       const standings = await computeStandings(false);
-      candidates = standings.map(([name]) => name).filter(n => n !== player).slice(0, 20).sort((a,b) => a.localeCompare(b, "bg"));
+      candidates = standings.map(st => st.name).filter(n => n !== player).slice(0, 20).sort((a,b) => a.localeCompare(b, "bg"));
     } catch(e) {}
 
     if (candidates.length === 0) {
