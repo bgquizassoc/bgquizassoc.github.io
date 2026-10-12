@@ -393,6 +393,8 @@
   <p>Моля, изчакайте<span id="dots">...</span></p>
 
  <img id="lobby-image" src="https://i.imgur.com/hwZGsfM.jpeg" alt="Мегакуиз 100 въпроса" />
+
+
 <div id="lobby-instructions">
     <p>🧩 Очакват ви 10 кръга с над 100 въпроса от 30 различни области.</p>
     <p>🧩 Преди всеки кръг има подробно обяснение за кръга и неговите жокери.</p>
@@ -426,6 +428,7 @@
     <p>🧩 Време - <strong> 25 секунди </strong></p>
     <p>🧩Ако отговорите правилно на всички въпроси в даден кръг, получавате <strong>  бонус от 3 точки </strong> , затова използвайте активно и разумно жокерите си, за да запазите безпогрешна серия.</p>
     <p>🧩Неизползваните жокери автоматично се осребряват в края на играта и печелите по 1 точка за всеки от тях <strong>  без Патрондаш </strong> (който не се осребрява)</p>
+
 
 
   <h3 style="margin-top:15px; color:#ffd100;">Стартов списък на играчите</h3>
@@ -1055,6 +1058,13 @@ async function computeStandings(isFinal) {
     answersSnap.forEach(ansDoc => {
       const id = ansDoc.id;
       const data = ansDoc.data();
+
+      // ⭐ Кръг 9: ID-то е "r9-choice1-<Име>" и не пасва на шаблона долу — точките му преди се пропускаха
+      if (id.startsWith("r9-")) {
+        totalPoints += (data.points || 0);
+        if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
+        return;
+      }
 
       if (id.startsWith("tb-")) {
         tiebreakPoints += (data.points || 0);
