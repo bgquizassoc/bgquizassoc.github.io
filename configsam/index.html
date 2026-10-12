@@ -640,13 +640,35 @@ async function loadJSON(name){
   return res.json();
 }
 
+// ⭐ Привежда въпросите от различните JSON формати към един общ вид
+function normalizeQuestion(q){
+  const n = { ...q };
+
+  // Числов формат: cifromania.json пази числото в "answer", а не в "number"
+  if (typeof n.number !== "number" && typeof n.answer === "number") n.number = n.answer;
+
+  // area и hard са влезли по грешка вътре в "ranges" — изваждаме ги навън
+  if (n.ranges && typeof n.ranges === "object") {
+    if (n.area === undefined && n.ranges.area !== undefined) n.area = n.ranges.area;
+    if (n.hard === undefined && n.ranges.hard !== undefined) n.hard = n.ranges.hard;
+  }
+
+  // Темите се сравняват без значение от интервали и главни/малки букви
+  if (typeof n.area === "string") {
+    const key = n.area.trim().toLowerCase();
+    const topic = TOPICS.find(t => t.name.toLowerCase() === key);
+    n.area = topic ? topic.name : n.area.trim();
+  }
+  return n;
+}
+
 let allQuestionsCache = null;
 async function loadAllQuestions(){
   if (allQuestionsCache) return allQuestionsCache;
   const abwg  = await loadJSON("abvg.json");
   const open  = await loadJSON("open.json");
   const cifro = await loadJSON("cifromania.json");
-  allQuestionsCache = [...abwg, ...open, ...cifro];
+  allQuestionsCache = [...abwg, ...open, ...cifro].map(normalizeQuestion);
   return allQuestionsCache;
 }
 
