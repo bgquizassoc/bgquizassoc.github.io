@@ -69,9 +69,9 @@ button:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
 .note { font-size:0.95em; opacity:0.9; margin-top:8px; }
 
 /* ===== КОНФИГУРАЦИЯ: ТЕМИ ===== */
+/* ⭐ Без max-height и без плъзгач — всичките 31 теми се виждат наведнъж,
+   със същия шрифт; страницата сама се скролира, ако е нужно. */
 #topicsList {
-  max-height: 420px;
-  overflow-y: auto;
   padding: 6px 4px;
   text-align: left;
 }
@@ -143,6 +143,12 @@ button:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
 #currentScore {
   margin: 15px 0; font-size: 1.25em;
   color: #ffd100; font-weight: bold; display: none;
+}
+
+/* ⭐ Текущ резултат, показван в панела с обяснението след всеки отговор */
+#explScore {
+  margin: 12px 0 16px 0; font-size: 1.25em;
+  color: #ffd100; font-weight: bold;
 }
 
 /* ===== БУКВА / ЧИСЛО ВЪВЕЖДАНЕ ===== */
@@ -295,6 +301,7 @@ button:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
 
 <div id="explanation-panel" class="panel" style="display:none;">
   <div id="status"></div>
+  <div id="explScore"></div>
   <div id="explanationText"></div>
   <button class="btn" id="nextBtn">Следващ въпрос</button>
 </div>
@@ -346,7 +353,12 @@ button:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
 
 const TOTAL_QUESTIONS = 30;
 const LOBBY_SECONDS = 15;
-const RESULTS_COLLECTION = "selfquiz_results";
+
+// ⭐ Записите отиват под games/configurator/... — това попада под правилото
+// за /games/{game}/{document=**} във Firestore Rules (като Спокойна игра).
+//   games/configurator/players/{дата}_{код}   — кой е започнал игра (за броене на ден)
+//   games/configurator/results/{дата}_{код}   — крайният резултат
+const GAME_ID = "configurator";
 const PROGRESS_KEY = "quizkonfigurator_progress";
 
 // 6-те кода на националните състезатели — неограничен брой игри на ден
@@ -446,6 +458,7 @@ const answerArea = document.getElementById("answerArea");
 const currentScoreDiv = document.getElementById("currentScore");
 
 const statusDiv = document.getElementById("status");
+const explScoreDiv = document.getElementById("explScore");
 const explanationTextDiv = document.getElementById("explanationText");
 const nextBtn = document.getElementById("nextBtn");
 
@@ -528,16 +541,30 @@ function clearProgress(){
 }
 
 /* ================================================================
-   FIRESTORE — ДНЕВЕН ЛИМИТ + ЗАПИС НА РЕЗУЛТАТ
+   FIRESTORE — ДНЕВЕН ЛИМИТ + РЕГИСТРАЦИЯ + ЗАПИС НА РЕЗУЛТАТ
    ================================================================ */
 function resultDocId(code){
   return `${todayStr()}_${code}`;
 }
 
 async function hasPlayedToday(code){
-  const ref = window.doc(window.db, RESULTS_COLLECTION, resultDocId(code));
+  const ref = window.doc(window.db, "games", GAME_ID, "results", resultDocId(code));
   const snap = await window.getDoc(ref);
   return snap.exists();
+}
+
+// ⭐ Регистрира, че играчът е започнал игра (за да се вижда колко души играят на ден)
+async function registerPlayer(code, name, national){
+  const id = national
+    ? `${resultDocId(code)}_${Date.now()}`
+    : resultDocId(code);
+
+  await window.setDoc(window.doc(window.db, "games", GAME_ID, "players", id), {
+    code, name,
+    date: todayStr(),
+    isNational: national,
+    joinedAt: Date.now()
+  });
 }
 
 async function saveResult(code, name, score, maxScore, percent, national){
@@ -545,7 +572,7 @@ async function saveResult(code, name, score, maxScore, percent, national){
     ? `${resultDocId(code)}_${Date.now()}`
     : resultDocId(code);
 
-  await window.setDoc(window.doc(window.db, RESULTS_COLLECTION, id), {
+  await window.setDoc(window.doc(window.db, "games", GAME_ID, "results", id), {
     code, name, score, maxScore, percent,
     date: todayStr(),
     timestamp: Date.now()
@@ -777,6 +804,11 @@ function launchGame(config, cocktail){
   jokerUsed = false;
 
   saveProgress();
+
+  // ⭐ Запис във Firestore, че играчът е започнал игра (не блокира играта при грешка)
+  registerPlayer(currentCode, currentName, isNational)
+    .catch(e => console.error("Грешка при регистрация на играча:", e));
+
   configError.textContent = "";
   difficultyFallback.style.display = "none";
   startQuizBtn.disabled = false;
@@ -1172,6 +1204,8 @@ function recordAnswer(i, q, yourAnswer, isCorrect, timedOut){
 function finishTurn(statusMsg, explanation){
   showOnly(explanationPanel);
   statusDiv.textContent = statusMsg;
+  // ⭐ Текущият резултат се вижда в панела с обяснението (като в Спокойна игра)
+  explScoreDiv.textContent = `Текущ резултат: ${currentScore} точки`;
   explanationTextDiv.textContent = explanation || "";
   currentScoreDiv.textContent = `Текущ резултат: ${currentScore} точки`;
   currentScoreDiv.style.display = "block";
