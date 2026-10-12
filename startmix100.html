@@ -20,7 +20,7 @@
 </style>
 </head>
 <body>
-<h1>🧩 Старт на Куиз Микс 100 - 1</h1>
+<h1>🧩 Старт на Куиз Микс 100</h1>
 
 <div class="field-row">
   <label>Име на епизод:</label>
@@ -63,23 +63,23 @@ const FOLDER = "quizmix/";
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) — нагласи ги спокойно след теста =====
 const LOBBY_TIME     = 10000;
 
-const LOBBY_TIME1 = 40000, Q1 = 20000, EXPL1 = 15000, RANK1 = 10000;
-const LOBBY_TIME2 = 50000, Q2 = 20000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
-const LOBBY_TIME3 = 30000, Q3 = 25000, EXPL3 = 15000, RANK3 = 10000;
-const LOBBY_TIME4 = 30000, Q4 = 25000, EXPL4 = 15000, RANK4 = 10000;
-const BREAK_TIME  = 120000; // 5 минути почивка (след кръг 4 и кръг 8)
+const LOBBY_TIME1 = 10000, Q1 = 5000, EXPL1 = 5000, RANK1 = 10000;
+const LOBBY_TIME2 = 10000, Q2 = 5000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
+const LOBBY_TIME3 = 10000, Q3 = 5000, EXPL3 = 5000, RANK3 = 10000;
+const LOBBY_TIME4 = 10000, Q4 = 5000, EXPL4 = 5000, RANK4 = 10000;
+const BREAK_TIME  = 100000; // 5 минути почивка (след кръг 4 и кръг 8)
 
-const LOBBY_TIME5 = 30000, Q5 = 15000, EXPL5 = 15000, RANK5 = 10000;
+const LOBBY_TIME5 = 10000, Q5 = 5000, EXPL5 = 15000, RANK5 = 10000;
 
-const LOBBY_TIME6 = 20000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 60000, EXPL6 = 15000, RESULTS6 = 15000, RANK6 = 10000;
+const LOBBY_TIME6 = 10000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 10000, EXPL6 = 15000, RESULTS6 = 15000, RANK6 = 10000;
 
-const LOBBY_TIME7 = 30000, Q7 = 40000, EXPL7 = 15000, RANK7 = 10000;
+const LOBBY_TIME7 = 10000, Q7 = 20000, EXPL7 = 15000, RANK7 = 10000;
 
-const LOBBY_TIME8 = 30000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 60000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 10000;
+const LOBBY_TIME8 = 10000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 10000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 10000;
 
-const LOBBY_TIME9 = 30000, CHOOSE_TIME9 = 20000, CHOOSE_REVEAL9 = 5000, Q9 = 25000, EXPL9 = 10000, QRANK9 = 10000, RANK9 = 10000;
+const LOBBY_TIME9 = 10000, CHOOSE_TIME9 = 20000, CHOOSE_REVEAL9 = 5000, Q9 = 25000, EXPL9 = 10000, QRANK9 = 10000, RANK9 = 10000;
 
-const LOBBY_TIME10 = 20000, Q10 = 25000, EXPL10 = 15000, RANK10 = 10000;
+const LOBBY_TIME10 = 20000, Q10 = 15000, EXPL10 = 15000, RANK10 = 10000;
 
 const TIEBREAK_TIME = 20000, TIEBREAK_REVEAL = 10000;
 
@@ -223,6 +223,14 @@ async function computeStandingsHost(ep, isFinal) {
       const data = ansDoc.data();
 
       if (id.startsWith("tb-")) { tiebreakPoints += (data.points || 0); return; }
+
+      // ⭐ Кръг 9: ID-то е "r9-choice1-<Име>" / "r9-choice2-<Име>" и НЕ пасва на шаблона r<кръг>-<номер> долу,
+      // затова точките му преди се пропускаха. Броим ги тук (точките ги записва scoreSlot9).
+      if (id.startsWith("r9-")) {
+        totalPoints += (data.points || 0);
+        if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
+        return;
+      }
 
       const m = id.match(/^r(\d+)-(\d+)$/);
       if (!m) return;
@@ -542,8 +550,16 @@ async function scoreSlot9(ep, slotId, correct, chooserName, multiplier) {
       const ranking = ansSnap.data().ranking || [];
       let pts = pointsForRanking9(ranking, correct);
       if (chooserName && pName === chooserName && multiplier === 2) pts *= 2;
-      await setDoc(ansRef, { points: pts }, { merge: true });
-    } catch(e) {}
+      try {
+        await setDoc(ansRef, { points: pts }, { merge: true });
+      } catch(e1) {
+        // един повторен опит (напр. при кратко претоварване на Firestore), после предупреждение в лога
+        await sleep(1500);
+        await setDoc(ansRef, { points: pts }, { merge: true });
+      }
+    } catch(e) {
+      log(`⚠️ Кръг 9: НЕ успях да запиша точките на ${pName} за ${slotId} — ${e && e.code ? e.code : e}`);
+    }
   }
 }
 
@@ -559,7 +575,13 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
     // ⭐ Последните 2 въпроса на кръг 9: никакво класиране — нито от въпроса, нито временно
     const hidden = (totalSlotsOverall - (done + 1)) < 2;
 
-    if (topicPool.length === 0) topicPool = [...izborAreas];
+    // ⭐ Всички теми са изиграни → таблицата се нулира и пак са налични и 30-те
+    if (topicPool.length === 0) {
+      topicPool = [...izborAreas];
+      log("🔄 Кръг 9: всички теми са изиграни — таблицата се нулира.");
+    }
+    // изигранитете теми се показват бледи и не могат да се избират пак
+    const burnedNow = () => izborAreas.filter(t => !topicPool.includes(t));
 
     // при скрито класиране екранът за избор показва само реда на избиране (без точки)
     const frozenNow = hidden
@@ -569,7 +591,8 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
       round: 9, slotId, chooserName,
       roundLabel: `Избор ${choiceRoundNumber}`,
       frozenRanking: frozenNow,
-      hidePoints: hidden
+      hidePoints: hidden,
+      burnedTopics: burnedNow()
     });
 
     let chosenTopic = null, autoChosen = false;
@@ -578,7 +601,12 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
       await sleep(1000);
       try {
         const pickSnap = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "choicePicks", slotId));
-        if (pickSnap.exists()) { chosenTopic = pickSnap.data().topic; break; }
+        if (pickSnap.exists()) {
+          const t = pickSnap.data().topic;
+          if (topicPool.includes(t)) { chosenTopic = t; break; }
+          // тема, която вече е изиграна (напр. стар/подправен клиент) — игнорираме я
+          try { await deleteDoc(doc(db, "games", GAME_ID, "episodes", ep, "choicePicks", slotId)); } catch(e2) {}
+        }
       } catch(e) {}
     }
     if (!chosenTopic) {
@@ -595,7 +623,8 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
     await setState(ep, "choose-reveal", CHOOSE_REVEAL9, {
       round: 9, chooserName, roundLabel: `Избор ${choiceRoundNumber}`,
       frozenRanking: frozenNow, chosenTopic, autoChosen, slotId,
-      hidePoints: hidden
+      hidePoints: hidden,
+      burnedTopics: burnedNow()
     });
     await sleep(CHOOSE_REVEAL9);
 
