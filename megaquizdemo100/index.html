@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мегакуиз Демо 100</title>
+<style>
+  :root{--bg:#10131c;--card:#1b2030;--card2:#242b40;--tx:#eef1f8;--mut:#9aa3bd;--ac:#ffb703;--ok:#2ecc71;--bad:#ff5a5f;--blue:#4dabf7}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:17px;line-height:1.45}
+  #top{position:sticky;top:0;z-index:10;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 12px;background:#0b0e15;border-bottom:1px solid #2a3150;font-size:15px}
+  #top .sc{color:var(--ac);font-weight:700}
+  #top button{padding:6px 10px;font-size:14px}
+  #app{max-width:760px;margin:0 auto;padding:14px}
+  .card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 10px #0006}
+  h1,h2,h3{margin:.2em 0 .5em}
+  h1{font-size:1.5em;color:var(--ac)} h2{font-size:1.25em}
+  button,.btn{background:var(--card2);color:var(--tx);border:1px solid #3a4468;border-radius:10px;padding:11px 14px;font-size:16px;cursor:pointer;font-family:inherit}
+  button:hover:not(:disabled){border-color:var(--ac)}
+  button:disabled{opacity:.45;cursor:default}
+  button.pri{background:var(--ac);color:#1a1300;border-color:var(--ac);font-weight:700}
+  button.sel{border-color:var(--blue);background:#1c3552}
+  button.ok{background:#14452b;border-color:var(--ok)}
+  button.bad{background:#4a1b1e;border-color:var(--bad)}
+  button.gone{opacity:.25;text-decoration:line-through}
+  input[type=text],input[type=number]{width:100%;padding:11px;font-size:18px;border-radius:10px;border:1px solid #3a4468;background:#0e121c;color:var(--tx);margin:6px 0}
+  .answers{display:grid;gap:8px;margin:12px 0}
+  .answers button{text-align:left}
+  .jk{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .jk button{font-size:14px;padding:7px 10px}
+  .jk button.on{border-color:var(--ac);background:#3a2e08}
+  .jk button.off{opacity:.55;border-style:dashed}
+  .mut{color:var(--mut);font-size:.9em}
+  .timer{height:8px;background:#0b0e15;border-radius:6px;overflow:hidden;margin:8px 0}
+  .timer>div{height:100%;background:var(--ac);width:100%}
+  .ttxt{font-size:13px;color:var(--mut);text-align:right;margin-top:-4px}
+  .tag{display:inline-block;background:#2a3150;border-radius:8px;padding:2px 9px;font-size:13px;color:var(--mut)}
+  .note{background:#2a2410;border:1px solid #6b5a14;border-radius:10px;padding:8px 10px;margin:8px 0;font-size:15px}
+  .res-ok{color:var(--ok);font-weight:700;font-size:1.15em}
+  .res-bad{color:var(--bad);font-weight:700;font-size:1.15em}
+  .expl{background:var(--card2);border-radius:10px;padding:10px 12px;margin-top:10px;white-space:pre-wrap}
+  img.qimg{max-width:100%;border-radius:10px;margin:8px 0}
+  video,audio{width:100%;margin:8px 0;border-radius:10px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .two button{text-align:left;font-size:15px;padding:9px}
+  .pairchip{display:inline-block;margin:3px;padding:3px 9px;border-radius:12px;font-size:14px;color:#111}
+  .tagbadge{font-size:12px;border-radius:8px;padding:1px 6px;margin-left:6px;color:#111}
+  .rank{display:inline-block;min-width:24px;text-align:center;background:var(--ac);color:#111;border-radius:50%;margin-right:8px;font-weight:700}
+  .topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .topics button.burn{opacity:.3}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  td,th{padding:6px 5px;border-bottom:1px solid #2a3150;text-align:left;vertical-align:top}
+  .hist-ok{color:var(--ok)} .hist-bad{color:var(--bad)}
+  @media(max-width:520px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="top"><span>🏆 Мегакуиз Демо 100</span><span class="sc" id="score"></span>
+  <span><button id="btnMusic" title="Музика">🔊</button> <button id="btnHist">📜 История</button></span></div>
+<div id="app"></div>
+<audio id="bgm" loop></audio>
+
+<script type="module">
+/* ===================== КОНФИГУРАЦИЯ ===================== */
+const CFG = {
+  GAME_ID: "demo100",
+  EPISODE_ID: "ep1",          // сменя се при нов куиз -> нов брояч на играчите
+  STORAGE: "demo100_v1_ep1",  // сменя се заедно с EPISODE_ID, за да започне чисто
+  TIME_FACTOR: 1,             // 1 = както в живата игра; 1.5 = с 50% повече време
+  R9_PICKS: 2,                // колко теми избира играчът в кръг 9 (1-ва е с удвояване)
+  R10_COUNT: 3,               // колко дузпи (без точки)
+  MEDIA_FROM: "../quizmix7810/", MEDIA_TO: "../quizmix7810/",  // къде са клиповете от кръг 7
+  MUSIC: true
+};
+const ROUND_TIME = {1:20,2:20,3:25,4:25,5:45,6:60,7:40,8:60,9:25,10:25};
+const BONUS = 3;
+const NO_LIVE = "Този жокер ще бъде активен когато има други играчи и жива класация";
+const GROUP_COLORS = ["#ffd166","#8ecae6","#b5e48c","#f4a6c6","#cdb4db","#ffb089","#a0e7e5","#e6e6a0","#c9c9c9","#ff9aa2"];
+
+const FB = {
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k",
+  authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182",
+  storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580",
+  appId: "1:165208255580:web:b36744f0eb527b6571129"
+};
+
+const META = {
+ 1:{t:"🧩 Кръг 1 — Твърдение или сравнение",m:"despa.mp3",h:`<p>10 твърдения/сравнения, отговорите са само <b>два</b>. <b>20 сек.</b> на въпрос, верен отговор = <b>2 точки</b>.</p><p>🥞 <b>Палачинка</b> — гарантира верен отговор (натиска се преди да отговорите). Веднъж за кръга.</p><p>🔁 <b>Поправка</b> — можеш да смениш отговора си, докато не натиснеш „Виж верния отговор“.</p><p>⭐ 10/10 = бонус <b>+3</b>. Неизползваната Палачинка се осребрява в края (+1).</p>`},
+ 2:{t:"🧩 Кръг 2 — Ако не го знаеш, уцели го",m:"dance.mp3",h:`<p>10 въпроса с 4 отговора. <b>20 сек.</b>, верен отговор = <b>3 точки</b>. Жокерите се ползват преди да изберете отговор и всеки е еднократен за кръга (освен Поправка).</p><p>💕 <b>Двоен шанс</b> — два отговора; важи, ако един от тях е верен.</p><p>🔅 <b>Патрондаш</b> — 5 патрона за целия кръг; всеки маха един грешен отговор.</p><p>✖️2 <b>Удвояване</b> — точките на въпроса се удвояват.</p><p>👨‍👩‍👧‍👦 <b>Мнозинство</b> и 🔎 <b>Шпионин</b> работят само в отборна игра с други играчи — тук са неактивни.</p><p>⭐ 10/10 = бонус <b>+3</b>. Неизползван Двоен шанс се осребрява в края (+1).</p>`},
+ 3:{t:"🧩 Кръг 3 — Буквомания",m:"Ellie.mp3",h:`<p>10 отворени въпроса. Пишеш <b>първата буква</b> на търсеното (за човек — фамилната). <b>25 сек.</b>, верен отговор = <b>4 точки</b>.</p><p>🔤 <b>Дай Три</b> — показва следващите букви от търсената дума. Веднъж за кръга.</p><p>⭐ 10/10 = бонус <b>+3</b>. Неизползваният жокер се осребрява в края (+1).</p>`},
+ 4:{t:"📷 Кръг 4 — Фотомания",m:"VeronicaApo.mp3",h:`<p>10 въпроса със снимка. Пишеш първата буква на търсеното. <b>25 сек.</b>, верен отговор = <b>4 точки</b>.</p><p>🔤 <b>Дай Три</b> — веднъж за кръга; неизползван = +1 в края.</p><p>⭐ 10/10 = бонус <b>+3</b>.</p>`},
+ 5:{t:"🔢 Кръг 5 — Цифромания",m:"music.mp3",h:`<p>10 въпроса с число за отговор. <b>45 сек.</b> Точки според близостта: <b>5 / 3 / 2 / 1</b>.</p><p>⭐ 10 точни отговора = бонус <b>+3</b>.</p>`},
+ 6:{t:"🔗 Кръг 6 — Чифтосване",m:"Analog.mp3",h:`<p>Избираш тема. После съчетаваш имената отляво с тези отдясно — клик на ляво, после на дясно. <b>60 сек.</b> за целия кръг, <b>1 точка</b> за верен чифт, 10/10 = бонус <b>+3</b>.</p><p>🔁 <b>Поправка</b> маха последния чифт.</p>`},
+ 7:{t:"🎬 Кръг 7 — Мултимедия 3 в 1",m:"VeronicaSafe.mp3",h:`<p>9 въпроса с клипче (музика, кино, спорт). <b>40 сек.</b>, верен отговор = <b>4 точки</b>.</p><p>🔤 <b>Дай Три</b> — веднъж за кръга; неизползван = +1 в края.</p><p>⭐ Всички верни = бонус <b>+3</b>.</p>`},
+ 8:{t:"🧱 Кръг 8 — Групиране",m:"zahira.mp3",h:`<p>Избираш тема. Разпределяш 10 обекта по групи — клик на обекта, после на групата. <b>60 сек.</b> за целия кръг, <b>1 точка</b> на верен обект, 10/10 = бонус <b>+3</b>.</p><p>🔁 <b>Поправка</b> маха последния групиран обект.</p>`},
+ 9:{t:"🎯 Кръг 9 — Избор",m:"Future.mp3",h:`<p>Избираш тема (избраните вече избледняват). Всеки въпрос има <b>5 отговора</b> — кликаш ги по ред на увереност (1-ви клик = най-вероятно верен). Точки според мястото на верния отговор в подредбата ти: <b>6 / 4 / 3 / 2 / 1</b>.</p><p>В живата игра всеки избира два пъти: първия път точките се <b>удвояват</b>. Тук ще изиграеш ${CFG.R9_PICKS} избора.</p><p>🔁 <b>Поправка</b> — нулира подредбата. <b>25 сек.</b></p>`},
+ 10:{t:"⚽ Кръг 10 — Дузпи",m:"VeronicaDeep.mp3",h:`<p>Въпроси с число за отговор. В живата игра точките зависят от това колко си по-близо от <b>другите играчи</b> — затова тук е само <b>тренировка, без точки</b>: ще видиш колко си се доближил. <b>25 сек.</b></p>`}
+};
+const LOBBY_IMG = "https://i.imgur.com/hwZGsfM.jpeg";
+
+/* ===================== СЪСТОЯНИЕ ===================== */
+const $ = s => document.querySelector(s);
+const app = $("#app");
+let D = {};              // заредени въпроси
+let S = null;            // запазено състояние
+let T = {};              // временно състояние на въпроса
+let timerH = null;
+
+function blank(){ return {player:null, cur:{r:1,u:0,stage:"lobby"}, rj:{}, rs:{}, log:[], choice:{}, r9:{picks:[]}, r10:[], fb:null, done:false, cash:null, reg:false}; }
+function load(){ try{ const s=JSON.parse(localStorage.getItem(CFG.STORAGE)); if(s&&s.cur) return s; }catch(e){} return blank(); }
+function save(){ try{ localStorage.setItem(CFG.STORAGE, JSON.stringify(S)); }catch(e){} }
+function clearAll(){ try{ localStorage.removeItem(CFG.STORAGE);}catch(e){} S=blank(); }
+
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const mediaUrl = p => p && p.startsWith(CFG.MEDIA_FROM) ? CFG.MEDIA_TO + p.slice(CFG.MEDIA_FROM.length) : p;
+const pt = n => (Math.round(n*100)/100).toString().replace(".",",");
+
+function rs(r){ return S.rs[r] ||= {pts:0,ok:0,total:0,exact:0,bonus:0}; }
+function rj(r){ return S.rj[r] ||= (r==1?{pancake:false}: r==2?{dbl:false,x2:false,bullets:5}: [3,4,7].includes(r)?{syl:false}:{}); }
+function totalScore(){ let t=0; for(const r in S.rs) t+=S.rs[r].pts+S.rs[r].bonus; if(S.cash) t+=S.cash.total; return t; }
+function updScore(){ $("#score").textContent = S&&S.player ? `${pt(totalScore())} т.` : ""; }
+
+/* ===================== ЗАРЕЖДАНЕ ===================== */
+async function loadData(){
+  const out={};
+  for(const i of [1,2,3,4,5,6,7,8,10]){
+    const r = await fetch(`questions${i}.json`,{cache:"no-store"});
+    if(!r.ok) throw new Error(`questions${i}.json (${r.status})`);
+    out[i]=await r.json();
+  }
+  const pr = await fetch("pull.json",{cache:"no-store"}); if(!pr.ok) throw new Error("pull.json");
+  const raw = await pr.json(); const seen=new Set(); const pool=[];
+  for(const q of raw){ const k=(q.area||"")+"|"+(q.question||"").trim(); if(seen.has(k)) continue; seen.add(k); pool.push(q); }
+  out.pull=pool;
+  // нормализация на кръг 8: празни групи, несъвпадащи имена
+  out[8]=out[8].map(t=>{ const groups=(t.groups||[]).filter(g=>g&&String(g).trim());
+    const answers={}; for(const it of t.items){ answers[it]=resolveGroup(t.answers[it],groups); }
+    return {...t,groups,answers}; });
+  D=out;
+}
+function resolveGroup(a,groups){ if(groups.includes(a)) return a; const x=String(a||"").toLowerCase();
+  for(const g of groups){ const y=g.toLowerCase(); if(y.startsWith(x)||x.startsWith(y)) return g; }
+  for(const g of groups){ if(g.toLowerCase().slice(0,4)===x.slice(0,4)) return g; } return a; }
+
+/* ===================== FIREBASE (по желание) ===================== */
+let fs=null;
+async function fbInit(){ if(fs) return fs; try{
+  const A=await import("https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js");
+  const F=await import("https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js");
+  const db=F.getFirestore(A.initializeApp(FB)); fs={db,...F}; }catch(e){ fs=false; } return fs; }
+async function fbWrite(extra){ try{
+  const f=await fbInit(); if(!f||!S.player) return;
+  const ref=f.doc(f.db,"games",CFG.GAME_ID,"episodes",CFG.EPISODE_ID,"players",S.player.id);
+  await Promise.race([f.setDoc(ref,{name1:S.player.n1,name2:S.player.n2,updatedAt:f.serverTimestamp(),...extra},{merge:true}), new Promise((_,rej)=>setTimeout(()=>rej(0),6000))]);
+}catch(e){} }
+
+/* ===================== ЕКРАНИ ===================== */
+function view(html){ clearTimer(); stopMedia(); app.innerHTML=html; window.scrollTo(0,0); updScore(); }
+function setCur(r,u,stage){ S.cur={r,u,stage}; save(); render(); }
+
+function render(){
+  if(!S.player) return screenLogin();
+  const {r,u,stage}=S.cur;
+  if(S.done) return screenFinal();
+  if(stage==="lobby") return screenLobby();
+  if(stage==="intro") return screenIntro(r);
+  if(stage==="choose") return r==9?screenChoose9(u):screenChooseTopic(r);
+  if(stage==="q") return screenQuestion();
+  if(stage==="fb") return screenFeedback();
+  if(stage==="sum") return screenSummary(r);
+  screenLobby();
+}
+
+function screenLogin(){
+  view(`<div class="card"><img src="${LOBBY_IMG}" style="width:100%;border-radius:10px" onerror="this.remove()">
+   <h1>Мегакуиз Демо 100</h1>
+   <p>Играй сам, със собствено темпо — без класация, без равенства. Научи правилата и жокерите и после се запиши за отборния куиз! 🏆</p>
+   <input id="n1" type="text" placeholder="Първо име" autocomplete="given-name">
+   <input id="n2" type="text" placeholder="Фамилия" autocomplete="family-name">
+   <button class="pri" id="go" style="width:100%;margin-top:6px">Влизам</button>
+   <p class="mut">Играта помни докъде си стигнал на това устройство.</p></div>`);
+  $("#go").onclick=async()=>{
+    const cl=v=>v.replace(/[<>&"'`\/\\]/g,"").replace(/\s+/g," ").trim();
+    const n1=cl($("#n1").value), n2=cl($("#n2").value);
+    if(!n1||!n2) return alert("Въведи две имена!");
+    $("#go").disabled=true; $("#go").textContent="Зареждане…";
+    try{ await loadData(); }catch(e){ $("#go").disabled=false; $("#go").textContent="Влизам"; return alert("Не успях да заредя въпросите: "+e.message); }
+    S.player={n1,n2,id:(n1+"_"+n2).toLowerCase()}; S.cur={r:1,u:0,stage:"lobby"}; save();
+    fbWrite({startedAt:new Date().toISOString(),finished:false}); S.reg=true; save();
+    render();
+  };
+}
+
+function screenLobby(){
+  const hasProgress = S.log.length>0;
+  view(`<div class="card"><img src="${LOBBY_IMG}" style="width:100%;border-radius:10px" onerror="this.remove()">
+   <h1>Здравей, ${esc(S.player.n1)}!</h1>
+   <p>Това е <b>соловата версия</b> на Мегакуиз: 10 кръга, твоето темпо — след всеки въпрос спираш и продължаваш, когато си готов. Няма класация и равенства.</p>
+   <div class="note">В отборната игра ще има и <b>Мнозинство</b>, <b>Шпионин</b>, жива класация и дузпи срещу другите играчи.</div>
+   <p class="mut">Жокери по кръгове: 1 — Палачинка · 2 — Двоен шанс, Мнозинство*, Шпионин*, Патрондаш, Удвояване · 3, 4, 7 — Дай Три · Поправка навсякъде. (*само в отборна игра)</p>
+   <button class="pri" id="st" style="width:100%">${hasProgress?"▶ Продължи играта":"▶ Започни — Кръг 1"}</button>
+   <p style="text-align:center"><button id="rs">↺ Започни наново</button></p></div>`);
+  $("#st").onclick=()=>{ if(hasProgress){ setCur(S.cur.r,S.cur.u,S.cur.stage==="lobby"?"intro":S.cur.stage); } else setCur(1,0,"intro"); };
+  $("#rs").onclick=()=>{ if(confirm("Да изтрия прогреса и да започна наново?")){ const p=S.player; clearAll(); S.player=p; save(); setCur(1,0,"lobby"); } };
+}
+
+/* ---- музика ---- */
+const bgm=$("#bgm"); let musicOn=CFG.MUSIC;
+function playMusic(f){ if(!musicOn||!f){ bgm.pause(); return; } const src="../music/"+f; if(!bgm.src.endsWith(src.replace("..",""))){ bgm.src=src; } bgm.volume=.35; bgm.play().catch(()=>{}); }
+$("#btnMusic").onclick=()=>{ musicOn=!musicOn; $("#btnMusic").textContent=musicOn?"🔊":"🔇"; if(!musicOn) bgm.pause(); else if(S&&S.cur.stage==="intro") playMusic(META[S.cur.r].m); };
+
+function screenIntro(r){
+  const m=META[r]; view(`<div class="card"><span class="tag">Кръг ${r} от 10</span><h2>${m.t}</h2>${m.h}
+    <button class="pri" id="go" style="width:100%;margin-top:8px">Започвам кръга</button></div>`);
+  playMusic(m.m);
+  $("#go").onclick=()=>{ bgm.pause(); const next = (r==6||r==8)?"choose":(r==9?"choose":"q"); setCur(r,0,next); };
+}
+
+/* ---- избор на тема 6/8 ---- */
+function screenChooseTopic(r){
+  const list=D[r]; view(`<div class="card"><span class="tag">Кръг ${r}</span><h2>Избери тема</h2><div class="answers" id="tp"></div></div>`);
+  list.forEach((t,i)=>{ const b=document.createElement("button"); b.textContent=t.title; b.onclick=()=>{ S.choice[r]=i; setCur(r,0,"q"); }; $("#tp").appendChild(b); });
+}
+/* ---- избор на тема 9 ---- */
+function areas9(){ return [...new Set(D.pull.map(q=>q.area))]; }
+function screenChoose9(u){
+  const burned=S.r9.picks.map(p=>p.area); const all=areas9();
+  view(`<div class="card"><span class="tag">Кръг 9 · избор ${u+1} от ${CFG.R9_PICKS}</span><h2>Избери тема</h2>
+   <p class="mut">${u==0?"Първият избор е с <b>удвояване</b> — избери тема, в която си силен!":"Втори избор — точките са еднократни."} Избраните теми са избледнени.</p><div class="topics" id="tp"></div></div>`);
+  all.forEach(a=>{ const b=document.createElement("button"); b.textContent=a; if(burned.includes(a)){ b.className="burn"; b.disabled=true; }
+    b.onclick=()=>{ const cand=D.pull.filter(q=>q.area===a); const qi=D.pull.indexOf(cand[Math.floor(Math.random()*cand.length)]);
+      S.r9.picks.push({area:a,qi,double:u==0}); setCur(9,u,"q"); }; $("#tp").appendChild(b); });
+}
+
+/* ===================== ВЪПРОСИ ===================== */
+function unitCount(r){ return r==6||r==8?1 : r==9?CFG.R9_PICKS : r==10?Math.min(CFG.R10_COUNT,D[10].length) : D[r].length; }
+function getQ(r,u){
+  if(r==6||r==8) return D[r][S.choice[r]];
+  if(r==9) return D.pull[S.r9.picks[u].qi];
+  if(r==10){ if(!S.r10.length) S.r10=shuffle(D[10].map((_,i)=>i)).slice(0,unitCount(10)); return D[10][S.r10[u]]; }
+  return D[r][u];
+}
+function clearTimer(){ if(timerH){ clearInterval(timerH); timerH=null; } }
+function stopMedia(){ document.querySelectorAll("video,audio").forEach(m=>{ if(m.id==="bgm") return; try{m.pause(); m.removeAttribute("src"); m.load();}catch(e){} }); }
+function startTimer(sec,onEnd){
+  const end=Date.now()+sec*CFG.TIME_FACTOR*1000, total=sec*CFG.TIME_FACTOR*1000;
+  const bar=$("#tbar"), txt=$("#ttxt");
+  const tick=()=>{ const left=Math.max(0,end-Date.now()); if(bar) bar.style.width=(left/total*100)+"%"; if(txt) txt.textContent=Math.ceil(left/1000)+" сек."; if(left<=0){ clearTimer(); onEnd(); } };
+  tick(); timerH=setInterval(tick,200);
+}
+const timerHtml=`<div class="timer"><div id="tbar"></div></div><div class="ttxt" id="ttxt"></div>`;
+
+function screenQuestion(){
+  const {r,u}=S.cur; const q=getQ(r,u); const n=unitCount(r);
+  T={sel:[],elim:[],locked:false,r,u,q,pairs:[],assign:[],rank:[],hint:null,tmp:{}};
+  const head=`<span class="tag">Кръг ${r} · ${(r==6||r==8)?"":`въпрос ${u+1} от ${n}`}</span>`;
+  let body="";
+  if(r==1||r==2) body=`<div class="answers" id="ans"></div>`;
+  if([3,4,7].includes(r)) body=`<input id="lt" type="text" maxlength="3" autocomplete="off" placeholder="Буква…"><div id="hint"></div><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
+  if(r==5||r==10) body=`<input id="nm" type="number" inputmode="decimal" placeholder="Число…"><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
+  const title = (r==6||r==8)? q.title : (r==9? q.question : q.question);
+  let media="";
+  if(r==4&&q.image) media=`<img class="qimg" src="${esc(q.image)}">`;
+  if(r==7&&q.video){ const u2=mediaUrl(q.video); media=/\.mp3$/i.test(u2)?`<audio id="med" controls autoplay src="${esc(u2)}"></audio>`:`<video id="med" controls autoplay playsinline src="${esc(u2)}"></video>`; }
+  const area = r==9? `<p class="mut">Тема: <b>${esc(q.area)}</b>${S.r9.picks[u].double?" · <b>✖️2 удвояване</b>":""}</p>`:"";
+  const pickUI = (r==6)?`<div class="two"><div id="L"></div><div id="R"></div></div><div id="made"></div><button class="pri" id="sub" style="width:100%;margin-top:8px">Готово — виж резултата</button>`
+              : (r==8)?`<div id="items" class="answers"></div><div id="groups" class="two"></div><button class="pri" id="sub" style="width:100%;margin-top:8px">Готово — виж резултата</button>`
+              : (r==9)?`<div id="ans" class="answers"></div>`:"";
+  view(`<div class="card">${head}<h2>${(r==6||r==8)?"":(u+1)+". "}${esc(title)}</h2>${area}${media}${timerHtml}<div id="jk" class="jk"></div><div id="note"></div>${body}${pickUI}
+    <div style="display:flex;gap:8px;margin-top:10px"><button id="rev" class="pri" style="flex:1;display:none">👁 Виж верния отговор</button></div></div>`);
+  buildJokers(); buildInputs();
+  startTimer(ROUND_TIME[r]*((r==6||r==8)?1:1),()=>lock(true));
+}
+
+function jokBtn(id,label,cls){ const b=document.createElement("button"); b.id=id; b.textContent=label; if(cls) b.className=cls; $("#jk").appendChild(b); return b; }
+function note(t){ $("#note").innerHTML=t?`<div class="note">${t}</div>`:""; }
+function buildJokers(){
+  const {r}=T; const J=rj(r); const jk=$("#jk"); jk.innerHTML="";
+  const locked=()=>T.sel.length>0||T.rank.length>0||T.locked;
+  const refresh=()=>{ document.querySelectorAll("#jk button").forEach(b=>{ if(b.dataset.once==="1") b.disabled=locked()||T.locked||b.dataset.used==="1"; }); };
+  T.refreshJ=refresh;
+  const once=(id,label,key,fn)=>{ const b=jokBtn(id,label); b.dataset.once="1"; if(J[key]){ b.dataset.used="1"; b.disabled=true; b.textContent=label+" ✔"; } b.onclick=()=>{ if(locked()) return; fn(b); }; return b; };
+  if(r==1) once("jPan","🥞 Палачинка","pancake",b=>{ J.pancake=true; T.pancake=true; b.classList.add("on"); b.dataset.used="1"; b.disabled=true; save(); note("🥞 Палачинката е активна — отговорът ти ще се брои за верен."); });
+  if(r==2){
+    once("jDbl","💕 Двоен шанс","dbl",b=>{ J.dbl=true; T.dbl=true; b.classList.add("on"); b.dataset.used="1"; b.disabled=true; save(); note("💕 Избери <b>два</b> отговора."); });
+    const m=jokBtn("jMaj","👨‍👩‍👧‍👦 Мнозинство","off"); m.onclick=()=>note(NO_LIVE);
+    const s=jokBtn("jSpy","🔎 Шпионин","off"); s.onclick=()=>note(NO_LIVE);
+    const bl=jokBtn("jBul",`🔅 Патрондаш (${J.bullets})`); bl.dataset.once="0";
+    bl.onclick=()=>{ if(T.locked||J.bullets<=0) return; const pool=[...document.querySelectorAll("#ans button")].filter(b=>!b.classList.contains("gone")&&b.dataset.v!==T.q.correct&&!T.sel.includes(b.dataset.v));
+      if(!pool.length) return; const b=pool[Math.floor(Math.random()*pool.length)]; b.classList.add("gone"); b.disabled=true; T.elim.push(b.dataset.v); J.bullets--; bl.textContent=`🔅 Патрондаш (${J.bullets})`; save(); if(J.bullets<=0) bl.disabled=true; };
+    if(J.bullets<=0) bl.disabled=true;
+    once("jX2","✖️2 Удвояване","x2",b=>{ J.x2=true; T.x2=true; b.classList.add("on"); b.dataset.used="1"; b.disabled=true; save(); note("✖️2 Точките от този въпрос ще се удвоят."); });
+  }
+  if([3,4,7].includes(r)) once("jSyl","🔤 Дай Три","syl",b=>{ J.syl=true; T.syl=true; b.classList.add("on"); b.dataset.used="1"; b.disabled=true; save(); $("#hint").innerHTML=`<div class="note">🔤 Следващите букви: <b>${esc(T.q.syllable2||"—")}</b></div>`; });
+  if([1,2,3,4,5,6,8,9,10].includes(r)||r==7){ const p=jokBtn("jFix","🔁 Поправка"); p.dataset.once="0"; p.onclick=()=>fix(); }
+  refresh();
+}
+function fix(){
+  if(T.locked) return; const {r}=T;
+  if(r==6){ T.pairs.pop(); T.selL=null; drawR6(); }
+  else if(r==8){ T.assign.pop(); drawR8(); }
+  else if(r==9){ T.rank=[]; drawR9(); }
+  else if([3,4,7].includes(r)||r==5||r==10){ const i=$("#lt")||$("#nm"); if(i){ i.value=""; i.focus(); } }
+  else { T.sel=[]; document.querySelectorAll("#ans button").forEach(b=>b.classList.remove("sel")); $("#rev").style.display="none"; T.refreshJ&&T.refreshJ(); note("🔁 Поправка — избери отговор отново."); }
+}
+
+function buildInputs(){
+  const {r,q}=T;
+  if(r==1||r==2){
+    q.answers.forEach(a=>{ const b=document.createElement("button"); b.textContent=a; b.dataset.v=a; $("#ans").appendChild(b);
+      b.onclick=()=>{ if(T.locked||b.classList.contains("gone")) return;
+        if(T.dbl){ const i=T.sel.indexOf(a); if(i>=0){ T.sel.splice(i,1); b.classList.remove("sel"); } else if(T.sel.length<2){ T.sel.push(a); b.classList.add("sel"); } $("#rev").style.display=(T.sel.length==2)?"block":"none"; }
+        else { T.sel=[a]; document.querySelectorAll("#ans button").forEach(x=>x.classList.toggle("sel",x===b)); $("#rev").style.display="block"; }
+        T.refreshJ&&T.refreshJ(); }; });
+    $("#rev").onclick=()=>lock(false);
+  }
+  if([3,4,7].includes(r)||r==5||r==10){
+    const i=$("#lt")||$("#nm"); i.focus(); i.onkeydown=e=>{ if(e.key==="Enter") lock(false); }; $("#sub").onclick=()=>lock(false);
+    if(i.id==="lt") i.oninput=()=>T.refreshJ&&(T.sel=i.value?["x"]:[],T.refreshJ());
+  }
+  if(r==6){ T.Ls=shuffle(Object.keys(q.pairs)); T.Rs=shuffle(Object.values(q.pairs)); drawR6(); $("#sub").onclick=()=>lock(false); }
+  if(r==8){ T.Is=[...q.items].sort(); drawR8(); $("#sub").onclick=()=>lock(false); }
+  if(r==9){ drawR9(); $("#rev").onclick=()=>lock(false); }
+}
+/* R6 */
+function drawR6(){
+  const usedL=T.pairs.map(p=>p[0]), usedR=T.pairs.map(p=>p[1]);
+  const mk=(arr,used,side)=>arr.map(x=>`<button data-s="${side}" data-v="${esc(x)}" class="${T.selL===x&&side=="L"?"sel":""}" ${used.includes(x)?"disabled":""}>${esc(x)}</button>`).join("");
+  $("#L").innerHTML=mk(T.Ls,usedL,"L"); $("#R").innerHTML=mk(T.Rs,usedR,"R");
+  $("#made").innerHTML=T.pairs.map((p,i)=>`<span class="pairchip" style="background:${GROUP_COLORS[i%10]}">${esc(p[0])} ↔ ${esc(p[1])}</span>`).join("");
+  document.querySelectorAll("#L button,#R button").forEach(b=>b.onclick=()=>{ if(T.locked) return; const v=b.dataset.v;
+    if(b.dataset.s==="L"){ T.selL=v; drawR6(); } else if(T.selL){ T.pairs.push([T.selL,v]); T.selL=null; drawR6(); } });
+}
+/* R8 */
+function drawR8(){
+  const done=T.assign.map(a=>a[0]); const gs=T.q.groups;
+  $("#items").innerHTML=T.Is.map(it=>{ const a=T.assign.find(x=>x[0]===it); const gi=a?gs.indexOf(a[1]):-1;
+    return `<button data-v="${esc(it)}" class="${T.selI===it?"sel":""}" ${a?"disabled":""}>${esc(it)}${a?`<span class="tagbadge" style="background:${GROUP_COLORS[gi%10]}">${esc(a[1])}</span>`:""}</button>`; }).join("");
+  $("#groups").innerHTML=gs.map((g,i)=>`<button data-g="${esc(g)}" style="border-left:6px solid ${GROUP_COLORS[i%10]}">${esc(g)}</button>`).join("");
+  document.querySelectorAll("#items button").forEach(b=>b.onclick=()=>{ if(T.locked) return; T.selI=b.dataset.v; drawR8(); });
+  document.querySelectorAll("#groups button").forEach(b=>b.onclick=()=>{ if(T.locked||!T.selI) return; T.assign.push([T.selI,b.dataset.g]); T.selI=null; drawR8(); });
+}
+/* R9 */
+function drawR9(){
+  const q=T.q; $("#ans").innerHTML=q.answers.map(a=>{ const i=T.rank.indexOf(a); return `<button data-v="${esc(a)}" class="${i>=0?"sel":""}" ${i>=0?"disabled":""}>${i>=0?`<span class="rank">${i+1}</span>`:""}${esc(a)}</button>`; }).join("");
+  document.querySelectorAll("#ans button").forEach(b=>b.onclick=()=>{ if(T.locked) return; T.rank.push(b.dataset.v); drawR9(); if(T.rank.length==5) $("#rev").style.display="block"; });
+  $("#rev").style.display=T.rank.length==5?"block":"none"; T.refreshJ&&T.refreshJ();
+}
+
+/* ===================== ТОЧКУВАНЕ ===================== */
+const L2C={A:"А",B:"В",C:"С",E:"Е",H:"Н",K:"К",M:"М",O:"О",P:"Р",T:"Т",X:"Х",Y:"У"};
+const normL=s=>{ const u=(s||"").trim().toUpperCase(); return L2C[u]||u; };
+function calc5(diff,rg){ return diff===0?5: diff<=rg.near?3: diff<=rg.mid?2: diff<=rg.far?1:0; }
+function lock(timeout){
+  if(T.locked) return; T.locked=true; clearTimer();
+  const {r,u,q}=T; let pts=0, ok=false, yours="", right="", extra="", exact=false;
+  if(r==1){ yours=T.sel[0]||"(без отговор)"; ok=T.pancake||yours===q.correct; pts=ok?2:0; right=q.correct; if(T.pancake&&yours!==q.correct) extra="🥞 Палачинката те спаси!"; }
+  else if(r==2){ const s=T.sel; yours=s.length?s.join(" / "):"(без отговор)"; ok=s.includes(q.correct); if(T.dbl&&s.length<2) ok=false; pts=ok?3*(T.x2?2:1):0; right=q.correct; }
+  else if([3,4,7].includes(r)){ const v=($("#lt")?.value||"").trim(); yours=v||"(без отговор)";
+    if(r==7){ const t=v.toUpperCase(); ok=!!t&&(t===q.letter.toUpperCase()||(q.alt_letters||[]).map(x=>x.toUpperCase()).includes(t)); }
+    else { const t=normL(v); ok=!!t&&(t===q.letter.toUpperCase()||(q.alt_letters||[]).map(x=>x.toUpperCase()).includes(t)); }
+    pts=ok?4:0; right=q.letter; }
+  else if(r==5){ const v=$("#nm")?.value; if(v===""||v==null){ yours="(без отговор)"; pts=0; } else { const n=Number(v.replace(",",".")); yours=String(n); pts=calc5(Math.abs(n-q.answer),q.ranges); exact=n===q.answer; } ok=pts>0; right=String(q.answer); extra=`Точки: ${pts} (5 точен / 3 / 2 / 1 според близостта)`; }
+  else if(r==6){ let c=0; T.pairs.forEach(p=>{ if(q.pairs[p[0]]===p[1]) c++; }); T.cnt=c; pts=c; ok=c===Object.keys(q.pairs).length; yours=`${c} верни чифта от ${Object.keys(q.pairs).length}`; right=Object.entries(q.pairs).map(([a,b])=>`${a} ↔ ${b}`).join("\n"); }
+  else if(r==8){ let c=0; T.assign.forEach(a=>{ if(q.answers[a[0]]===a[1]) c++; }); T.cnt=c; pts=c; ok=c===q.items.length; yours=`${c} верни от ${q.items.length}`; right=q.items.map(i=>`${i} → ${q.answers[i]}`).join("\n"); }
+  else if(r==9){ const i=T.rank.indexOf(q.correct); const base=i>=0?[6,4,3,2,1][i]:0; const dbl=S.r9.picks[u].double; pts=base*(dbl?2:1); ok=i===0; yours=T.rank.length?T.rank.map((a,k)=>`${k+1}. ${a}`).join("\n"):"(без подредба)"; right=q.correct; extra=i>=0?`Верният беше на ${i+1}-во място → ${base} т.${dbl?" ×2 = "+pts:""}`:"Верният отговор не беше подреден."; }
+  else if(r==10){ const v=$("#nm")?.value; if(v===""||v==null){ yours="(без отговор)"; extra="Тренировка — без точки."; } else { const n=Number(v.replace(",",".")); yours=String(n); const d=Math.abs(n-q.answer); extra=`Тренировка (без точки). Разминаваш се с ${d}${q.answer?` (${Math.round(d/Math.abs(q.answer)*100)}%)`:""}.`; } right=String(q.answer); pts=0; ok=false; }
+  if(timeout) extra=("⏱ Времето изтече. "+extra).trim();
+  const R=rs(r); R.pts+=pts; R.total+=1; if(ok&&r!=10) R.ok+=1; if(exact) R.exact+=1;
+  if(r==6||r==8){ R.total=(r==6?Object.keys(q.pairs).length:q.items.length); R.ok=T.cnt; }
+  const label=(r==6||r==8)?q.title:q.question;
+  const entry={r,label,yours,right,pts,ok,extra,expl:q.explanation||"",title:META[r].t};
+  S.log.push(entry); S.fb=entry;
+  const last=u+1>=unitCount(r);
+  S.cur={r,u:u+1,stage:"fb",last}; save(); updScore();
+  render();
+  fbWrite({score:totalScore(),round:r,answered:S.log.length});
+}
+
+function screenFeedback(){
+  const e=S.fb, c=S.cur; const r=e.r;
+  view(`<div class="card"><span class="tag">${esc(e.title)}</span><h3>${esc(e.label)}</h3>
+   ${r==10?"":`<p class="${e.ok?"res-ok":"res-bad"}">${e.ok?"✔ Верен отговор":(e.pts>0?"◐ Частично":"✘ Грешен отговор")} · +${pt(e.pts)} т.</p>`}
+   <p><span class="mut">Твоят отговор:</span><br><span style="white-space:pre-wrap">${esc(e.yours)}</span></p>
+   <p><span class="mut">Верен отговор:</span><br><b style="white-space:pre-wrap">${esc(e.right)}</b></p>
+   ${e.extra?`<div class="note">${esc(e.extra)}</div>`:""}
+   ${e.expl?`<div class="expl">${esc(e.expl)}</div>`:""}
+   <button class="pri" id="nx" style="width:100%;margin-top:12px">${c.last?"Край на кръга →":"Следващ въпрос →"}</button></div>`);
+  $("#nx").onclick=()=>{
+    if(c.last){ setCur(r,0,"sum"); return; }
+    setCur(r, c.u, r==9?"choose":"q");
+  };
+}
+
+function screenSummary(r){
+  const R=rs(r); let bonus=0;
+  if(r<=4||r==7) bonus = (R.ok===R.total&&R.total>0)?BONUS:0;
+  if(r==5) bonus = (R.exact===R.total&&R.total>0)?BONUS:0;
+  if(r==6||r==8) bonus = (R.ok===R.total&&R.total>0)?BONUS:0;
+  if(!R.bonusDone){ R.bonus=bonus; R.bonusDone=true; save(); }
+  updScore();
+  view(`<div class="card"><h2>${META[r].t} — край</h2>
+   ${r==10?`<p>Дузпите са тренировка — в отборната игра точките им се определят спрямо другите играчи.</p>`
+   :`<p>Точки от кръга: <b>${pt(R.pts)}</b>${R.bonus?` + бонус <b>${R.bonus}</b> 🎉`:""}</p><p>Верни: ${R.ok} от ${R.total}</p>`}
+   <p>Общо до момента: <b class="res-ok">${pt(totalScore())} т.</b></p>
+   <button class="pri" id="nx" style="width:100%">${r<10?`Към Кръг ${r+1} →`:"Към финала 🏁"}</button></div>`);
+  $("#nx").onclick=()=>{ if(r<10) setCur(r+1,0,"intro"); else finish(); };
+}
+
+function cashIn(){
+  const lines=[]; let total=0;
+  const add=(txt,v)=>{ lines.push([txt,v]); total+=v; };
+  if(S.rj[1]===undefined||!S.rj[1].pancake) add("🥞 Неизползвана Палачинка (кръг 1)",1);
+  if(S.rj[2]===undefined||!S.rj[2].dbl) add("💕 Неизползван Двоен шанс (кръг 2)",1);
+  [3,4,7].forEach(r=>{ if(S.rj[r]===undefined||!S.rj[r].syl) add(`🔤 Неизползван Дай Три (кръг ${r})`,1); });
+  return {lines,total};
+}
+async function finish(){ S.cash=cashIn(); S.done=true; save(); updScore(); screenFinal(); fbWrite({finished:true,finishedAt:new Date().toISOString(),score:totalScore(),answered:S.log.length}); }
+
+function screenFinal(){
+  const rows=[1,2,3,4,5,6,7,8,9].map(r=>{ const R=S.rs[r]||{pts:0,bonus:0}; return `<tr><td>${META[r].t.replace(/^\S+\s/,"")}</td><td>${pt(R.pts)}${R.bonus?` +${R.bonus}`:""}</td></tr>`; }).join("");
+  const cash=(S.cash&&S.cash.lines.length)?`<h3>Осребрени жокери</h3><table>${S.cash.lines.map(l=>`<tr><td>${l[0]}</td><td>+${l[1]}</td></tr>`).join("")}</table><p class="mut">Мнозинство и Шпионин не се осребряват в соловата версия.</p>`:"";
+  view(`<div class="card"><h1>🏁 Браво, ${esc(S.player.n1)}!</h1>
+   <p style="font-size:1.4em">Общо: <b class="res-ok">${pt(totalScore())} точки</b></p>
+   <table>${rows}</table>${cash}
+   <div class="note">Това беше пробата. В отборния Мегакуиз ще има жива класация, Мнозинство, Шпионин и дузпи срещу другите играчи — запиши се! 🏆</div>
+   <button id="hs" style="width:100%;margin-top:8px">📜 Виж историята на играта</button>
+   <p style="text-align:center"><button id="rs">↺ Играй наново</button></p></div>`);
+  $("#hs").onclick=()=>screenHistory(); $("#rs").onclick=()=>{ if(confirm("Да започна наново?")){ const p=S.player; clearAll(); S.player=p; save(); setCur(1,0,"lobby"); } };
+}
+
+function screenHistory(){
+  if(!S||!S.player) return;
+  const back=S.cur; const rows=S.log.map((e,i)=>`<tr><td>${i+1}</td><td><b>${esc(e.label)}</b><br><span class="mut">Ти: ${esc(e.yours).replace(/\n/g,"; ")}</span><br><span class="mut">Верен: ${esc(e.right).replace(/\n/g,"; ")}</span></td><td class="${e.ok?"hist-ok":"hist-bad"}">${e.r==10?"—":"+"+pt(e.pts)}</td></tr>`).join("");
+  const keepTimer=!!timerH; // при отворена история по време на въпрос — пускаме го пак през render
+  view(`<div class="card"><h2>📜 История</h2>${S.log.length?`<table>${rows}</table>`:"<p>Още няма отговорени въпроси.</p>"}
+   <button class="pri" id="bk" style="width:100%;margin-top:10px">← Назад</button></div>`);
+  $("#bk").onclick=()=>render();
+}
+$("#btnHist").onclick=screenHistory;
+
+/* ===================== СТАРТ ===================== */
+S=load();
+(async()=>{
+  if(S.player){ try{ await loadData(); }catch(e){ app.innerHTML=`<div class="card">Не успях да заредя въпросите: ${esc(e.message)}</div>`; return; }
+    if(!S.reg){ fbWrite({startedAt:new Date().toISOString(),finished:false}); S.reg=true; save(); } }
+  render();
+})();
+</script>
+</body>
+</html>
