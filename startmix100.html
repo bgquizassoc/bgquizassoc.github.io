@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<title>Старт на Куиз Микс 100</title>
+<title>Старт на Мегакуиз 100</title>
 <style>
   body { background:#001a33; color:white; text-align:center; padding:40px; font-family:Arial; }
   button {
@@ -20,7 +20,7 @@
 </style>
 </head>
 <body>
-<h1>🧩 Старт на Куиз Микс 100</h1>
+<h1>🧩 Старт на Мегакуиз 100</h1>
 
 <div class="field-row">
   <label>Име на епизод:</label>
@@ -30,6 +30,17 @@
 <div class="field-row">
   <label>Час за старт на играта:</label>
   <input type="time" id="startTime">
+</div>
+
+<div class="field-row">
+  <label>Старт от кръг:</label>
+  <select id="startRound" style="padding:10px; font-size:1.1em; border-radius:8px; width:200px;">
+    <option value="1" selected>1 (нормален старт)</option>
+    <option value="2">2</option><option value="3">3</option><option value="4">4</option>
+    <option value="5">5</option><option value="6">6</option><option value="7">7</option>
+    <option value="8">8</option><option value="9">9</option><option value="10">10</option>
+  </select>
+  <div style="font-size:0.8em; opacity:0.7; margin-top:4px;">При „от кръг 2…10“ се ползва същото име на епизод — точките се запазват, а часът за старт се пренебрегва.</div>
 </div>
 
 <br>
@@ -206,6 +217,11 @@ function computeCashInFinalBonus(jokers) {
 // ⭐ Класиране през ВСИЧКОТО изиграно досега (огледално на клиента)
 async function computeStandingsHost(ep, isFinal) {
   const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results"));
+  const adjMap = {};   // ⭐ ръчни корекции на точки от админа
+  try {
+    const adjSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "adjustments"));
+    adjSnap.forEach(d => { adjMap[d.id] = Number(d.data().delta) || 0; });
+  } catch(e) {}
   const perPlayerRaw = [];
   const r10diffsByIndex = [[], [], []];
 
@@ -258,6 +274,7 @@ async function computeStandingsHost(ep, isFinal) {
     if (correctByRound[7] === questions7.length && questions7.length>0) totalPoints += 3;
 
     totalPoints += tiebreakPoints;
+    totalPoints += (adjMap[name] || 0);
 
     const jokersData = playerDoc.data().jokers || {};
     perPlayerRaw.push({ name, totalPoints, totalTime, r10answers, jokersData });
@@ -337,6 +354,21 @@ async function r10DeltaMap(ep, tier) {
   const out = {};
   Object.entries(diffs).forEach(([n, d]) => { out[n] = calcPoints10(tier, all, d); });
   return out;
+}
+
+// ⭐ Пауза след кръг — по заявка от админа (games/<GAME>/control/flow { pauseAfterRound })
+async function maybePause(ep, afterRound) {
+  const ref = doc(db, "games", GAME_ID, "control", "flow");
+  let want = false;
+  try { const sn = await getDoc(ref); want = sn.exists() && sn.data().pauseAfterRound === true; } catch(e) {}
+  if (!want) return;
+  log(`⏸ Пауза след кръг ${afterRound} (по заявка от админа) — чакам „Продължи“.`);
+  await setState(ep, "pause", 6 * 60 * 60 * 1000, { afterRound });
+  while (true) {
+    await sleep(2000);
+    try { const sn = await getDoc(ref); if (!(sn.exists() && sn.data().pauseAfterRound === true)) break; } catch(e) {}
+  }
+  log("▶ Продължаваме след паузата.");
 }
 
 function pickChooser(standings, excludeNames) {
@@ -754,54 +786,72 @@ async function runThanksAndFinalReveal(ep) {
 // ===============================
 // ОБЩА ПОСЛЕДОВАТЕЛНОСТ
 // ===============================
-async function runGame(ep) {
+async function runGame(ep, start = 1) {
   await loadAllQuestions();
+  const go = n => start <= n;
+  if (start > 1) log(`▶ Продължаваме от кръг ${start} (резултатите от по-ранните кръгове се запазват).`);
 
-  await runStandardRound(ep, 1, questions1, Q1, EXPL1, RANK1, LOBBY_TIME1);
-  await runStandardRound(ep, 2, questions2, Q2, EXPL2, RANK2, LOBBY_TIME2);
-  await runStandardRound(ep, 3, questions3, Q3, EXPL3, RANK3, LOBBY_TIME3);
-  await runStandardRound(ep, 4, questions4, Q4, EXPL4, RANK4, LOBBY_TIME4);
+  if (go(1)) { await runStandardRound(ep, 1, questions1, Q1, EXPL1, RANK1, LOBBY_TIME1); await maybePause(ep, 1); }
+  if (go(2)) { await runStandardRound(ep, 2, questions2, Q2, EXPL2, RANK2, LOBBY_TIME2); await maybePause(ep, 2); }
+  if (go(3)) { await runStandardRound(ep, 3, questions3, Q3, EXPL3, RANK3, LOBBY_TIME3); await maybePause(ep, 3); }
+  if (go(4)) {
+    await runStandardRound(ep, 4, questions4, Q4, EXPL4, RANK4, LOBBY_TIME4);
+    await maybePause(ep, 4);
+    log("☕ Почивка (5 мин.)...");
+    await setState(ep, "break", BREAK_TIME, {});
+    await sleep(BREAK_TIME);
+  }
 
-  log("☕ Почивка (5 мин.)...");
-  await setState(ep, "break", BREAK_TIME, {});
-  await sleep(BREAK_TIME);
+  if (go(5)) { await runStandardRound(ep, 5, questions5, Q5, EXPL5, RANK5, LOBBY_TIME5); await maybePause(ep, 5); }
 
-  await runStandardRound(ep, 5, questions5, Q5, EXPL5, RANK5, LOBBY_TIME5);
+  let r6Chooser = null;
+  if (go(6)) {
+    // ⭐ Дузпа при равенство на ПОСЛЕДНОТО място преди избора в кръг 6
+    const tb5 = await runTiebreakIfNeeded(ep, "r5", true, [], "Право да избере тема за Кръг 6 има:");
+    r6Chooser = await runChooseAndRound(ep, 6, questions6, {
+      lobbyTime: LOBBY_TIME6, chooseTime: CHOOSE_TIME6, revealTime: CHOOSE_REVEAL6, Q: Q6,
+      explDurations: [["explanation", EXPL6], ["q-ranking", RESULTS6], ["ranking", RANK6]],
+      chooserExcluded: [], presetChooser: tb5.chooserName
+    });
+    try {
+      await setDoc(doc(db, "games", GAME_ID, "episodes", ep, "meta", "r6chooser"), { name: r6Chooser });
+    } catch(e) {}
+    await maybePause(ep, 6);
+  } else {
+    try {
+      const sn = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "meta", "r6chooser"));
+      if (sn.exists()) r6Chooser = sn.data().name || null;
+    } catch(e) {}
+    log(`Избирал в кръг 6 (от записа): ${r6Chooser || "—"}`);
+  }
 
-  // ⭐ Дузпа при равенство на ПОСЛЕДНОТО място преди избора в кръг 6
-  const tb5 = await runTiebreakIfNeeded(ep, "r5", true, [], "Право да избере тема за Кръг 6 има:");
+  if (go(7)) { await runStandardRound(ep, 7, questions7, Q7, EXPL7, RANK7, LOBBY_TIME7); await maybePause(ep, 7); }
 
-  const r6Chooser = await runChooseAndRound(ep, 6, questions6, {
-    lobbyTime: LOBBY_TIME6, chooseTime: CHOOSE_TIME6, revealTime: CHOOSE_REVEAL6, Q: Q6,
-    explDurations: [["explanation", EXPL6], ["q-ranking", RESULTS6], ["ranking", RANK6]],
-    chooserExcluded: [], presetChooser: tb5.chooserName
-  });
-  try {
-    await setDoc(doc(db, "games", GAME_ID, "episodes", ep, "meta", "r6chooser"), { name: r6Chooser });
-  } catch(e) {}
+  if (go(8)) {
+    // ⭐ Дузпа при равенство на ПОСЛЕДНОТО (допустимо) място преди избора в кръг 8 —
+    // изключваме вече избиралия в кръг 6.
+    const tb7 = await runTiebreakIfNeeded(ep, "r7", true, r6Chooser ? [r6Chooser] : [], "Право да избере тема за Кръг 8 има:");
+    await runChooseAndRound(ep, 8, questions8, {
+      lobbyTime: LOBBY_TIME8, chooseTime: CHOOSE_TIME8, revealTime: CHOOSE_REVEAL8, Q: Q8,
+      explDurations: [["explanation", EXPL8], ["q-ranking", RESULTS8], ["ranking", RANK8]],
+      chooserExcluded: r6Chooser ? [r6Chooser] : [], presetChooser: tb7.chooserName
+    });
+    await maybePause(ep, 8);
 
-  await runStandardRound(ep, 7, questions7, Q7, EXPL7, RANK7, LOBBY_TIME7);
+    log("☕ Почивка (5 мин.)...");
+    await setState(ep, "break", BREAK_TIME, {});
+    await sleep(BREAK_TIME);
+  }
 
-  // ⭐ Дузпа при равенство на ПОСЛЕДНОТО (допустимо) място преди избора в кръг 8 —
-  // изключваме вече избиралия в кръг 6.
-  const tb7 = await runTiebreakIfNeeded(ep, "r7", true, [r6Chooser], "Право да избере тема за Кръг 8 има:");
+  if (go(9)) {
+    // ⭐ Пълно разчистване на равенства (навсякъде в класирането) — нужно за реда на избор в кръг 9
+    const tb8 = await runTiebreakIfNeeded(ep, "r8", false, [], "Първи избира тема в Кръг 9 (последен в класирането):");
+    await runRound9(ep, tb8.standings);
+    await maybePause(ep, 9);
+  }
 
-  await runChooseAndRound(ep, 8, questions8, {
-    lobbyTime: LOBBY_TIME8, chooseTime: CHOOSE_TIME8, revealTime: CHOOSE_REVEAL8, Q: Q8,
-    explDurations: [["explanation", EXPL8], ["q-ranking", RESULTS8], ["ranking", RANK8]],
-    chooserExcluded: [r6Chooser], presetChooser: tb7.chooserName
-  });
-
-  log("☕ Почивка (5 мин.)...");
-  await setState(ep, "break", BREAK_TIME, {});
-  await sleep(BREAK_TIME);
-
-  // ⭐ Пълно разчистване на равенства (навсякъде в класирането) — нужно за реда на избор в кръг 9
-  const tb8 = await runTiebreakIfNeeded(ep, "r8", false, [], "Първи избира тема в Кръг 9 (последен в класирането):");
-
-  await runRound9(ep, tb8.standings);
-
-  await runRound10(ep);
+  if (go(10)) await runRound10(ep);
+  if (start > 9) log("ℹ️ Скритите класирания от кръг 9 не са налични при продължаване от кръг 10.");
 
   await runThanksAndFinalReveal(ep);
 
@@ -811,8 +861,25 @@ async function runGame(ep) {
 document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
   const startTimeRaw = document.getElementById("startTime").value;
+  const startRound = Number(document.getElementById("startRound").value) || 1;
 
   if (!ep) return alert("Въведи име на епизод!");
+
+  // ⭐ Продължаване от кръг X — без лоби и престарт, започваме веднага
+  if (startRound > 1) {
+    if (!confirm(`Да продължа епизод "${ep}" от кръг ${startRound}? (резултатите се запазват)`)) return;
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("startBtn").textContent = "Играта тече…";
+    try { await setDoc(doc(db, "games", GAME_ID, "control", "flow"), { pauseAfterRound: false }, { merge: true }); } catch(e) {}
+    try {
+      await runGame(ep, startRound);
+    } catch (err) {
+      log("❌ ГРЕШКА — играта спря: " + (err && err.message ? err.message : err));
+      console.error(err);
+    }
+    return;
+  }
+
   if (!startTimeRaw) return alert("Избери час за старт!");
 
   const [hh, mm] = startTimeRaw.split(":").map(Number);
@@ -827,6 +894,7 @@ document.getElementById("startBtn").onclick = async () => {
   document.getElementById("startBtn").textContent = "Играта тече…";
 
   await resetState();
+  try { await setDoc(doc(db, "games", GAME_ID, "control", "flow"), { pauseAfterRound: false }, { merge: true }); } catch(e) {}
   await setState(ep, "lobby", LOBBY_TIME, {});
   log(`Лоби (10 сек.) → престарт → старт в ${startTimeRaw}`);
 
@@ -836,7 +904,7 @@ document.getElementById("startBtn").onclick = async () => {
 
   log("Играта започва!");
   try {
-    await runGame(ep);
+    await runGame(ep, 1);
   } catch (err) {
     log("❌ ГРЕШКА — играта спря: " + (err && err.message ? err.message : err));
     console.error(err);
