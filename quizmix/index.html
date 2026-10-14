@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>🧩 Куиз Микс 100 🧩</title>
+  <title>🧩 Мегакуиз 100 🧩</title>
 
   <link rel="manifest" href="manifest.json">
   <script>
@@ -62,6 +62,27 @@
     color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
   }
   #globalTimer.warning { color: #ff4c4c; }
+
+  /* ⭐ таймер с черта — между въпроса и отговорите (кръгове 1-5, 7, 9, 10) */
+  /* ⭐ АДМИН */
+  #adminOpenBtn { position: fixed; left: 8px; bottom: 8px; z-index: 9998; opacity: .35; font-size: 13px;
+    padding: 6px 10px; margin: 0; background: #444; color: #fff; border-radius: 8px; }
+  #adminOpenBtn:hover { opacity: 1; transform: none; background: #555; }
+  #adminPanel { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 9999; max-height: 75vh; overflow-y: auto;
+    background: #10151f; border-top: 3px solid #ffd100; padding: 12px; text-align: left; font-size: 0.95em; color: #fff; }
+  #adminPanel button { margin: 4px 4px 4px 0; padding: 8px 12px; font-size: 0.95em; }
+  #adminPanel .ad-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  #adminPanel .ad-box { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+  #adminPanel .ad-row { display: flex; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  #adminPanel .ad-row .nm { flex: 1; word-break: break-word; }
+  #adminPanel .ad-row button { margin: 0; padding: 4px 12px; font-size: 1.1em; }
+  #adminPanel input { width: 70px; padding: 4px; font-size: 1em; border-radius: 6px; border: none; }
+  #qTimerBox { display: none; margin: 10px 0 14px; }
+  #qTimerTrack { height: 10px; background: #2b2b2b; border-radius: 6px; overflow: hidden; }
+  #qTimerFill { height: 100%; width: 100%; background: #ffd100; transition: width .2s linear; }
+  #qTimerBox.warning #qTimerFill { background: #ff4c4c; }
+  #qTimerTxt { text-align: right; font-size: 0.85em; color: #bbb; margin-top: 3px; }
+  #qTimerBox.warning #qTimerTxt { color: #ff4c4c; font-weight: 700; }
 
   #question { font-size: 1.6em; margin: 20px 0; font-weight: 600; }
 
@@ -340,7 +361,7 @@
   }
 
   /* ⭐ ПОЧИВКА / ДУЗПА / SITOUT — общи панели като останалите екрани */
-  #choose-screen, #sitout-screen, #break-screen, #secret-screen, #tiebreak-screen, #results, #q-ranking {
+  #choose-screen, #sitout-screen, #break-screen, #pause-screen, #secret-screen, #tiebreak-screen, #results, #q-ranking {
     width: 100%; max-width: 650px; text-align: center; margin-top: 30px;
     background: rgba(255,255,255,0.05); border-radius: 16px; padding: 20px;
     box-shadow: 0 0 10px rgba(255,209,0,0.2);
@@ -471,6 +492,12 @@
   <p style="margin-top:10px; opacity:0.9;">Играта продължава съвсем скоро...</p>
 </div>
 
+<!-- ⭐ ПАУЗА (по заявка на админа, след кръг) -->
+<div id="pause-screen" style="display:none;">
+  <h2 style="color:#ffd100;">⏸ Кратка пауза</h2>
+  <p style="margin-top:10px; opacity:0.9;">Играта продължава съвсем скоро...</p>
+</div>
+
 <!-- ⭐ ТАЙНО КЛАСИРАНЕ (последните 2 въпроса на кръг 9 и дузпите на кръг 10) -->
 <div id="secret-screen" style="display:none;">
   <h2 style="color:#ffd100;">🤫 Класирането се пази в тайна</h2>
@@ -510,6 +537,9 @@
     <div id="questionMedia"></div>
     <button id="fullscreenBtn" class="fullscreen-btn" title="На цял екран" type="button">⛶</button>
   </div>
+
+  <!-- ⭐ таймер с черта (под въпроса/снимката/клипа, над отговорите) -->
+  <div id="qTimerBox"><div id="qTimerTrack"><div id="qTimerFill"></div></div><div id="qTimerTxt"></div></div>
 
   <!-- кръгове 1,2: отговори с бутони -->
   <div id="answers" class="answers"></div>
@@ -605,6 +635,9 @@
   <button id="historyBtn" style="display:none;">История на играта</button>
 </div>
 
+<button id="adminOpenBtn" type="button">🔧 Админ</button>
+<div id="adminPanel"></div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
@@ -636,6 +669,7 @@ const roundIntroDiv  = document.getElementById("round-intro");
 const chooseScreen   = document.getElementById("choose-screen");
 const sitoutScreen   = document.getElementById("sitout-screen");
 const breakScreen    = document.getElementById("break-screen");
+const pauseScreen    = document.getElementById("pause-screen");
 const thanksScreen   = document.getElementById("thanks-screen");
 const secretScreen   = document.getElementById("secret-screen");
 const tiebreakScreen = document.getElementById("tiebreak-screen");
@@ -880,7 +914,7 @@ async function loadAllQuestions() {
 }
 
 function showOnly(div) {
-  [startScreen, waitingScreen, roundIntroDiv, chooseScreen, sitoutScreen, breakScreen,
+  [startScreen, waitingScreen, roundIntroDiv, chooseScreen, sitoutScreen, breakScreen, pauseScreen,
    secretScreen, thanksScreen, tiebreakScreen, quizDiv, explanationDiv, resultsDiv, qRankingDiv, rankingDiv]
     .forEach(d => d.style.display = "none");
   div.style.display = "block";
@@ -904,9 +938,24 @@ function formatTime(totalSeconds) {
   return String(totalSeconds);
 }
 
+let barTimerActive = false;
+const BAR_ROUNDS = [1, 2, 3, 4, 5, 7, 9, 10];   // 6 и 8 запазват стария таймер горе
+const qTimerBox  = document.getElementById("qTimerBox");
+const qTimerFill = document.getElementById("qTimerFill");
+const qTimerTxt  = document.getElementById("qTimerTxt");
+
 function updateTimer(startTime, duration) {
   const now = Date.now();
-  const remaining = Math.max(0, Math.ceil((duration - (now - startTime)) / 1000));
+  const leftMs = Math.max(0, duration - (now - startTime));
+  const remaining = Math.max(0, Math.ceil(leftMs / 1000));
+  if (barTimerActive) {
+    globalTimer.style.display = "none";
+    qTimerBox.style.display = "block";
+    qTimerFill.style.width = (duration > 0 ? Math.min(100, leftMs / duration * 100) : 0) + "%";
+    qTimerTxt.textContent = remaining + " сек.";
+    qTimerBox.classList.toggle("warning", remaining <= 5);
+    return;
+  }
   globalTimer.textContent = formatTime(remaining);
   if (remaining <= 5) globalTimer.classList.add("warning");
   else globalTimer.classList.remove("warning");
@@ -1036,10 +1085,21 @@ function fmtPoints(pts) {
 // ⭐ Класиране през ВСИЧКИТЕ 10 кръга + дузпи при равенство. Може да се извика и "частично"
 // (напр. само до момента), защото просто сумира каквото намери в answers — липсващите кръгове
 // просто добавят 0 точки.
+// ⭐ ръчни корекции на точки от админа: games/<GAME>/episodes/<ep>/adjustments/<име> = { delta }
+async function loadAdjustments(ep) {
+  const out = {};
+  try {
+    const sn = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "adjustments"));
+    sn.forEach(d => { out[d.id] = Number(d.data().delta) || 0; });
+  } catch (e) {}
+  return out;
+}
+
 async function computeStandings(isFinal) {
   const playersSnap = await getDocs(
     collection(db, "games", GAME_ID, "episodes", episodeId, "results")
   );
+  const adjMap = await loadAdjustments(episodeId);
 
   const perPlayerRaw = [];
   const r10diffsByIndex = [[], [], []];
@@ -1116,6 +1176,7 @@ async function computeStandings(isFinal) {
     if (correctByRound[7] === questions7.length && questions7.length > 0) totalPoints += ROUND_BONUS;
 
     totalPoints += tiebreakPoints;
+    totalPoints += (adjMap[name] || 0);   // ⭐ ръчна корекция от админа
 
     const jokersData = playerDoc.data().jokers || {};
     perPlayerRaw.push({ name, totalPoints, totalTime, r10answers, jokersData });
@@ -3632,6 +3693,8 @@ function renderThanks() {
 async function applyPhaseImmediately(data) {
   const { phase, round, index, startTime, duration } = data;
   if (timerInterval) clearInterval(timerInterval);
+  barTimerActive = false;
+  qTimerBox.style.display = "none";
   if (phase !== "question" || round !== 8) clearTimeout(autoSubmitTimeoutR);
 
   // ⭐ При ВСЯКА смяна на фаза спираме клиповете. Фазите, на които реално им трябва клип
@@ -3642,6 +3705,13 @@ async function applyPhaseImmediately(data) {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
     waitingTitle.textContent = "Играта още не е започнала.";
+    setMusic("../music/games.mp3");
+    return;
+  }
+
+  if (phase === "pause") {
+    showOnly(pauseScreen);
+    globalTimer.style.display = "none";
     setMusic("../music/games.mp3");
     return;
   }
@@ -3727,11 +3797,13 @@ async function applyPhaseImmediately(data) {
     else if (round === 8) renderR8Question(data.chosenTopic || currentChosenTopic[8], startTime, duration);
     else if (round === 9) renderR9Question(data, startTime, duration);
     else if (round === 10) renderR10Question(data, startTime, duration);
+    if (BAR_ROUNDS.includes(round)) { barTimerActive = true; updateTimer(startTime, duration); }
     return;
   }
 
   if (phase === "jokerBuffer") {
     renderR2Buffer(index, startTime, duration);
+    barTimerActive = true; updateTimer(startTime, duration);
     return;
   }
 
@@ -3795,11 +3867,115 @@ async function applyPhaseImmediately(data) {
   }
 }
 
+// ===============================
+// ⭐ АДМИН (код → панел: пауза след кръг + ръчни точки)
+// ===============================
+const ADMIN_CODE = "t861182";
+const adminBtn   = document.getElementById("adminOpenBtn");
+const adminPanel = document.getElementById("adminPanel");
+let adminOn = false;
+try { adminOn = sessionStorage.getItem("mega_admin") === "1"; } catch (e) {}
+let adminFlow = {}, adminFlowUnsub = null, adminAdj = {};
+const adminEsc = t => String(t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const adminFmt = n => String(Math.round(n * 10000) / 10000).replace(".", ",");
+
+function adminEp() { return episodeId || (lastPhaseSnapshot && lastPhaseSnapshot.episodeId) || null; }
+
+adminBtn.onclick = () => {
+  if (!adminOn) {
+    const code = prompt("Админ код:");
+    if (code === null) return;
+    if (code.trim() !== ADMIN_CODE) return alert("Грешен код.");
+    adminOn = true;
+    try { sessionStorage.setItem("mega_admin", "1"); } catch (e) {}
+  }
+  const opening = adminPanel.style.display !== "block";
+  adminPanel.style.display = opening ? "block" : "none";
+  if (opening) adminOpen(); else if (adminFlowUnsub) { adminFlowUnsub(); adminFlowUnsub = null; }
+};
+
+function updateAdminStatus() {
+  const el = document.getElementById("adState");
+  if (!el) return;
+  const ph = lastPhaseSnapshot && lastPhaseSnapshot.phase;
+  const rd = lastPhaseSnapshot && lastPhaseSnapshot.round;
+  let t;
+  if (ph === "pause") t = "⏸ Играта е в ПАУЗА — натисни „Продължи“.";
+  else if (adminFlow.pauseAfterRound) t = "⏳ Пауза е заявена — играта ще спре след края на текущия кръг.";
+  else t = "▶ Играта тече" + (ph ? ` (фаза: ${adminEsc(ph)}${rd ? ", кръг " + rd : ""})` : "") + ".";
+  el.innerHTML = t;
+}
+
+function adminOpen() {
+  const ep = adminEp();
+  adminPanel.innerHTML = `
+    <div class="ad-head"><b>🔧 Админ</b><span style="opacity:.7">епизод: ${ep ? adminEsc(ep) : "—"}</span>
+      <button id="adClose">✕ Затвори</button></div>
+    <div class="ad-box">
+      <div id="adState" style="margin-bottom:6px"></div>
+      <button id="adPause">⏸ Пауза след края на кръга</button>
+      <button id="adResume">▶ Продължи / отмени паузата</button>
+    </div>
+    <div class="ad-box">
+      <b>Точки</b> · стъпка: <input id="adStep" type="number" step="0.5" min="0" value="1">
+      <button id="adLoad">↻ Зареди играчите</button>
+      <div id="adList" style="margin-top:6px;opacity:.8">Натисни „Зареди играчите“.</div>
+    </div>`;
+  document.getElementById("adClose").onclick = () => { adminPanel.style.display = "none"; if (adminFlowUnsub) { adminFlowUnsub(); adminFlowUnsub = null; } };
+  const flowRef = doc(db, "games", GAME_ID, "control", "flow");
+  document.getElementById("adPause").onclick  = async () => { try { await setDoc(flowRef, { pauseAfterRound: true,  updatedAt: Date.now() }, { merge: true }); } catch (e) { alert("Грешка: " + e.message); } };
+  document.getElementById("adResume").onclick = async () => { try { await setDoc(flowRef, { pauseAfterRound: false, updatedAt: Date.now() }, { merge: true }); } catch (e) { alert("Грешка: " + e.message); } };
+  document.getElementById("adLoad").onclick = adminLoad;
+  if (adminFlowUnsub) adminFlowUnsub();
+  adminFlowUnsub = onSnapshot(flowRef, sn => { adminFlow = sn.exists() ? sn.data() : {}; updateAdminStatus(); });
+  updateAdminStatus();
+}
+
+async function adminLoad() {
+  const ep = adminEp();
+  const list = document.getElementById("adList");
+  if (!ep) { list.textContent = "Няма активен епизод."; return; }
+  episodeId = ep;
+  list.textContent = "Зареждам…";
+  try {
+    if (!questions1.length) await loadAllQuestions();
+    adminAdj = await loadAdjustments(ep);
+    const st = await computeStandings(false);   // вече включва ръчните корекции
+    if (!st.length) { list.textContent = "Още няма играчи."; return; }
+    list.innerHTML = "";
+    st.forEach((p, i) => {
+      const row = document.createElement("div");
+      row.className = "ad-row";
+      row.innerHTML = `<span style="width:26px;opacity:.7">${i + 1}.</span><span class="nm">${adminEsc(p.name)}</span>
+        <span class="pts" style="min-width:60px;text-align:right"><b>${adminFmt(p.points)}</b></span>
+        <span class="adj" style="min-width:56px;opacity:.7;text-align:right">${adminAdj[p.name] ? "(" + (adminAdj[p.name] > 0 ? "+" : "") + adminFmt(adminAdj[p.name]) + ")" : ""}</span>
+        <button class="m">−</button><button class="p">+</button>`;
+      let pts = p.points;
+      const change = async sign => {
+        const step = Number(document.getElementById("adStep").value) || 0;
+        if (!step) return;
+        const next = Math.round(((adminAdj[p.name] || 0) + sign * step) * 10000) / 10000;
+        try {
+          await setDoc(doc(db, "games", GAME_ID, "episodes", ep, "adjustments", p.name), { delta: next, updatedAt: Date.now() }, { merge: true });
+          adminAdj[p.name] = next;
+          pts = Math.round((pts + sign * step) * 10000) / 10000;
+          row.querySelector(".pts").innerHTML = `<b>${adminFmt(pts)}</b>`;
+          row.querySelector(".adj").textContent = next ? "(" + (next > 0 ? "+" : "") + adminFmt(next) + ")" : "";
+        } catch (e) { alert("Не успях да запиша: " + e.message); }
+      };
+      row.querySelector(".m").onclick = () => change(-1);
+      row.querySelector(".p").onclick = () => change(+1);
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = "Грешка: " + (e && e.message ? e.message : e); }
+}
+
 onSnapshot(doc(db, "games", GAME_ID, "state", "current"), async snap => {
   if (!snap.exists()) return;
   const data = snap.data();
   lastPhaseSnapshot = data;
   episodeId = data.episodeId;
+  if (typeof updateAdminStatus === "function") updateAdminStatus();
   if (!episodeId) return;
 
   if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
