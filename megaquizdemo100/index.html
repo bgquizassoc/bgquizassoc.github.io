@@ -39,8 +39,12 @@
   .res-ok{color:var(--ok);font-weight:700;font-size:1.15em}
   .res-bad{color:var(--bad);font-weight:700;font-size:1.15em}
   .expl{background:var(--card2);border-radius:10px;padding:10px 12px;margin-top:10px;white-space:pre-wrap}
-  img.qimg{max-width:100%;border-radius:10px;margin:8px 0}
+  img.qimg{display:block;max-width:100%;max-height:340px;width:auto;height:auto;margin:8px auto;border-radius:10px;object-fit:contain}
+  video.qvid{max-height:none}
   video,audio{width:100%;margin:8px 0;border-radius:10px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+  .col{display:flex;flex-direction:column;gap:8px}
+  .col button{width:100%;text-align:left;font-size:15px;padding:9px;word-break:break-word}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .two button{text-align:left;font-size:15px;padding:9px}
   .pairchip{display:inline-block;margin:3px;padding:3px 9px;border-radius:12px;font-size:14px;color:#111}
@@ -70,6 +74,7 @@ const CFG = {
   R9_PICKS: 2,                // колко теми избира играчът в кръг 9 (1-ва е с удвояване)
   R10_COUNT: 3,               // колко дузпи (без точки)
   MEDIA_FROM: "../quizmix7810/", MEDIA_TO: "../quizmix7810/",  // къде са клиповете от кръг 7
+  DATA_DIR: "",               // папка с въпросите; "" = същата като index.html, напр. "../quizmix7810/"
   MUSIC: true
 };
 const ROUND_TIME = {1:20,2:20,3:25,4:25,5:45,6:60,7:40,8:60,9:25,10:25};
@@ -127,11 +132,11 @@ function updScore(){ $("#score").textContent = S&&S.player ? `${pt(totalScore())
 async function loadData(){
   const out={};
   for(const i of [1,2,3,4,5,6,7,8,10]){
-    const r = await fetch(`questions${i}.json`,{cache:"no-store"});
-    if(!r.ok) throw new Error(`questions${i}.json (${r.status})`);
+    const r = await fetch(CFG.DATA_DIR+`questions${i}.json`,{cache:"no-store"});
+    if(!r.ok) throw new Error(`${new URL(CFG.DATA_DIR+`questions${i}.json`,location.href).href} (${r.status})`);
     out[i]=await r.json();
   }
-  const pr = await fetch("pull.json",{cache:"no-store"}); if(!pr.ok) throw new Error("pull.json");
+  const pr = await fetch(CFG.DATA_DIR+"pull.json",{cache:"no-store"}); if(!pr.ok) throw new Error(new URL(CFG.DATA_DIR+"pull.json",location.href).href+" ("+pr.status+")");
   const raw = await pr.json(); const seen=new Set(); const pool=[];
   for(const q of raw){ const k=(q.area||"")+"|"+(q.question||"").trim(); if(seen.has(k)) continue; seen.add(k); pool.push(q); }
   out.pull=pool;
@@ -256,17 +261,17 @@ const timerHtml=`<div class="timer"><div id="tbar"></div></div><div class="ttxt"
 function screenQuestion(){
   const {r,u}=S.cur; const q=getQ(r,u); const n=unitCount(r);
   T={sel:[],elim:[],locked:false,r,u,q,pairs:[],assign:[],rank:[],hint:null,tmp:{}};
-  const head=`<span class="tag">Кръг ${r} · ${(r==6||r==8)?"":`въпрос ${u+1} от ${n}`}</span>`;
+  const head=`<span class="tag">Кръг ${r}${(r==6||r==8)?"":` · въпрос ${u+1} от ${n}`}</span>`;
   let body="";
   if(r==1||r==2) body=`<div class="answers" id="ans"></div>`;
-  if([3,4,7].includes(r)) body=`<input id="lt" type="text" maxlength="3" autocomplete="off" placeholder="Буква…"><div id="hint"></div><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
+  if([3,4,7].includes(r)) body=`<input id="lt" type="text" maxlength="1" autocomplete="off" placeholder="Буква…"><div id="hint"></div><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
   if(r==5||r==10) body=`<input id="nm" type="number" inputmode="decimal" placeholder="Число…"><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
   const title = (r==6||r==8)? q.title : (r==9? q.question : q.question);
   let media="";
   if(r==4&&q.image) media=`<img class="qimg" src="${esc(q.image)}">`;
   if(r==7&&q.video){ const u2=mediaUrl(q.video); media=/\.mp3$/i.test(u2)?`<audio id="med" controls autoplay src="${esc(u2)}"></audio>`:`<video id="med" controls autoplay playsinline src="${esc(u2)}"></video>`; }
   const area = r==9? `<p class="mut">Тема: <b>${esc(q.area)}</b>${S.r9.picks[u].double?" · <b>✖️2 удвояване</b>":""}</p>`:"";
-  const pickUI = (r==6)?`<div class="two"><div id="L"></div><div id="R"></div></div><div id="made"></div><button class="pri" id="sub" style="width:100%;margin-top:8px">Готово — виж резултата</button>`
+  const pickUI = (r==6)?`<div class="cols"><div id="L" class="col"></div><div id="R" class="col"></div></div><div id="made"></div><button class="pri" id="sub" style="width:100%;margin-top:8px">Готово — виж резултата</button>`
               : (r==8)?`<div id="items" class="answers"></div><div id="groups" class="two"></div><button class="pri" id="sub" style="width:100%;margin-top:8px">Готово — виж резултата</button>`
               : (r==9)?`<div id="ans" class="answers"></div>`:"";
   view(`<div class="card">${head}<h2>${(r==6||r==8)?"":(u+1)+". "}${esc(title)}</h2>${area}${media}${timerHtml}<div id="jk" class="jk"></div><div id="note"></div>${body}${pickUI}
@@ -310,7 +315,7 @@ function fix(){
 function buildInputs(){
   const {r,q}=T;
   if(r==1||r==2){
-    q.answers.forEach(a=>{ const b=document.createElement("button"); b.textContent=a; b.dataset.v=a; $("#ans").appendChild(b);
+    shuffle(q.answers).forEach(a=>{ const b=document.createElement("button"); b.textContent=a; b.dataset.v=a; $("#ans").appendChild(b);
       b.onclick=()=>{ if(T.locked||b.classList.contains("gone")) return;
         if(T.dbl){ const i=T.sel.indexOf(a); if(i>=0){ T.sel.splice(i,1); b.classList.remove("sel"); } else if(T.sel.length<2){ T.sel.push(a); b.classList.add("sel"); } $("#rev").style.display=(T.sel.length==2)?"block":"none"; }
         else { T.sel=[a]; document.querySelectorAll("#ans button").forEach(x=>x.classList.toggle("sel",x===b)); $("#rev").style.display="block"; }
@@ -345,7 +350,7 @@ function drawR8(){
 }
 /* R9 */
 function drawR9(){
-  const q=T.q; $("#ans").innerHTML=q.answers.map(a=>{ const i=T.rank.indexOf(a); return `<button data-v="${esc(a)}" class="${i>=0?"sel":""}" ${i>=0?"disabled":""}>${i>=0?`<span class="rank">${i+1}</span>`:""}${esc(a)}</button>`; }).join("");
+  const q=T.q; T.order9 ||= shuffle(q.answers); $("#ans").innerHTML=T.order9.map(a=>{ const i=T.rank.indexOf(a); return `<button data-v="${esc(a)}" class="${i>=0?"sel":""}" ${i>=0?"disabled":""}>${i>=0?`<span class="rank">${i+1}</span>`:""}${esc(a)}</button>`; }).join("");
   document.querySelectorAll("#ans button").forEach(b=>b.onclick=()=>{ if(T.locked) return; T.rank.push(b.dataset.v); drawR9(); if(T.rank.length==5) $("#rev").style.display="block"; });
   $("#rev").style.display=T.rank.length==5?"block":"none"; T.refreshJ&&T.refreshJ();
 }
