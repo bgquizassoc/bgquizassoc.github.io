@@ -215,23 +215,23 @@ function screenLobby(){
 /* ---- музика ---- */
 const bgm=$("#bgm"); let musicOn=CFG.MUSIC;
 function playMusic(f){ if(!musicOn||!f){ bgm.pause(); return; } const src="../music/"+f; if(!bgm.src.endsWith(src.replace("..",""))){ bgm.src=src; } bgm.volume=.35; bgm.play().catch(()=>{}); }
-$("#btnMusic").onclick=()=>{ musicOn=!musicOn; $("#btnMusic").textContent=musicOn?"🔊":"🔇"; if(!musicOn) bgm.pause(); else if(S&&S.cur.stage==="intro") playMusic(META[S.cur.r].m); };
+$("#btnMusic").onclick=()=>{ musicOn=!musicOn; $("#btnMusic").textContent=musicOn?"🔊":"🔇"; if(!musicOn) bgm.pause(); else if(S&&S.player&&S.cur.r!=7&&!S.done) playMusic(META[S.cur.r].m); };
 
 function screenIntro(r){
   const m=META[r]; view(`<div class="card"><span class="tag">Кръг ${r} от 10</span><h2>${m.t}</h2>${m.h}
     <button class="pri" id="go" style="width:100%;margin-top:8px">Започвам кръга</button></div>`);
   playMusic(m.m);
-  $("#go").onclick=()=>{ bgm.pause(); const next = (r==6||r==8)?"choose":(r==9?"choose":"q"); setCur(r,0,next); };
+  $("#go").onclick=()=>{ const next = (r==6||r==8)?"choose":(r==9?"choose":"q"); setCur(r,0,next); };
 }
 
 /* ---- избор на тема 6/8 ---- */
-function screenChooseTopic(r){
+function screenChooseTopic(r){ ensureMusic(r);
   const list=D[r]; view(`<div class="card"><span class="tag">Кръг ${r}</span><h2>Избери тема</h2><div class="answers" id="tp"></div></div>`);
   list.forEach((t,i)=>{ const b=document.createElement("button"); b.textContent=t.title; b.onclick=()=>{ S.choice[r]=i; setCur(r,0,"q"); }; $("#tp").appendChild(b); });
 }
 /* ---- избор на тема 9 ---- */
 function areas9(){ return [...new Set(D.pull.map(q=>q.area))]; }
-function screenChoose9(u){
+function screenChoose9(u){ ensureMusic(9);
   const burned=S.r9.picks.map(p=>p.area); const all=areas9();
   view(`<div class="card"><span class="tag">Кръг 9 · избор ${u+1} от ${CFG.R9_PICKS}</span><h2>Избери тема</h2>
    <p class="mut">${u==0?"Първият избор е с <b>удвояване</b> — избери тема, в която си силен!":"Втори избор — точките са еднократни."} Избраните теми са избледнени.</p><div class="topics" id="tp"></div></div>`);
@@ -258,13 +258,14 @@ function startTimer(sec,onEnd){
 }
 const timerHtml=`<div class="timer"><div id="tbar"></div></div><div class="ttxt" id="ttxt"></div>`;
 
+function ensureMusic(r){ if(r==7){ bgm.pause(); return; } if(musicOn && bgm.paused) playMusic(META[r].m); }
 function screenQuestion(){
-  const {r,u}=S.cur; const q=getQ(r,u); const n=unitCount(r);
+  const {r,u}=S.cur; ensureMusic(r); const q=getQ(r,u); const n=unitCount(r);
   T={sel:[],elim:[],locked:false,r,u,q,pairs:[],assign:[],rank:[],hint:null,tmp:{}};
   const head=`<span class="tag">Кръг ${r}${(r==6||r==8)?"":` · въпрос ${u+1} от ${n}`}</span>`;
   let body="";
   if(r==1||r==2) body=`<div class="answers" id="ans"></div>`;
-  if([3,4,7].includes(r)) body=`<input id="lt" type="text" maxlength="1" autocomplete="off" placeholder="Буква…"><div id="hint"></div><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
+  if([3,4,7].includes(r)) body=`<input id="lt" type="text" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Буква…" style="text-align:center;font-size:32px;text-transform:uppercase;max-width:120px;display:block;margin:10px auto"><div id="hint"></div><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
   if(r==5||r==10) body=`<input id="nm" type="number" inputmode="decimal" placeholder="Число…"><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
   const title = (r==6||r==8)? q.title : (r==9? q.question : q.question);
   let media="";
@@ -324,7 +325,7 @@ function buildInputs(){
   }
   if([3,4,7].includes(r)||r==5||r==10){
     const i=$("#lt")||$("#nm"); i.focus(); i.onkeydown=e=>{ if(e.key==="Enter") lock(false); }; $("#sub").onclick=()=>lock(false);
-    if(i.id==="lt") i.oninput=()=>T.refreshJ&&(T.sel=i.value?["x"]:[],T.refreshJ());
+    if(i.id==="lt") i.oninput=()=>{ const a=[...i.value]; if(a.length>1) i.value=a[0]; T.sel=i.value?["x"]:[]; T.refreshJ&&T.refreshJ(); };
   }
   if(r==6){ T.Ls=shuffle(Object.keys(q.pairs)); T.Rs=shuffle(Object.values(q.pairs)); drawR6(); $("#sub").onclick=()=>lock(false); }
   if(r==8){ T.Is=[...q.items].sort(); drawR8(); $("#sub").onclick=()=>lock(false); }
@@ -364,7 +365,7 @@ function lock(timeout){
   const {r,u,q}=T; let pts=0, ok=false, yours="", right="", extra="", exact=false;
   if(r==1){ yours=T.sel[0]||"(без отговор)"; ok=T.pancake||yours===q.correct; pts=ok?2:0; right=q.correct; if(T.pancake&&yours!==q.correct) extra="🥞 Палачинката те спаси!"; }
   else if(r==2){ const s=T.sel; yours=s.length?s.join(" / "):"(без отговор)"; ok=s.includes(q.correct); if(T.dbl&&s.length<2) ok=false; pts=ok?3*(T.x2?2:1):0; right=q.correct; }
-  else if([3,4,7].includes(r)){ const v=($("#lt")?.value||"").trim(); yours=v||"(без отговор)";
+  else if([3,4,7].includes(r)){ const v=[...(($("#lt")?.value||"").trim())][0]||""; yours=v||"(без отговор)";
     if(r==7){ const t=v.toUpperCase(); ok=!!t&&(t===q.letter.toUpperCase()||(q.alt_letters||[]).map(x=>x.toUpperCase()).includes(t)); }
     else { const t=normL(v); ok=!!t&&(t===q.letter.toUpperCase()||(q.alt_letters||[]).map(x=>x.toUpperCase()).includes(t)); }
     pts=ok?4:0; right=q.letter; }
@@ -425,7 +426,7 @@ function cashIn(){
 }
 async function finish(){ S.cash=cashIn(); S.done=true; save(); updScore(); screenFinal(); fbWrite({finished:true,finishedAt:new Date().toISOString(),score:totalScore(),answered:S.log.length}); }
 
-function screenFinal(){
+function screenFinal(){ bgm.pause();
   const rows=[1,2,3,4,5,6,7,8,9].map(r=>{ const R=S.rs[r]||{pts:0,bonus:0}; return `<tr><td>${META[r].t.replace(/^\S+\s/,"")}</td><td>${pt(R.pts)}${R.bonus?` +${R.bonus}`:""}</td></tr>`; }).join("");
   const cash=(S.cash&&S.cash.lines.length)?`<h3>Осребрени жокери</h3><table>${S.cash.lines.map(l=>`<tr><td>${l[0]}</td><td>+${l[1]}</td></tr>`).join("")}</table><p class="mut">Мнозинство и Шпионин не се осребряват в соловата версия.</p>`:"";
   view(`<div class="card"><h1>🏁 Браво, ${esc(S.player.n1)}!</h1>
