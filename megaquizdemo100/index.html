@@ -265,7 +265,7 @@ function screenQuestion(){
   const head=`<span class="tag">Кръг ${r}${(r==6||r==8)?"":` · въпрос ${u+1} от ${n}`}</span>`;
   let body="";
   if(r==1||r==2) body=`<div class="answers" id="ans"></div>`;
-  if([3,4,7].includes(r)) body=`<input id="lt" type="text" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Буква…" style="text-align:center;font-size:32px;text-transform:uppercase;max-width:120px;display:block;margin:10px auto"><div id="hint"></div><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
+  if([3,4,7].includes(r)) body=`<input id="lt" type="text" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Буква…" style="text-align:center;font-size:22px;text-transform:uppercase;max-width:120px;display:block;margin:10px auto"><div id="hint"></div><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
   if(r==5||r==10) body=`<input id="nm" type="number" inputmode="decimal" placeholder="Число…"><button class="pri" id="sub" style="width:100%">Изпрати / виж верния отговор</button>`;
   const title = (r==6||r==8)? q.title : (r==9? q.question : q.question);
   let media="";
