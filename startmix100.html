@@ -74,28 +74,28 @@ const FOLDER = "quizmix/";
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) — нагласи ги спокойно след теста =====
 const LOBBY_TIME     = 10000;
 
-const LOBBY_TIME1 = 10000, Q1 = 20000, EXPL1 = 5000, RANK1 = 10000;
-const LOBBY_TIME2 = 10000, Q2 = 20000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
-const LOBBY_TIME3 = 10000, Q3 = 20000, EXPL3 = 5000, RANK3 = 10000;
-const LOBBY_TIME4 = 10000, Q4 = 20000, EXPL4 = 5000, RANK4 = 10000;
-const BREAK_TIME  = 30000; // 5 минути почивка (след кръг 4 и кръг 8)
+const LOBBY_TIME1 = 10000, Q1 = 5000, EXPL1 = 5000, RANK1 = 10000;
+const LOBBY_TIME2 = 10000, Q2 = 5000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
+const LOBBY_TIME3 = 10000, Q3 = 5000, EXPL3 = 5000, RANK3 = 10000;
+const LOBBY_TIME4 = 10000, Q4 = 5000, EXPL4 = 5000, RANK4 = 10000;
+const BREAK_TIME  = 100000; // 5 минути почивка (след кръг 4 и кръг 8)
 
-const LOBBY_TIME5 = 10000, Q5 = 20000, EXPL5 = 15000, RANK5 = 10000;
+const LOBBY_TIME5 = 10000, Q5 = 5000, EXPL5 = 15000, RANK5 = 10000;
 
-const LOBBY_TIME6 = 10000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 50000, EXPL6 = 15000, RESULTS6 = 15000, RANK6 = 10000;
+const LOBBY_TIME6 = 10000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 10000, EXPL6 = 15000, RESULTS6 = 15000, RANK6 = 10000;
 
-const LOBBY_TIME7 = 10000, Q7 = 30000, EXPL7 = 15000, RANK7 = 10000;
+const LOBBY_TIME7 = 10000, Q7 = 20000, EXPL7 = 15000, RANK7 = 10000;
 
-const LOBBY_TIME8 = 10000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 50000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 10000;
+const LOBBY_TIME8 = 10000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 10000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 10000;
 
 const LOBBY_TIME9 = 10000, CHOOSE_TIME9 = 20000, CHOOSE_REVEAL9 = 5000, Q9 = 25000, EXPL9 = 10000, QRANK9 = 10000, RANK9 = 10000;
 
-const LOBBY_TIME10 = 10000, Q10 = 15000, EXPL10 = 15000, RANK10 = 10000;
+const LOBBY_TIME10 = 20000, Q10 = 15000, EXPL10 = 15000, RANK10 = 10000;
 
-const TIEBREAK_TIME = 10000, TIEBREAK_REVEAL = 10000;
+const TIEBREAK_TIME = 20000, TIEBREAK_REVEAL = 10000;
 
 const THANKS_TIME = 15000;
-const REVEAL_STEP_TIME = 2000; // колко остава видим всеки откриващ се ред
+const REVEAL_STEP_TIME = 5000; // колко остава видим всеки откриващ се ред
 const REVEAL_SETTLE_TIME = 20000; // колко стои напълно разкритото класиране, преди да започне повторението
 const REPLAY_STEP_TIME = 15000;   // колко стои всяко от скритите класирания (предпоследен въпрос, последен въпрос, 3 дузпи)
 const FINAL_RANK_TIME = 60000;    // само за таймера на състоянието — крайното класиране остава завинаги
@@ -357,13 +357,13 @@ async function r10DeltaMap(ep, tier) {
 }
 
 // ⭐ Пауза след кръг — по заявка от админа (games/<GAME>/control/flow { pauseAfterRound })
-async function maybePause(ep, afterRound) {
+async function maybePause(ep, afterRound, afterIndex) {
   const ref = doc(db, "games", GAME_ID, "control", "flow");
   let want = false;
   try { const sn = await getDoc(ref); want = sn.exists() && sn.data().pauseAfterRound === true; } catch(e) {}
   if (!want) return;
-  log(`⏸ Пауза след кръг ${afterRound} (по заявка от админа) — чакам „Продължи“.`);
-  await setState(ep, "pause", 6 * 60 * 60 * 1000, { afterRound });
+  log(`⏸ Пауза след кръг ${afterRound}${afterIndex !== undefined ? ", въпрос " + (afterIndex + 1) : ""} (по заявка от админа) — чакам „Продължи“.`);
+  await setState(ep, "pause", 6 * 60 * 60 * 1000, { afterRound, afterIndex: afterIndex ?? null });
   while (true) {
     await sleep(2000);
     try { const sn = await getDoc(ref); if (!(sn.exists() && sn.data().pauseAfterRound === true)) break; } catch(e) {}
@@ -502,6 +502,9 @@ async function runStandardRound(ep, round, questions, Q, EXPL, RANK, introTime) 
 
     await setState(ep, "ranking", RANK, { round, index: i, isFinal: false });
     await sleep(RANK);
+
+    // ⭐ пауза по заявка на админа — след всеки въпрос
+    await maybePause(ep, round, i);
   }
 }
 
@@ -700,6 +703,9 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
     done++;
     await setState(ep, "ranking", RANK9, { round: 9, isFinal: false, hideRanking: hidden });
     await sleep(RANK9);
+
+    // ⭐ пауза по заявка на админа — след всеки въпрос
+    await maybePause(ep, 9, done - 1);
   }
 
   return done;
@@ -750,6 +756,8 @@ async function runRound10(ep) {
 
     await setState(ep, "ranking", RANK10, { round: 10, isFinal: false, hideRanking: true });
     await sleep(RANK10);
+
+    if (tier < 2) await maybePause(ep, 10, tier);
   }
 }
 
@@ -791,18 +799,17 @@ async function runGame(ep, start = 1) {
   const go = n => start <= n;
   if (start > 1) log(`▶ Продължаваме от кръг ${start} (резултатите от по-ранните кръгове се запазват).`);
 
-  if (go(1)) { await runStandardRound(ep, 1, questions1, Q1, EXPL1, RANK1, LOBBY_TIME1); await maybePause(ep, 1); }
-  if (go(2)) { await runStandardRound(ep, 2, questions2, Q2, EXPL2, RANK2, LOBBY_TIME2); await maybePause(ep, 2); }
-  if (go(3)) { await runStandardRound(ep, 3, questions3, Q3, EXPL3, RANK3, LOBBY_TIME3); await maybePause(ep, 3); }
+  if (go(1)) { await runStandardRound(ep, 1, questions1, Q1, EXPL1, RANK1, LOBBY_TIME1); }
+  if (go(2)) { await runStandardRound(ep, 2, questions2, Q2, EXPL2, RANK2, LOBBY_TIME2); }
+  if (go(3)) { await runStandardRound(ep, 3, questions3, Q3, EXPL3, RANK3, LOBBY_TIME3); }
   if (go(4)) {
     await runStandardRound(ep, 4, questions4, Q4, EXPL4, RANK4, LOBBY_TIME4);
-    await maybePause(ep, 4);
     log("☕ Почивка (5 мин.)...");
     await setState(ep, "break", BREAK_TIME, {});
     await sleep(BREAK_TIME);
   }
 
-  if (go(5)) { await runStandardRound(ep, 5, questions5, Q5, EXPL5, RANK5, LOBBY_TIME5); await maybePause(ep, 5); }
+  if (go(5)) { await runStandardRound(ep, 5, questions5, Q5, EXPL5, RANK5, LOBBY_TIME5); }
 
   let r6Chooser = null;
   if (go(6)) {
@@ -825,7 +832,7 @@ async function runGame(ep, start = 1) {
     log(`Избирал в кръг 6 (от записа): ${r6Chooser || "—"}`);
   }
 
-  if (go(7)) { await runStandardRound(ep, 7, questions7, Q7, EXPL7, RANK7, LOBBY_TIME7); await maybePause(ep, 7); }
+  if (go(7)) { await runStandardRound(ep, 7, questions7, Q7, EXPL7, RANK7, LOBBY_TIME7); }
 
   if (go(8)) {
     // ⭐ Дузпа при равенство на ПОСЛЕДНОТО (допустимо) място преди избора в кръг 8 —
@@ -847,7 +854,6 @@ async function runGame(ep, start = 1) {
     // ⭐ Пълно разчистване на равенства (навсякъде в класирането) — нужно за реда на избор в кръг 9
     const tb8 = await runTiebreakIfNeeded(ep, "r8", false, [], "Първи избира тема в Кръг 9 (последен в класирането):");
     await runRound9(ep, tb8.standings);
-    await maybePause(ep, 9);
   }
 
   if (go(10)) await runRound10(ep);
