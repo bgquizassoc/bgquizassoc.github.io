@@ -65,9 +65,9 @@
 
   /* ⭐ таймер с черта — между въпроса и отговорите (кръгове 1-5, 7, 9, 10) */
   /* ⭐ АДМИН */
-  #adminOpenBtn { position: fixed; left: 8px; bottom: 8px; z-index: 9998; opacity: .35; font-size: 13px;
-    padding: 6px 10px; margin: 0; background: #444; color: #fff; border-radius: 8px; }
-  #adminOpenBtn:hover { opacity: 1; transform: none; background: #555; }
+  #adminOpenBtn { display: block; margin: 40px auto 0; opacity: .35; font-size: 12px; font-weight: normal;
+    padding: 5px 10px; background: transparent; color: #aaa; border: 1px solid #555; border-radius: 8px; }
+  #adminOpenBtn:hover { opacity: 1; transform: none; background: #333; }
   #adminPanel { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 9999; max-height: 75vh; overflow-y: auto;
     background: #10151f; border-top: 3px solid #ffd100; padding: 12px; text-align: left; font-size: 0.95em; color: #fff; }
   #adminPanel button { margin: 4px 4px 4px 0; padding: 8px 12px; font-size: 0.95em; }
@@ -407,6 +407,7 @@
   <input type="text" id="player-id" placeholder="Име ..." />
   <button id="start-btn">Започни!</button>
   <button id="archiveBtn">Архив класирания</button>
+  <button id="adminOpenBtn" type="button">🔧 Админ</button>
 </div>
 
 <div id="waiting-screen" style="display:none;">
@@ -635,7 +636,6 @@
   <button id="historyBtn" style="display:none;">История на играта</button>
 </div>
 
-<button id="adminOpenBtn" type="button">🔧 Админ</button>
 <div id="adminPanel"></div>
 
 <script type="module">
@@ -3901,7 +3901,7 @@ function updateAdminStatus() {
   const rd = lastPhaseSnapshot && lastPhaseSnapshot.round;
   let t;
   if (ph === "pause") t = "⏸ Играта е в ПАУЗА — натисни „Продължи“.";
-  else if (adminFlow.pauseAfterRound) t = "⏳ Пауза е заявена — играта ще спре след края на текущия кръг.";
+  else if (adminFlow.pauseAfterRound) t = "⏳ Пауза е заявена — играта ще спре след края на текущия въпрос.";
   else t = "▶ Играта тече" + (ph ? ` (фаза: ${adminEsc(ph)}${rd ? ", кръг " + rd : ""})` : "") + ".";
   el.innerHTML = t;
 }
@@ -3913,7 +3913,7 @@ function adminOpen() {
       <button id="adClose">✕ Затвори</button></div>
     <div class="ad-box">
       <div id="adState" style="margin-bottom:6px"></div>
-      <button id="adPause">⏸ Пауза след края на кръга</button>
+      <button id="adPause">⏸ Пауза след края на въпроса</button>
       <button id="adResume">▶ Продължи / отмени паузата</button>
     </div>
     <div class="ad-box">
