@@ -182,7 +182,7 @@ function render(){
 function screenLogin(){
   view(`<div class="card"><img src="${LOBBY_IMG}" style="width:100%;border-radius:10px" onerror="this.remove()">
    <h1>Мегакуиз Демо 100</h1>
-   <p>Играй сам, със собствено темпо — без класация, без равенства. Научи правилата и жокерите и после се запиши за отборния куиз! 🏆</p>
+   <p>Играй сам, със собствено темпо — без класация, без равенства. Научи правилата и жокерите и после се запиши за отборния куиз! 🏆 във Фейсбук: Orlin Krumov</p>
    <input id="n1" type="text" placeholder="Първо име" autocomplete="given-name">
    <input id="n2" type="text" placeholder="Фамилия" autocomplete="family-name">
    <button class="pri" id="go" style="width:100%;margin-top:6px">Влизам</button>
@@ -203,7 +203,7 @@ function screenLobby(){
   const hasProgress = S.log.length>0;
   view(`<div class="card"><img src="${LOBBY_IMG}" style="width:100%;border-radius:10px" onerror="this.remove()">
    <h1>Здравей, ${esc(S.player.n1)}!</h1>
-   <p>Това е <b>соловата версия</b> на Мегакуиз: 10 кръга, твоето темпо — след всеки въпрос спираш и продължаваш, когато си готов. Няма класация и равенства.</p>
+   <p>Това е <b>соловата версия</b> на Мегакуиз: 10 кръга, играеш с твоето темпо — след всеки въпрос спираш и продължаваш, когато си готов. Няма класация и дузпи при равенства.</p>
    <div class="note">В отборната игра ще има и <b>Мнозинство</b>, <b>Шпионин</b>, жива класация и дузпи срещу другите играчи.</div>
    <p class="mut">Жокери по кръгове: 1 — Палачинка · 2 — Двоен шанс, Мнозинство*, Шпионин*, Патрондаш, Удвояване · 3, 4, 7 — Дай Три · Поправка навсякъде. (*само в отборна игра)</p>
    <button class="pri" id="st" style="width:100%">${hasProgress?"▶ Продължи играта":"▶ Започни — Кръг 1"}</button>
