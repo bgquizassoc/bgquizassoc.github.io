@@ -2,6 +2,7 @@
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Куиз Конфигуратор</title>
 <style>
   body {
@@ -43,8 +44,9 @@
   }
 
   .emoji {
-    width:40px;
+    width:64px;
     text-align:center;
+    flex-shrink:0;
   }
 
   .topic-name {
@@ -68,10 +70,11 @@
     gap:15px;
     margin:8px 0;
     font-size:1.1em;
+    flex-wrap:wrap;
   }
 
   .field-label {
-    width:220px;
+    width:250px;
     text-align:right;
   }
 
@@ -116,10 +119,23 @@
     opacity:0.8;
     margin-top:5px;
   }
+
+  #difficultyFallback {
+    display:none;
+    margin-top:20px;
+    padding:14px;
+    background:rgba(255,209,0,0.08);
+    border-radius:10px;
+    opacity:1;
+  }
+  #difficultyFallback .warn { color:#ffd100; font-weight:bold; }
+  #difficultyFallback button {
+    font-size:1.05em;
+    padding:10px 20px;
+    margin:12px 6px 0 6px;
+  }
 </style>
 </head>
-<body>
-
 <body>
 
 <h1>🛠 Куиз Конфигуратор 2 🛠</h1>
@@ -140,25 +156,7 @@
 <div class="section">
   <h2>Теми и брой въпроси (общо 30)</h2>
 
-  <div class="topic-row"><span class="emoji">🏛️</span><span class="topic-name">Архитектура</span><input type="number" min="0" max="30" value="0" class="topic-input" id="arhitektura"></div>
-  <div class="topic-row"><span class="emoji">🌌</span><span class="topic-name">Астрономия</span><input type="number" min="0" max="30" value="0" class="topic-input" id="astronomia"></div>
-  <div class="topic-row"><span class="emoji">🧬</span><span class="topic-name">Биология</span><input type="number" min="0" max="30" value="0" class="topic-input" id="biologia"></div>
-  <div class="topic-row"><span class="emoji">🗺️</span><span class="topic-name">География</span><input type="number" min="0" max="30" value="0" class="topic-input" id="geografia"></div>
-  <div class="topic-row"><span class="emoji">🎨</span><span class="topic-name">Изкуство</span><input type="number" min="0" max="30" value="0" class="topic-input" id="izkustvo"></div>
-  <div class="topic-row"><span class="emoji">📜</span><span class="topic-name">История</span><input type="number" min="0" max="30" value="0" class="topic-input" id="istoria"></div>
-  <div class="topic-row"><span class="emoji">🎬</span><span class="topic-name">Кино</span><input type="number" min="0" max="30" value="0" class="topic-input" id="kino"></div>
-  <div class="topic-row"><span class="emoji">🍲</span><span class="topic-name">Кулинария</span><input type="number" min="0" max="30" value="0" class="topic-input" id="kulinaria"></div>
-  <div class="topic-row"><span class="emoji">📚</span><span class="topic-name">Литература</span><input type="number" min="0" max="30" value="0" class="topic-input" id="literatura"></div>
-  <div class="topic-row"><span class="emoji">➗</span><span class="topic-name">Математика</span><input type="number" min="0" max="30" value="0" class="topic-input" id="matematika"></div>
-  <div class="topic-row"><span class="emoji">🐉</span><span class="topic-name">Митология</span><input type="number" min="0" max="30" value="0" class="topic-input" id="mitologia"></div>
-  <div class="topic-row"><span class="emoji">🎵</span><span class="topic-name">Музика</span><input type="number" min="0" max="30" value="0" class="topic-input" id="muzika"></div>
-  <div class="topic-row"><span class="emoji">🔬</span><span class="topic-name">Наука</span><input type="number" min="0" max="30" value="0" class="topic-input" id="nauka"></div>
-  <div class="topic-row"><span class="emoji">✝️</span><span class="topic-name">Религия</span><input type="number" min="0" max="30" value="0" class="topic-input" id="religia"></div>
-  <div class="topic-row"><span class="emoji">🏅</span><span class="topic-name">Спорт</span><input type="number" min="0" max="30" value="0" class="topic-input" id="sport"></div>
-  <div class="topic-row"><span class="emoji">🧠</span><span class="topic-name">Философия</span><input type="number" min="0" max="30" value="0" class="topic-input" id="filosofia"></div>
-  <div class="topic-row"><span class="emoji">⚛️</span><span class="topic-name">Физика</span><input type="number" min="0" max="30" value="0" class="topic-input" id="fizika"></div>
-  <div class="topic-row"><span class="emoji">⚽</span><span class="topic-name">Футбол</span><input type="number" min="0" max="30" value="0" class="topic-input" id="futbol"></div>
-  <div class="topic-row"><span class="emoji">⚗️</span><span class="topic-name">Химия</span><input type="number" min="0" max="30" value="0" class="topic-input" id="himia"></div>
+  <div id="topicsList"></div>
 
   <div class="note" id="topicsSummary">Общо въпроси: 0 / 30</div>
 </div>
@@ -190,20 +188,18 @@
     </select>
   </div>
 
-  <!-- ⭐ НОВО: избор на час -->
   <div class="field-row">
     <span class="field-label">Старт на играта (час):</span>
     <input type="time" id="startTime" class="field-input">
   </div>
+
+  <p class="note">При формат „Число“ точките винаги се дават по близост до вярното число (10 / 5 / 3 / 1 / 0), независимо от избрания режим за точки.</p>
 </div>
 
 <div class="section">
-  <h2>Трудност на въпросите</h2>
+  <h2>Трудност на въпросите (общо 30)</h2>
 
-  <div class="field-row"><span class="field-label">Лесни (81–100%):</span><input type="number" min="0" max="30" value="0" class="field-input" id="easyCount"></div>
-  <div class="field-row"><span class="field-label">Средни (61–80%):</span><input type="number" min="0" max="30" value="0" class="field-input" id="mediumCount"></div>
-  <div class="field-row"><span class="field-label">Трудни (31–60%):</span><input type="number" min="0" max="30" value="0" class="field-input" id="hardCount"></div>
-  <div class="field-row"><span class="field-label">Супертрудни (0–30%):</span><input type="number" min="0" max="30" value="0" class="field-input" id="superHardCount"></div>
+  <div id="difficultyList"></div>
 
   <div class="note" id="difficultySummary">Общо по трудност: 0 / 30</div>
 </div>
@@ -213,6 +209,13 @@
   <p>Попълни всички полета. Общият брой въпроси по теми и по трудност трябва да е 30.</p>
   <button id="startBtn">СТАРТ НА КУИЗА</button>
   <div class="error" id="errorBox"></div>
+
+  <div id="difficultyFallback" class="note">
+    <p class="warn">⚠️ Не мога да конфигурирам куиз точно с тези нива на трудност — липсват достатъчно въпроси в избраните теми за някои нива.</p>
+    <p style="margin-top:8px;">Искате ли да го пусна <b>без нива на трудност</b> (само по избраните теми, произволна трудност), или предпочитате да промените настройките?</p>
+    <button id="runWithoutDifficultyBtn">Пусни без нива</button>
+    <button id="editSettingsBtn">Промени настройките</button>
+  </div>
 </div>
 
 <script type="module">
@@ -240,48 +243,97 @@ const db = getFirestore(app);
 const VALID_ID = "1234";
 const TOTAL_QUESTIONS = 30;
 
-const PRESTART_DURATION   = 2 * 60 * 1000;
 const EXPLANATION_DURATION = 10 * 1000;
 const RANKING_DURATION     = 10 * 1000;
 
-/* ------------------------- Теми ------------------------- */
+/* ------------------------- Теми (31, като в index) ------------------------- */
 
-const topicIds = [
-  "arhitektura","astronomia","biologia","geografia","izkustvo","istoria",
-  "kino","kulinaria","literatura","matematika","mitologia","muzika",
-  "nauka","religia","sport","filosofia","fizika","futbol","himia"
+const TOPICS = [
+  { id:"arhitektura",     name:"Архитектура",       emoji:"🏛️" },
+  { id:"geografia",       name:"География",         emoji:"🗺️" },
+  { id:"geografia_bg",    name:"География БГ",      emoji:"🗺️🇧🇬" },
+  { id:"izkustvo",        name:"Изкуство",          emoji:"🎨" },
+  { id:"istoria",         name:"История",           emoji:"📜" },
+  { id:"istoria_bg",      name:"История БГ",        emoji:"📜🇧🇬" },
+  { id:"kino",            name:"Кино",              emoji:"🎬" },
+  { id:"kino_bg",         name:"Кино БГ",           emoji:"🎬🇧🇬" },
+  { id:"kosmos",          name:"Космос",            emoji:"🌌" },
+  { id:"kulinaria",       name:"Кулинария",         emoji:"🍲" },
+  { id:"literatura",      name:"Литература",        emoji:"📚" },
+  { id:"literatura_bg",   name:"Литература БГ",     emoji:"📚🇧🇬" },
+  { id:"matematika",      name:"Математика",        emoji:"➗" },
+  { id:"medicina",        name:"Медицина",          emoji:"💊" },
+  { id:"mitologia",       name:"Митология",         emoji:"🐉" },
+  { id:"muzika",          name:"Музика",            emoji:"🎵" },
+  { id:"muzika_bg",       name:"Музика БГ",         emoji:"🎵🇧🇬" },
+  { id:"nauka",           name:"Наука",             emoji:"🔬" },
+  { id:"opera_balet",     name:"Опера и балет",     emoji:"🎭" },
+  { id:"religia",         name:"Религия",           emoji:"✝️" },
+  { id:"seriali",         name:"Сериали",           emoji:"📺" },
+  { id:"sport",           name:"Спорт",             emoji:"🏅" },
+  { id:"sport_bg",        name:"Спорт БГ",          emoji:"🏅🇧🇬" },
+  { id:"tehnika",         name:"Техника",           emoji:"⚙️" },
+  { id:"fizika",          name:"Физика",            emoji:"⚛️" },
+  { id:"filosofia",       name:"Философия",         emoji:"🧠" },
+  { id:"flora_fauna",     name:"Флора и Фауна",     emoji:"🌿" },
+  { id:"futbol",          name:"Футбол",            emoji:"⚽" },
+  { id:"futbol_bg",       name:"Футбол БГ",         emoji:"⚽🇧🇬" },
+  { id:"himia",           name:"Химия",             emoji:"⚗️" },
+  { id:"english",         name:"English",           emoji:"🇬🇧" }
 ];
 
-const topicMap = {
-  arhitektura:"Архитектура",
-  astronomia:"Астрономия",
-  biologia:"Биология",
-  geografia:"География",
-  izkustvo:"Изкуство",
-  istoria:"История",
-  kino:"Кино",
-  kulinaria:"Кулинария",
-  literatura:"Литература",
-  matematika:"Математика",
-  mitologia:"Митология",
-  muzika:"Музика",
-  nauka:"Наука",
-  religia:"Религия",
-  sport:"Спорт",
-  filosofia:"Философия",
-  fizika:"Физика",
-  futbol:"Футбол",
-  himia:"Химия"
-};
+const TOPIC_IDS = TOPICS.map(t => t.id);
+const TOPIC_MAP = Object.fromEntries(TOPICS.map(t => [t.id, t.name]));
 
-const difficultyIds = ["easyCount","mediumCount","hardCount","superHardCount"];
+/* ------------------------- Трудност (6 нива, като в index) -------------------------
+   q.hard = % от хората, отговорили правилно на въпроса                              */
+
+const DIFFICULTY_TIERS = [
+  { id:"superEasy",  label:"Суперлесни (95–100%)",    min:95 },
+  { id:"easy",       label:"Лесни (81–94%)",          min:81 },
+  { id:"medium",     label:"Средни (61–80%)",         min:61 },
+  { id:"hard",       label:"Трудни (31–60%)",         min:31 },
+  { id:"superHard",  label:"Супертрудни (11–30%)",    min:11 },
+  { id:"national",   label:"За националния (0–10%)",  min:0  }
+];
+
+// Към кое ниво спада даден въпрос (по долна граница, така че и дробни стойности да попадат някъде)
+function tierOf(hard) {
+  if (typeof hard !== "number" || isNaN(hard)) return null;
+  for (const t of DIFFICULTY_TIERS) {
+    if (hard >= t.min) return t.id;
+  }
+  return "national";
+}
 
 /* ------------------------- DOM ------------------------- */
 
-const topicsSummary = document.getElementById("topicsSummary");
-const difficultySummary = document.getElementById("difficultySummary");
-const errorBox = document.getElementById("errorBox");
-const startBtn = document.getElementById("startBtn");
+const topicsListDiv      = document.getElementById("topicsList");
+const difficultyListDiv  = document.getElementById("difficultyList");
+const topicsSummary      = document.getElementById("topicsSummary");
+const difficultySummary  = document.getElementById("difficultySummary");
+const errorBox           = document.getElementById("errorBox");
+const startBtn           = document.getElementById("startBtn");
+const difficultyFallback = document.getElementById("difficultyFallback");
+const runWithoutDifficultyBtn = document.getElementById("runWithoutDifficultyBtn");
+const editSettingsBtn    = document.getElementById("editSettingsBtn");
+
+/* ------------------------- Построяване на формата ------------------------- */
+
+topicsListDiv.innerHTML = TOPICS.map(t => `
+  <div class="topic-row">
+    <span class="emoji">${t.emoji}</span>
+    <span class="topic-name">${t.name}</span>
+    <input type="number" min="0" max="${TOTAL_QUESTIONS}" value="0" class="topic-input" id="topic_${t.id}">
+  </div>
+`).join("");
+
+difficultyListDiv.innerHTML = DIFFICULTY_TIERS.map(d => `
+  <div class="field-row">
+    <span class="field-label">${d.label}:</span>
+    <input type="number" min="0" max="${TOTAL_QUESTIONS}" value="0" class="field-input" id="diff_${d.id}">
+  </div>
+`).join("");
 
 /* ------------------------- Помощни функции ------------------------- */
 
@@ -292,25 +344,33 @@ function getIntValue(id) {
 }
 
 function updateTopicsSummary() {
-  const sum = topicIds.reduce((acc, id) => acc + getIntValue(id), 0);
+  const sum = TOPIC_IDS.reduce((acc, id) => acc + getIntValue(`topic_${id}`), 0);
   topicsSummary.textContent = `Общо въпроси: ${sum} / ${TOTAL_QUESTIONS}`;
   return sum;
 }
 
 function updateDifficultySummary() {
-  const sum = difficultyIds.reduce((acc, id) => acc + getIntValue(id), 0);
+  const sum = DIFFICULTY_TIERS.reduce((acc, d) => acc + getIntValue(`diff_${d.id}`), 0);
   difficultySummary.textContent = `Общо по трудност: ${sum} / ${TOTAL_QUESTIONS}`;
   return sum;
 }
 
-topicIds.forEach(id => {
-  document.getElementById(id).addEventListener("input", updateTopicsSummary);
+TOPIC_IDS.forEach(id => {
+  document.getElementById(`topic_${id}`).addEventListener("input", updateTopicsSummary);
 });
-difficultyIds.forEach(id => {
-  document.getElementById(id).addEventListener("input", updateDifficultySummary);
+DIFFICULTY_TIERS.forEach(d => {
+  document.getElementById(`diff_${d.id}`).addEventListener("input", updateDifficultySummary);
 });
 updateTopicsSummary();
 updateDifficultySummary();
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 /* ------------------------- Зареждане на JSON ------------------------- */
 
@@ -320,110 +380,159 @@ async function loadJSON(name) {
   return res.json();
 }
 
-async function loadAllQuestions() {
-  const abwg  = await loadJSON("abwg.json");
-  const open  = await loadJSON("open.json");
-  const cifro = await loadJSON("cifromania.json");
-  return [...abwg, ...open, ...cifro];
+// Привежда въпросите от различните JSON формати към един общ вид (същото като в index)
+function normalizeQuestion(q) {
+  const n = { ...q };
+
+  // Числов формат: cifromania.json пази числото в "answer", а не в "number"
+  if (typeof n.number !== "number" && typeof n.answer === "number") n.number = n.answer;
+
+  // area и hard са влезли по грешка вътре в "ranges" — изваждаме ги навън
+  if (n.ranges && typeof n.ranges === "object") {
+    if (n.area === undefined && n.ranges.area !== undefined) n.area = n.ranges.area;
+    if (n.hard === undefined && n.ranges.hard !== undefined) n.hard = n.ranges.hard;
+  }
+
+  // Темите се сравняват без значение от интервали и главни/малки букви
+  if (typeof n.area === "string") {
+    const key = n.area.trim().toLowerCase();
+    const topic = TOPICS.find(t => t.name.toLowerCase() === key);
+    n.area = topic ? topic.name : n.area.trim();
+  }
+  return n;
 }
 
-/* ------------------------- Shuffle ------------------------- */
+let allQuestionsCache = null;
+async function loadAllQuestions() {
+  if (allQuestionsCache) return allQuestionsCache;
+  const abvg  = await loadJSON("abvg.json");   // ⭐ беше "abwg.json" — файлът се казва abvg.json
+  const open  = await loadJSON("open.json");
+  const cifro = await loadJSON("cifromania.json");
+  allQuestionsCache = [...abvg, ...open, ...cifro].map(normalizeQuestion);
+  return allQuestionsCache;
+}
 
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+/* ------------------------- Разпределяне тема × трудност -------------------------
+   Трябва да изберем точно N_тема въпроса от всяка тема И точно N_ниво въпроса от всяко
+   ниво на трудност. Това е задача за максимален поток (source → теми → нива → sink).
+   Ако потокът е по-малък от 30, конфигурацията не е изпълнима с наличните въпроси. */
+
+function solveAssignment(topicNeeds, tierNeeds, bucketSizes) {
+  const T = topicNeeds.length, D = tierNeeds.length;
+  const N = T + D + 2, S = T + D, K = T + D + 1;
+  const cap = Array.from({ length: N }, () => new Array(N).fill(0));
+
+  for (let i = 0; i < T; i++) cap[S][i] = topicNeeds[i];
+  for (let j = 0; j < D; j++) cap[T + j][K] = tierNeeds[j];
+  for (let i = 0; i < T; i++) {
+    for (let j = 0; j < D; j++) {
+      cap[i][T + j] = Math.min(bucketSizes[i][j], topicNeeds[i], tierNeeds[j]);
+    }
   }
+
+  // случаен ред на обхождане → различни (но валидни) разпределения всеки път
+  const order = shuffle([...Array(N).keys()]);
+  let flow = 0;
+
+  while (true) {
+    const prev = new Array(N).fill(-1);
+    prev[S] = S;
+    const queue = [S];
+    while (queue.length && prev[K] === -1) {
+      const u = queue.shift();
+      for (const v of order) {
+        if (prev[v] === -1 && cap[u][v] > 0) { prev[v] = u; queue.push(v); }
+      }
+    }
+    if (prev[K] === -1) break;
+
+    let f = Infinity;
+    for (let v = K; v !== S; v = prev[v]) f = Math.min(f, cap[prev[v]][v]);
+    for (let v = K; v !== S; v = prev[v]) {
+      cap[prev[v]][v] -= f;
+      cap[v][prev[v]] += f;
+    }
+    flow += f;
+  }
+
+  // обратният ръб тема←ниво е започнал от 0, така че неговият капацитет = изпратеният поток
+  const x = Array.from({ length: T }, (_, i) =>
+    Array.from({ length: D }, (_, j) => cap[T + j][i])
+  );
+
+  return { flow, x };
 }
 
 /* ------------------------- Генериране на коктейл ------------------------- */
 
-async function generateCocktail(config) {
+async function generateCocktail(config, useDifficulty) {
   const all = await loadAllQuestions();
 
   let filtered = all;
-
   if (config.format === "mcq") {
-    filtered = all.filter(q =>
-      Array.isArray(q.answers) &&
-      typeof q.correct === "string"
-    );
+    filtered = all.filter(q => Array.isArray(q.answers) && typeof q.correct === "string");
+  } else if (config.format === "open_first_letter") {
+    filtered = all.filter(q => typeof q.letter === "string" && q.letter.length === 1);
+  } else if (config.format === "number") {
+    filtered = all.filter(q => typeof q.number === "number");
   }
 
-  if (config.format === "open_first_letter") {
-    filtered = all.filter(q =>
-      typeof q.letter === "string" &&
-      q.letter.length === 1
-    );
-  }
+  const activeTopics = TOPIC_IDS.filter(id => config.topics[id] > 0);
 
-  if (config.format === "number") {
-    filtered = all.filter(q =>
-      typeof q.number === "number"
-    );
-  }
-
-  const pool = filtered.filter(q =>
-    Object.keys(config.topics).some(topicId =>
-      config.topics[topicId] > 0 && q.area === topicMap[topicId]
-    )
-  );
-
-  shuffle(pool);
+  const poolByTopic = {};
+  activeTopics.forEach(id => {
+    poolByTopic[id] = shuffle(filtered.filter(q => q.area === TOPIC_MAP[id]));
+  });
 
   let final = [];
 
-  for (const topicId of Object.keys(config.topics)) {
-    const need = config.topics[topicId];
-    if (need === 0) continue;
+  if (useDifficulty) {
+    // СТРИКТНО: точно толкова въпроси от всяко ниво, колкото са поискани.
+    const activeTiers = DIFFICULTY_TIERS.filter(d => config.difficulty[d.id] > 0);
 
-    const topicName = topicMap[topicId];
-    const topicPool = pool.filter(q => q.area === topicName);
+    const buckets = activeTopics.map(tid =>
+      activeTiers.map(tier => poolByTopic[tid].filter(q => tierOf(q.hard) === tier.id))
+    );
 
-    const easy      = topicPool.filter(q => q.hard >= 76);
-    const medium    = topicPool.filter(q => q.hard >= 51 && q.hard <= 75);
-    const hard      = topicPool.filter(q => q.hard >= 26 && q.hard <= 50);
-    const superHard = topicPool.filter(q => q.hard <= 25);
+    const { x } = solveAssignment(
+      activeTopics.map(tid => config.topics[tid]),
+      activeTiers.map(t => config.difficulty[t.id]),
+      buckets.map(row => row.map(b => b.length))
+    );
 
-    shuffle(easy);
-    shuffle(medium);
-    shuffle(hard);
-    shuffle(superHard);
-
-    let chosen = [];
-
-    chosen.push(...easy.slice(0, config.difficulty.easy));
-    chosen.push(...medium.slice(0, config.difficulty.medium));
-    chosen.push(...hard.slice(0, config.difficulty.hard));
-    chosen.push(...superHard.slice(0, config.difficulty.superHard));
-
-    if (chosen.length < need) {
-      const remaining = topicPool.filter(q => !chosen.includes(q));
-      shuffle(remaining);
-      chosen.push(...remaining.slice(0, need - chosen.length));
-    }
-
-    final.push(...chosen.slice(0, need));
+    activeTopics.forEach((tid, i) => {
+      activeTiers.forEach((tier, j) => {
+        final.push(...buckets[i][j].slice(0, x[i][j]));
+      });
+    });
+  } else {
+    // БЕЗ НИВА: нужния брой въпроси от всяка тема, независимо от трудността.
+    activeTopics.forEach(tid => {
+      final.push(...poolByTopic[tid].slice(0, config.topics[tid]));
+    });
   }
 
-  final.sort((a, b) => b.hard - a.hard);
+  // от най-лесните (най-висок % верни) към най-трудните
+  final.sort((a, b) => (b.hard || 0) - (a.hard || 0));
 
   return final.slice(0, TOTAL_QUESTIONS);
 }
 
 /* ------------------------- Firestore запис ------------------------- */
+
 async function saveToFirestore(episodeId, cocktail, config) {
+  // JSON round-trip маха undefined стойности, които Firestore не приема
+  const clean = JSON.parse(JSON.stringify({ questions: cocktail, config }));
+
   await setDoc(
     doc(db, "games", "configurator", "episodes", episodeId),
-    {
-      questions: cocktail,
-      config: config
-    },
+    clean,
     { merge: true }
   );
 }
 
 /* ------------------------- Фазов двигател ------------------------- */
+
 async function scheduleEpisode(episodeId, cocktail, config) {
 
   const questionDuration = config.timePerQuestion * 1000;
@@ -514,14 +623,32 @@ async function scheduleEpisode(episodeId, cocktail, config) {
       }
     );
   }, offset);
+}
 
-}   // ← ТАЗИ СКОБА ТИ ЛИПСВАШЕ
+/* ------------------------- Старт ------------------------- */
 
-  /* ------------------------- Старт ------------------------- */
+let pendingConfig = null; // чака потвърждение, когато строгата генерация не е успяла
+
+async function launchEpisode(config, cocktail) {
+  const episodeId = "ep" + Date.now();
+
+  errorBox.textContent = "Качвам във Firestore...";
+  errorBox.classList.add("ok");
+  await saveToFirestore(episodeId, cocktail, config);
+
+  errorBox.textContent = "Планирам автоматичните фази...";
+  await scheduleEpisode(episodeId, cocktail, config);
+
+  difficultyFallback.style.display = "none";
+  pendingConfig = null;
+  errorBox.textContent = `✔ Готово! Епизодът е стартиран: ${episodeId}. Не затваряй тази страница, докато трае играта.`;
+  errorBox.classList.add("ok");
+}
 
 startBtn.onclick = async () => {
   errorBox.textContent = "";
   errorBox.classList.remove("ok");
+  difficultyFallback.style.display = "none";
 
   const id = document.getElementById("configId").value.trim();
   if (id !== VALID_ID) {
@@ -564,49 +691,78 @@ startBtn.onclick = async () => {
   ).getTime();
 
   const config = {
-    topics: Object.fromEntries(topicIds.map(id => [id, getIntValue(id)])),
-    difficulty: {
-      easy: getIntValue("easyCount"),
-      medium: getIntValue("mediumCount"),
-      hard: getIntValue("hardCount"),
-      superHard: getIntValue("superHardCount")
-    },
+    topics: Object.fromEntries(TOPIC_IDS.map(id => [id, getIntValue(`topic_${id}`)])),
+    difficulty: Object.fromEntries(DIFFICULTY_TIERS.map(d => [d.id, getIntValue(`diff_${d.id}`)])),
     timePerQuestion,
     format,
     pointsMode,
     startAt
   };
 
+  startBtn.disabled = true;
+
   try {
     errorBox.textContent = "Генерирам коктейл...";
     errorBox.classList.add("ok");
 
-    const cocktail = await generateCocktail(config);
+    const strict = await generateCocktail(config, true);
 
-    if (cocktail.length < TOTAL_QUESTIONS) {
-      errorBox.textContent = "❌ Няма достатъчно въпроси за избраните параметри.";
-      errorBox.classList.remove("ok");
+    if (strict.length >= TOTAL_QUESTIONS) {
+      await launchEpisode({ ...config, difficultyApplied: true }, strict);
       return;
     }
 
-    const episodeId = "ep" + Date.now();
-
-    errorBox.textContent = "Качвам във Firestore...";
-    await saveToFirestore(episodeId, cocktail, config);
-
-    errorBox.textContent = "Планирам автоматичните фази...";
-    await scheduleEpisode(episodeId, cocktail, config);
-
-    errorBox.textContent = `✔ Готово! Епизодът е стартиран: ${episodeId}`;
-    errorBox.classList.add("ok");
+    // Не достигат въпроси за точните нива на трудност — питаме
+    pendingConfig = config;
+    errorBox.textContent = "";
+    errorBox.classList.remove("ok");
+    difficultyFallback.style.display = "block";
+    startBtn.disabled = false;
   } catch (e) {
     console.error(e);
     errorBox.textContent = "❌ Грешка при генериране или запис. Виж конзолата.";
     errorBox.classList.remove("ok");
+    startBtn.disabled = false;
   }
+};
+
+runWithoutDifficultyBtn.onclick = async () => {
+  if (!pendingConfig) return;
+  runWithoutDifficultyBtn.disabled = true;
+  editSettingsBtn.disabled = true;
+  startBtn.disabled = true;
+
+  try {
+    errorBox.textContent = "Генерирам коктейл без нива...";
+    errorBox.classList.add("ok");
+
+    const loose = await generateCocktail(pendingConfig, false);
+
+    if (loose.length < TOTAL_QUESTIONS) {
+      errorBox.textContent = "❌ Дори без нива на трудност няма достатъчно въпроси за избраните теми. Намали броя теми/въпроси.";
+      errorBox.classList.remove("ok");
+      startBtn.disabled = false;
+      return;
+    }
+
+    await launchEpisode({ ...pendingConfig, difficultyApplied: false }, loose);
+  } catch (e) {
+    console.error(e);
+    errorBox.textContent = "❌ Грешка при генериране или запис. Виж конзолата.";
+    errorBox.classList.remove("ok");
+    startBtn.disabled = false;
+  } finally {
+    runWithoutDifficultyBtn.disabled = false;
+    editSettingsBtn.disabled = false;
+  }
+};
+
+editSettingsBtn.onclick = () => {
+  pendingConfig = null;
+  difficultyFallback.style.display = "none";
+  errorBox.textContent = "";
 };
 </script>
 
 </body>
 </html>
-
