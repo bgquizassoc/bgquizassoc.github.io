@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>⚡ Игри на Знания - Куиз Конфигуратор ⚡</title>
+  <title>⚡ Игри на Знания - Куиз Конфигуратор Live⚡</title>
 
   <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -43,7 +43,8 @@
     border-radius: 8px; border: none;
     background: #ffd100; color: #111; font-weight: bold; cursor: pointer;
   }
-  button:hover { background:#ffcc33; transform:scale(1.05); }
+  button:hover:not(:disabled) { background:#ffcc33; transform:scale(1.05); }
+  button:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
 
   #globalTimer {
     text-align: center; font-weight: 800; margin: 20px 0;
@@ -59,12 +60,48 @@
     border: none; border-radius: 10px; cursor: pointer;
     font-size: 1.2em; background: #333; color: #fff;
   }
+  .answers button:hover:not(:disabled) { background:#444; transform:scale(1.02); }
 
   .answers button.selected {
     background: #00e5ff;
     color: #003344;
     font-weight: bold;
   }
+
+  /* ===== БУКВА / ЧИСЛО ===== */
+  #letterArea, #numberArea {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #letterInput {
+    width: 80px; height: 80px; font-size: 2.4em;
+    text-align: center; border-radius: 12px;
+    border: 3px solid #00509e; background: #001a33; color: #fff;
+    font-weight: bold; text-transform: uppercase;
+    caret-color: #ffd100; outline: none; margin-bottom: 0;
+  }
+  #letterInput:focus { border-color: #ffd100; box-shadow: 0 0 10px #ffd10066; }
+  #letterInput.submitted { border-color:#00e676; background:#00264d; color:#00e676; }
+
+  #numberInput { width: 220px; text-align:center; font-size:1.4em; margin-bottom:0; }
+  #numberInput:disabled { border-color:#00e676; }
+
+  .submit-btn { width: 220px; }
+
+  .jokers-panel { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:6px; }
+  .joker-btn {
+    background:#0d47a1; color:#fff; border:2px solid #1565c0;
+    border-radius:10px; padding:10px 16px; font-size:1.0em; font-weight:bold; cursor:pointer;
+  }
+  .joker-btn:hover:not(:disabled) { background:#1565c0; transform:scale(1.03); }
+  .joker-btn:disabled { opacity:0.35; cursor:not-allowed; background:#555; border-color:#555; }
+  #jokerNote { margin-top: 6px; min-height: 18px; font-size:1.0em; color:#ffd100; font-weight:bold; }
+
+  .saved-msg { margin-top:14px; color:#7CFC00; font-weight:bold; min-height:22px; }
 
   #answeredList {
     margin-top: 20px;
@@ -102,12 +139,22 @@
     font-weight: bold;
   }
 
+  .stat-answer.mine { outline: 3px solid #00e5ff; }
+
   .stat-answer .pct {
     position: absolute;
     right: 16px;
     top: 50%;
     transform: translateY(-50%);
     opacity: 0.9;
+  }
+
+  .my-result {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    font-size: 1.1em;
   }
 
   #explanationText {
@@ -152,6 +199,18 @@
     border-bottom: 1px solid rgba(255,255,255,0.1);
   }
 
+  .format-help {
+    margin-top: 12px;
+    text-align: left;
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: #cce8ff;
+    background: rgba(255,255,255,0.05);
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+  .format-help strong { color:#ffd100; }
+
   .myself {
     background: #00e5ff55 !important;
     border-left: 6px solid #00e5ff !important;
@@ -163,7 +222,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор ⚡<br>⚡ епизод 72⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор Live ⚡<br>⚡ епизод 73⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -193,7 +252,7 @@
 
 <div id="quiz" style="display:none;">
   <div id="question"></div>
-  <div id="answers" class="answers"></div>
+  <div id="answers"></div>
 
   <div id="answeredList" style="display:none;">
     <strong>Отговорили:</strong>
@@ -235,6 +294,7 @@ const rankingList = document.getElementById("rankingList");
 const rankingTitle = document.getElementById("rankingTitle");
 const historyBtn = document.getElementById("historyBtn");
 const lobbyList = document.getElementById("lobbyList");
+const lobbyTitle = document.getElementById("lobbyTitle");
 
 const globalTimer = document.getElementById("globalTimer");
 const waitingTitle = document.getElementById("waitingTitle");
@@ -253,7 +313,7 @@ const firebaseConfig = {
   appId: "1:165208255580:web:b36744f0eb527b6571129"
 };
 
-  const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let player = "";
@@ -264,9 +324,10 @@ let episodeId = null;
 
 let lobbyUnsub = null;
 let lobbyEpisodeId = null;
-let questionsLoaded = false;
+let loadedEpisodeId = null;
+let joinedEpisodeId = null;
 let episodeConfig = null;
-  
+
 const formatNames = {
   mcq: "Избор от 4 отговора (а,б,в,г)",
   open_first_letter: "Отговор с първа буква",
@@ -278,27 +339,124 @@ const pointsNames = {
   by_difficulty: "По трудност"
 };
 
+/* Теми (31, като в config и index) */
 const topicMap = {
   arhitektura:"Архитектура",
-  astronomia:"Астрономия",
-  biologia:"Биология",
   geografia:"География",
+  geografia_bg:"География БГ",
   izkustvo:"Изкуство",
   istoria:"История",
+  istoria_bg:"История БГ",
   kino:"Кино",
+  kino_bg:"Кино БГ",
+  kosmos:"Космос",
   kulinaria:"Кулинария",
   literatura:"Литература",
+  literatura_bg:"Литература БГ",
   matematika:"Математика",
+  medicina:"Медицина",
   mitologia:"Митология",
   muzika:"Музика",
+  muzika_bg:"Музика БГ",
   nauka:"Наука",
+  opera_balet:"Опера и балет",
   religia:"Религия",
+  seriali:"Сериали",
   sport:"Спорт",
-  filosofia:"Философия",
+  sport_bg:"Спорт БГ",
+  tehnika:"Техника",
   fizika:"Физика",
+  filosofia:"Философия",
+  flora_fauna:"Флора и Фауна",
   futbol:"Футбол",
-  himia:"Химия"
+  futbol_bg:"Футбол БГ",
+  himia:"Химия",
+  english:"English"
 };
+
+/* Нива на трудност (6, като в config и index) */
+const DIFF_LABELS = {
+  superEasy: "Суперлесни",
+  easy: "Лесни",
+  medium: "Средни",
+  hard: "Трудни",
+  superHard: "Супертрудни",
+  national: "За националния"
+};
+const DIFF_ORDER = ["superEasy", "easy", "medium", "hard", "superHard", "national"];
+
+/* ------------------------- Помощни ------------------------- */
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => (
+    { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]
+  ));
+}
+
+function normalize(s) { return String(s == null ? "" : s).trim(); }
+function normalizeUpper(s) { return normalize(s).toUpperCase(); }
+
+function getFormat() {
+  return (episodeConfig && episodeConfig.format) || "mcq";
+}
+
+function getPointsMode() {
+  return (episodeConfig && (episodeConfig.pointsMode || episodeConfig.scoringMode)) || "by_difficulty";
+}
+
+function letterList(q) {
+  return [normalizeUpper(q.letter), ...(q.alt_letters || []).map(normalizeUpper)];
+}
+
+/* Верният отговор във вид за показване / запис */
+function correctDisplay(q) {
+  const fmt = getFormat();
+  if (fmt === "mcq") return normalize(q.correct);
+  if (fmt === "open_first_letter") return letterList(q).join(" / ");
+  return String(q.number);
+}
+
+/* ------------------------- Точки ------------------------- */
+
+function pointsForBinary(i) {
+  if (getPointsMode() === "equal") return 1;
+  if (i < 10) return 1;
+  if (i < 20) return 2;
+  return 3;
+}
+
+function calcNumberPoints(diff, q) {
+  const r = q.ranges;
+  if (diff === 0) return 10;
+  if (r && diff <= r.near) return 5;
+  if (r && diff <= r.mid) return 3;
+  if (r && diff <= r.far) return 1;
+  return 0;
+}
+
+/* Оценяване на един отговор според формата */
+function evaluateAnswer(q, index, answerRaw) {
+  const fmt = getFormat();
+  const ans = normalize(answerRaw);
+
+  if (fmt === "mcq") {
+    const ok = ans !== "" && ans === normalize(q.correct);
+    return { isCorrect: ok, points: ok ? pointsForBinary(index) : 0 };
+  }
+
+  if (fmt === "open_first_letter") {
+    const ok = ans !== "" && letterList(q).includes(ans.toUpperCase());
+    return { isCorrect: ok, points: ok ? pointsForBinary(index) : 0 };
+  }
+
+  // number
+  const correct = Number(q.number);
+  const user = Number(ans);
+  const diff = (ans === "" || isNaN(user)) ? Infinity : Math.abs(user - correct);
+  return { isCorrect: diff === 0, points: calcNumberPoints(diff, q) };
+}
+
+/* ------------------------- Екрани ------------------------- */
 
 document.getElementById("archiveBtn").onclick = () => {
   window.location.href = "archive.html";
@@ -364,7 +522,6 @@ function seededShuffle(array, seed) {
   return result;
 }
 
-/* Поправено заглавие на класиране */
 function updateRankingTitle(index) {
   if (!questions || questions.length === 0) {
     rankingTitle.textContent = "Временно класиране";
@@ -377,9 +534,10 @@ function updateRankingTitle(index) {
   historyBtn.style.display = isLast ? "block" : "none";
 }
 
-/* Зареждане на въпросите */
+/* ------------------------- Зареждане на въпросите ------------------------- */
+
 async function loadQuestionsFromFirestore() {
-  if (!episodeId || questionsLoaded) return;
+  if (!episodeId || loadedEpisodeId === episodeId) return;
 
   const qDoc = await getDoc(
     doc(db, "games", "configurator", "episodes", episodeId)
@@ -393,16 +551,29 @@ async function loadQuestionsFromFirestore() {
   const data = qDoc.data();
   questions = data.questions || [];
   episodeConfig = data.config || {};
-  questionsLoaded = true;
+  loadedEpisodeId = episodeId;
 
   if (ready && lastPhaseSnapshot) {
     applyPhaseImmediately(lastPhaseSnapshot);
   }
 }
 
-/* Влизане в играта */
+/* ------------------------- Влизане в играта ------------------------- */
+
+async function joinLobby() {
+  if (!ready || !episodeId || !player || joinedEpisodeId === episodeId) return;
+  joinedEpisodeId = episodeId;
+
+  await setDoc(
+    doc(db, "games", "configurator", "episodes", episodeId, "lobby", player),
+    { joinedAt: Date.now() },
+    { merge: true }
+  );
+}
+
 document.getElementById("enterBtn").onclick = async () => {
-  player = document.getElementById("playerName").value.trim();
+  // "/" не е позволен в идентификатор на документ във Firestore
+  player = document.getElementById("playerName").value.trim().replace(/\//g, "-");
   if (!player) return alert("Въведете име!");
 
   ready = true;
@@ -417,18 +588,296 @@ document.getElementById("enterBtn").onclick = async () => {
 
   if (!episodeId) return;
 
-  await setDoc(
-    doc(db, "games", "configurator", "episodes", episodeId, "lobby", player),
-    { joinedAt: Date.now() },
-    { merge: true }
-  );
-
+  await joinLobby();
   await loadQuestionsFromFirestore();
 
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
-/* Обяснение */
+/* ------------------------- Описание на параметрите (лоби) ------------------------- */
+
+function formatHelpHtml() {
+  const fmt = getFormat();
+
+  if (fmt === "open_first_letter") {
+    return `
+      <div class="format-help">
+        <p>⭐ Отговаря се с изписване на първата буква от това, което сте намислили.</p>
+        <p>⭐ Ако се пита за име на човек, пише се фамилната му буква; ако е обект или термин — първата буква на първата дума.</p>
+        <p>⭐ Пример: за Стара планина пишем С, за Иван Вазов пишем В.</p>
+        <p>⭐ Ако се пита нещо различно — във въпроса ще пише „Търси се еди какво си...“.</p>
+        <p>⭐ След като напишете буква, натиснете „Изпрати“ (или Enter).</p>
+        <p>⭐ Имате жокер <strong>Втора сричка</strong> — еднократен за цялата игра.</p>
+      </div>`;
+  }
+
+  if (fmt === "number") {
+    return `
+      <div class="format-help">
+        <p>⭐ Пишете най-близкото число, което се сещате.</p>
+        <p>⭐ Точен отговор дава 10 точки, а близките отговори също носят точки (5 / 3 / 1).</p>
+        <p>⭐ След като напишете число, натиснете „Отговори“ (или Enter).</p>
+      </div>`;
+  }
+
+  return "";
+}
+
+function renderLobbyInfo() {
+  if (!episodeConfig) return;
+
+  const topics = Object.entries(episodeConfig.topics || {})
+    .filter(([k, v]) => v > 0)
+    .map(([k, v]) => `${esc(topicMap[k] || k)} — ${v} въпроса`)
+    .join("<br>");
+
+  const diff = episodeConfig.difficulty || {};
+  const diffText = DIFF_ORDER
+    .filter(k => typeof diff[k] === "number")
+    .map(k => `${DIFF_LABELS[k]}: ${diff[k]}`)
+    .join("<br>");
+
+  const todayConfigurator = " Орлин Крумов ";
+
+  lobbyTitle.innerHTML = `
+    <div style="font-size:1.1em; margin-bottom:10px; color:#ff66cc;">
+      <b>Днес конфигуратор е:</b> ${todayConfigurator}
+    </div>
+    <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
+      <b>Параметрите на куиза са:</b>
+    </div>
+    <div style="font-size:0.95em; line-height:1.4; color:#7CFC00;">
+      <b>Формат:</b> ${formatNames[episodeConfig.format] || ""}<br>
+      <b>Точки:</b> ${pointsNames[getPointsMode()] || ""}<br>
+      <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
+      <b>Теми:</b><br>${topics}<br><br>
+      <b>Трудност:</b><br>${diffText}
+    </div>
+    ${formatHelpHtml()}
+  `;
+}
+
+/* ------------------------- Отговор ------------------------- */
+
+const JOKER_KEY = () => `qk_joker_${episodeId}_${player}`;
+
+function loadJoker() {
+  try { return JSON.parse(localStorage.getItem(JOKER_KEY())) || null; }
+  catch (e) { return null; }
+}
+function saveJoker(index) {
+  try { localStorage.setItem(JOKER_KEY(), JSON.stringify({ used: true, index })); }
+  catch (e) {}
+}
+
+/* Заключва интерфейса след изпратен отговор */
+function lockAnswerUI(answerText) {
+  Array.from(answersDiv.querySelectorAll("button, input")).forEach(el => {
+    // жокерът си има собствено състояние
+    if (el.classList.contains("joker-btn")) return;
+    el.disabled = true;
+  });
+
+  // маркира избрания бутон при mcq
+  Array.from(answersDiv.querySelectorAll(".answers button")).forEach(b => {
+    if (normalize(b.textContent) === normalize(answerText)) b.classList.add("selected");
+  });
+
+  const li = document.getElementById("letterInput");
+  if (li) li.classList.add("submitted");
+
+  let msg = answersDiv.querySelector(".saved-msg");
+  if (!msg) {
+    msg = document.createElement("div");
+    msg.className = "saved-msg";
+    answersDiv.appendChild(msg);
+  }
+  msg.textContent = "✔ Отговорът ти е записан";
+}
+
+/* Записва отговора във Firestore (общо за всички формати) */
+async function submitAnswer(index, q, answerText, startTime) {
+  const ans = normalize(answerText);
+  const thinkingTime = Date.now() - startTime;
+  const result = evaluateAnswer(q, index, ans);
+
+  lockAnswerUI(ans);
+
+  try {
+    await setDoc(
+      doc(db, "games", "configurator", "episodes", episodeId, "results", player),
+      { exists: true },
+      { merge: true }
+    );
+
+    // ⭐ Без undefined стойности — Firestore ги отхвърля (затова не работеха open/cifromania)
+    await setDoc(
+      doc(db, "games", "configurator", "episodes", episodeId, "results", player, "answers", String(index)),
+      {
+        answer: ans,
+        correct: correctDisplay(q),
+        explanation: q.explanation || "",
+        isCorrect: result.isCorrect,
+        points: result.points,
+        timestamp: Date.now(),
+        thinkingTime
+      }
+    );
+  } catch (e) {
+    console.error("Грешка при запис на отговора:", e);
+    const msg = answersDiv.querySelector(".saved-msg");
+    if (msg) {
+      msg.style.color = "#ff8080";
+      msg.textContent = "❌ Не успях да запиша отговора. Провери връзката.";
+    }
+  }
+}
+
+/* ---------- MCQ ---------- */
+function renderMCQ(q, index, startTime) {
+  const wrap = document.createElement("div");
+  wrap.className = "answers";
+
+  const seed = episodeId.length * 1000 + index;
+  const shuffled = seededShuffle(q.answers || [], seed);
+
+  shuffled.forEach(ans => {
+    const btn = document.createElement("button");
+    btn.textContent = ans;
+    btn.onclick = () => {
+      btn.classList.add("selected");
+      submitAnswer(index, q, ans, startTime);
+    };
+    wrap.appendChild(btn);
+  });
+
+  answersDiv.appendChild(wrap);
+}
+
+/* ---------- ПЪРВА БУКВА ---------- */
+function renderLetter(q, index, startTime) {
+  const wrap = document.createElement("div");
+  wrap.id = "letterArea";
+
+  const hint = document.createElement("div");
+  hint.textContent = q.hint_text || "Впиши първата буква:";
+  wrap.appendChild(hint);
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.id = "letterInput";
+  input.maxLength = 1;
+  input.autocomplete = "off";
+  input.oninput = () => { input.value = input.value.slice(0, 1).toUpperCase(); };
+  wrap.appendChild(input);
+
+  const submitBtn = document.createElement("button");
+  submitBtn.className = "submit-btn";
+  submitBtn.textContent = "Изпрати";
+  wrap.appendChild(submitBtn);
+
+  function doSubmit() {
+    const typed = input.value.trim();
+    if (!typed) return;
+    submitAnswer(index, q, typed, startTime);
+  }
+
+  input.onkeydown = (e) => { if (e.key === "Enter") doSubmit(); };
+  submitBtn.onclick = doSubmit;
+
+  // жокер "Втора сричка" — еднократен за цялата игра
+  if (q.syllable2) {
+    const panel = document.createElement("div");
+    panel.className = "jokers-panel";
+
+    const jokerBtn = document.createElement("button");
+    jokerBtn.type = "button";
+    jokerBtn.className = "joker-btn";
+    jokerBtn.textContent = "🔤 Втора сричка";
+
+    const note = document.createElement("div");
+    note.id = "jokerNote";
+
+    const state = loadJoker();
+    if (state && state.used) {
+      jokerBtn.disabled = true;
+      // ако страницата е презаредена на същия въпрос — показваме отново подсказката
+      if (state.index === index) note.textContent = `🔤 Втора сричка: "${q.syllable2}"`;
+    }
+
+    jokerBtn.onclick = () => {
+      saveJoker(index);
+      jokerBtn.disabled = true;
+      note.textContent = `🔤 Втора сричка: "${q.syllable2}"`;
+    };
+
+    panel.appendChild(jokerBtn);
+    wrap.appendChild(panel);
+    wrap.appendChild(note);
+  }
+
+  answersDiv.appendChild(wrap);
+  input.focus();
+}
+
+/* ---------- ЧИСЛО ---------- */
+function renderNumber(q, index, startTime) {
+  const wrap = document.createElement("div");
+  wrap.id = "numberArea";
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.id = "numberInput";
+  input.placeholder = "Въведи число";
+  wrap.appendChild(input);
+
+  const submitBtn = document.createElement("button");
+  submitBtn.className = "submit-btn";
+  submitBtn.textContent = "Отговори";
+  wrap.appendChild(submitBtn);
+
+  function doSubmit() {
+    if (input.value === "") return;
+    submitAnswer(index, q, input.value, startTime);
+  }
+
+  input.onkeydown = (e) => { if (e.key === "Enter") doSubmit(); };
+  submitBtn.onclick = doSubmit;
+
+  answersDiv.appendChild(wrap);
+  input.focus();
+}
+
+/* Ако вече има записан отговор (презареждане на страницата) — не позволяваме втори */
+async function lockIfAlreadyAnswered(index) {
+  try {
+    const snap = await getDoc(
+      doc(db, "games", "configurator", "episodes", episodeId, "results", player, "answers", String(index))
+    );
+    if (snap.exists()) lockAnswerUI(snap.data().answer);
+  } catch (e) {
+    console.warn("Не мога да проверя дали вече е отговорено:", e);
+  }
+}
+
+/* ------------------------- Обяснение ------------------------- */
+
+/* Събира отговорите на всички играчи за даден въпрос */
+async function fetchAllAnswers(index) {
+  const playersSnap = await getDocs(
+    collection(db, "games", "configurator", "episodes", episodeId, "results")
+  );
+
+  const entries = await Promise.all(playersSnap.docs.map(async playerDoc => {
+    const ansDoc = await getDoc(
+      doc(db, "games", "configurator", "episodes", episodeId, "results", playerDoc.id, "answers", String(index))
+    );
+    return ansDoc.exists() ? { name: playerDoc.id, ...ansDoc.data() } : null;
+  }));
+
+  return entries.filter(Boolean);
+}
+
 async function renderExplanation(index) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = "";
@@ -440,49 +889,117 @@ async function renderExplanation(index) {
   const q = questions[index];
   if (!q) return;
 
-  const correct = (q.correct || "").trim();
   explanationText.textContent = q.explanation || "";
 
-  const playersSnap = await getDocs(
-    collection(db, "games", "configurator", "episodes", episodeId, "results")
-  );
-
-  const counts = {};
-  q.answers.forEach(a => counts[a.trim()] = 0);
-
-  for (const playerDoc of playersSnap.docs) {
-    const ansSnap = await getDocs(
-      collection(db, "games", "configurator", "episodes", episodeId, "results", playerDoc.id, "answers")
-    );
-    const ansDoc = ansSnap.docs.find(d => d.id === String(index));
-    if (ansDoc) {
-      const chosen = (ansDoc.data().answer || "").trim();
-      if (counts[chosen] !== undefined) counts[chosen]++;
-    }
-  }
-
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const fmt = getFormat();
+  const all = await fetchAllAnswers(index);
+  const mine = all.find(a => a.name === player);
+  const total = all.length;
+  const pctOf = c => total ? Math.round((c / total) * 100) : 0;
 
   let html = "";
-  q.answers.forEach(a => {
-    const key = a.trim();
-    const c = counts[key] || 0;
-    const pct = total ? Math.round((c / total) * 100) : 0;
-    const isCorrect = key === correct;
+
+  if (fmt === "mcq") {
+    const correct = normalize(q.correct);
+    const counts = {};
+    (q.answers || []).forEach(a => counts[normalize(a)] = 0);
+
+    all.forEach(a => {
+      const chosen = normalize(a.answer);
+      if (counts[chosen] !== undefined) counts[chosen]++;
+    });
+
+    const counted = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    (q.answers || []).forEach(a => {
+      const key = normalize(a);
+      const c = counts[key] || 0;
+      const pct = counted ? Math.round((c / counted) * 100) : 0;
+      const isCorrect = key === correct;
+      const isMine = mine && normalize(mine.answer) === key;
+
+      html += `
+        <div class="stat-answer ${isCorrect ? "correct" : ""} ${isMine ? "mine" : ""}">
+          ${esc(a)}
+          <span class="pct">${pct}%</span>
+          ${isCorrect ? " ✔" : ""}
+        </div>
+      `;
+    });
+  }
+
+  else if (fmt === "open_first_letter") {
+    const correctLetters = letterList(q);
+    const counts = {};
+    all.forEach(a => {
+      const k = normalizeUpper(a.answer);
+      if (k) counts[k] = (counts[k] || 0) + 1;
+    });
+
+    // верните букви винаги се показват, дори никой да не ги е написал
+    correctLetters.forEach(l => { if (counts[l] === undefined) counts[l] = 0; });
+
+    Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([letter, c]) => {
+        const isCorrect = correctLetters.includes(letter);
+        const isMine = mine && normalizeUpper(mine.answer) === letter;
+        html += `
+          <div class="stat-answer ${isCorrect ? "correct" : ""} ${isMine ? "mine" : ""}">
+            ${esc(letter)}
+            <span class="pct">${pctOf(c)}%</span>
+            ${isCorrect ? " ✔" : ""}
+          </div>
+        `;
+      });
+  }
+
+  else {
+    // number
+    const tiers = { 10: 0, 5: 0, 3: 0, 1: 0, 0: 0 };
+    all.forEach(a => {
+      const { points } = evaluateAnswer(q, index, a.answer);
+      tiers[points] = (tiers[points] || 0) + 1;
+    });
 
     html += `
-      <div class="stat-answer ${isCorrect ? "correct" : ""}">
-        ${a}
-        <span class="pct">${pct}%</span>
-        ${isCorrect ? " ✔" : ""}
+      <div class="stat-answer correct">
+        Верен отговор: ${esc(q.number)}
       </div>
     `;
-  });
+
+    [[10, "Точен отговор"], [5, "Много близо"], [3, "Близо"], [1, "Малко далеч"], [0, "Далеч / без отговор"]]
+      .forEach(([pts, label]) => {
+        html += `
+          <div class="stat-answer">
+            ${label} (${pts} т.)
+            <span class="pct">${pctOf(tiers[pts] || 0)}%</span>
+          </div>
+        `;
+      });
+  }
+
+  // собственият резултат на играча
+  if (mine) {
+    const r = evaluateAnswer(q, index, mine.answer);
+    html += `
+      <div class="my-result">
+        Твоят отговор: <b>${esc(mine.answer)}</b> — ${r.points} т. ${r.isCorrect ? "✔" : (fmt === "number" ? "" : "✘")}
+      </div>
+    `;
+  } else {
+    html += `<div class="my-result">Не отговори на този въпрос.</div>`;
+  }
+
+  if (fmt !== "mcq") {
+    html = `<div style="margin-bottom:8px;">Верен отговор: <b>${esc(correctDisplay(q))}</b></div>` + html;
+  }
 
   statsBlock.innerHTML = html;
 }
 
-/* Класиране */
+/* ------------------------- Класиране ------------------------- */
+
 async function renderRanking(index) {
   showOnly(rankingDiv);
   rankingList.innerHTML = "";
@@ -509,17 +1026,7 @@ async function renderRanking(index) {
       const q = questions[qIndex];
       if (!q) return;
 
-      const scoringMode = episodeConfig?.scoringMode || "progressive";
-
-      if ((data.answer || "").trim() === (q.correct || "").trim()) {
-        if (scoringMode === "equal") {
-          totalPoints += 1;
-        } else {
-          if (qIndex < 10) totalPoints += 1;
-          else if (qIndex < 20) totalPoints += 2;
-          else totalPoints += 3;
-        }
-      }
+      totalPoints += evaluateAnswer(q, qIndex, data.answer).points;
 
       if (typeof data.thinkingTime === "number") {
         totalTime += data.thinkingTime;
@@ -558,7 +1065,7 @@ async function renderRanking(index) {
       const timeText = isLast ? ` (време: ${time} сек)` : "";
 
       return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
-        ${i+1}. ${medal} ${name} — ${pts} т.${timeText}
+        ${i+1}. ${medal} ${esc(name)} — ${pts} т.${timeText}
       </div>`;
     })
     .join("");
@@ -566,89 +1073,66 @@ async function renderRanking(index) {
   updateRankingTitle(index);
 }
 
-/* LIVE "кой е отговорил" */
+/* ------------------------- LIVE "кой е отговорил" ------------------------- */
+
 let answersUnsub = null;
+let childUnsubs = [];
+
+function stopAnswerListener() {
+  if (answersUnsub) { answersUnsub(); answersUnsub = null; }
+  childUnsubs.forEach(u => u());
+  childUnsubs = [];
+}
 
 function startAnswerListener(index) {
-  if (answersUnsub) answersUnsub();
+  stopAnswerListener();
 
   answeredNames.innerHTML = "";
   answeredList.style.display = "block";
 
+  const answered = [];
+  const watched = new Set();
+
   answersUnsub = onSnapshot(
     collection(db, "games", "configurator", "episodes", episodeId, "results"),
     resultsSnap => {
-      const answered = [];
-
       resultsSnap.forEach(playerDoc => {
         const playerName = playerDoc.id;
+        if (watched.has(playerName)) return;
+        watched.add(playerName);
 
-        onSnapshot(
+        childUnsubs.push(onSnapshot(
           doc(db, "games", "configurator", "episodes", episodeId, "results", playerName, "answers", String(index)),
           ansDoc => {
-            if (ansDoc.exists()) {
-              if (!answered.includes(playerName)) {
-                answered.push(playerName);
-
-                answeredNames.innerHTML = answered
-                  .map(n => `<div>${n} отговори</div>`)
-                  .join("");
-              }
+            if (ansDoc.exists() && !answered.includes(playerName)) {
+              answered.push(playerName);
+              answeredNames.innerHTML = answered
+                .map(n => `<div>${esc(n)} отговори</div>`)
+                .join("");
             }
           }
-        );
+        ));
       });
     }
   );
 }
 
-/* Прилагане на фаза */
+/* ------------------------- Прилагане на фаза ------------------------- */
+
 let lastPhaseSnapshot = null;
 
 function applyPhaseImmediately(data) {
   const { index, phase, startTime, duration } = data;
 
   if (timerInterval) clearInterval(timerInterval);
+  stopAnswerListener();
 
   /* ---------------------- LOBBY ---------------------- */
   if (phase === "lobby") {
     showOnly(waitingScreen);
     globalTimer.style.display = "none";
     answeredList.style.display = "none";
-
-    if (episodeConfig) {
-      const topics = Object.entries(episodeConfig.topics || {})
-        .filter(([k, v]) => v > 0)
-        .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
-        .join("<br>");
-
-      const diff = episodeConfig.difficulty || {};
-      const diffText = `
-        Лесни: ${diff.easy}<br>
-        Средни: ${diff.medium}<br>
-        Трудни: ${diff.hard}<br>
-        Супертрудни: ${diff.superHard}
-      `;
-
-      const todayConfigurator = " Орлин Крумов ";
-
-      lobbyTitle.innerHTML = `
-        <div style="font-size:1.1em; margin-bottom:10px; color:#ff66cc;">
-          <b>Днес конфигуратор е:</b> ${todayConfigurator}
-        </div>
-        <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
-          <b>Параметрите на куиза са:</b>
-        </div>
-        <div style="font-size:0.95em; line-height:1.4; color:#7CFC00;">
-          <b>Формат:</b> ${formatNames[episodeConfig.format]}<br>
-          <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode]}<br>
-          <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
-          <b>Теми:</b><br>${topics}<br><br>
-          <b>Трудност:</b><br>${diffText}
-        </div>
-      `;
-    }
-
+    renderLobbyInfo();
     return;
   }
 
@@ -660,41 +1144,10 @@ function applyPhaseImmediately(data) {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
 
-    if (episodeConfig) {
-      const topics = Object.entries(episodeConfig.topics || {})
-        .filter(([k, v]) => v > 0)
-        .map(([k, v]) => `${topicMap[k]} — ${v} въпроса`)
-        .join("<br>");
+    renderLobbyInfo();
 
-      const diff = episodeConfig.difficulty || {};
-      const diffText = `
-        Лесни: ${diff.easy}<br>
-        Средни: ${diff.medium}<br>
-        Трудни: ${diff.hard}<br>
-        Супертрудни: ${diff.superHard}
-      `;
-
-      const todayConfigurator = " Орлин Крумов ";
-
-      lobbyTitle.innerHTML = `
-        <div style="font-size:1.1em; margin-bottom:10px; color:#ff66cc;">
-          <b>Днес конфигуратор е:</b> ${todayConfigurator}
-        </div>
-        <div style="font-size:1em; opacity:0.9; margin-bottom:10px;">
-          <b>Параметрите на куиза са:</b>
-        </div>
-        <div style="font-size:0.95em; line-height:1.4; color:#7CFC00;">
-          <b>Формат:</b> ${formatNames[episodeConfig.format]}<br>
-          <b>Точки:</b> ${pointsNames[episodeConfig.pointsMode]}<br>
-          <b>Време за въпрос:</b> ${episodeConfig.timePerQuestion} сек<br><br>
-          <b>Теми:</b><br>${topics}<br><br>
-          <b>Трудност:</b><br>${diffText}
-        </div>
-      `;
-    }
-
-    clearInterval(timerInterval);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    updateTimer(startTime, duration);
     return;
   }
 
@@ -713,41 +1166,15 @@ function applyPhaseImmediately(data) {
 
     startAnswerListener(index);
 
-    const seed = episodeId.length * 1000 + index;
-    const shuffled = seededShuffle(q.answers, seed);
+    const fmt = getFormat();
+    if (fmt === "mcq") renderMCQ(q, index, startTime);
+    else if (fmt === "open_first_letter") renderLetter(q, index, startTime);
+    else if (fmt === "number") renderNumber(q, index, startTime);
 
-    shuffled.forEach(ans => {
-      const btn = document.createElement("button");
-      btn.textContent = ans;
-
-      btn.onclick = async () => {
-        btn.classList.add("selected");
-        Array.from(answersDiv.children).forEach(b => b.disabled = true);
-
-        await setDoc(
-          doc(db, "games", "configurator", "episodes", episodeId, "results", player),
-          { exists: true },
-          { merge: true }
-        );
-
-        const thinkingTime = Date.now() - startTime;
-
-        await setDoc(
-          doc(db, "games", "configurator", "episodes", episodeId, "results", player, "answers", String(index)),
-          {
-            answer: ans,
-            correct: q.correct,
-            explanation: q.explanation,
-            timestamp: Date.now(),
-            thinkingTime
-          }
-        );
-      };
-
-      answersDiv.appendChild(btn);
-    });
+    lockIfAlreadyAnswered(index);
 
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    updateTimer(startTime, duration);
     return;
   }
 
@@ -757,6 +1184,7 @@ function applyPhaseImmediately(data) {
     answeredList.style.display = "none";
     renderExplanation(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    updateTimer(startTime, duration);
     return;
   }
 
@@ -766,11 +1194,13 @@ function applyPhaseImmediately(data) {
     answeredList.style.display = "none";
     renderRanking(index);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
+    updateTimer(startTime, duration);
     return;
   }
 }
 
-/* Слушане на фазите */
+/* ------------------------- Слушане на фазите ------------------------- */
+
 onSnapshot(doc(db, "games", "configurator", "state", "current"), async snap => {
   if (!snap.exists()) return;
 
@@ -789,15 +1219,17 @@ onSnapshot(doc(db, "games", "configurator", "state", "current"), async snap => {
       lobbySnap => {
         const names = lobbySnap.docs.map(d => d.id);
         lobbyList.innerHTML = names.length
-          ? names.map(n => `<div>${n}</div>`).join("")
+          ? names.map(n => `<div>${esc(n)}</div>`).join("")
           : "Още няма други играчи.";
       }
     );
   }
 
   await loadQuestionsFromFirestore();
+  await joinLobby();
 
   if (!ready) return;
+  if (loadedEpisodeId !== episodeId) return;
 
   applyPhaseImmediately(data);
 });
