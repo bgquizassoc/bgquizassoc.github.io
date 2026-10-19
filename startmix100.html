@@ -43,15 +43,30 @@
   <div style="font-size:0.8em; opacity:0.7; margin-top:4px;">При „от кръг 2…10“ се ползва същото име на епизод — точките се запазват, а часът за старт се пренебрегва.</div>
 </div>
 
+<div style="margin:18px auto 6px; max-width:760px; background:rgba(255,255,255,0.06); border:2px solid #2e7d9e; border-radius:12px; padding:12px;">
+  <div style="font-weight:bold; margin-bottom:8px;">📁 Въпроси (от папка на този компютър)</div>
+  <button id="folderBtn" type="button" style="font-size:1em; padding:9px 16px;">📁 Избери папка с въпроси</button>
+  <button id="folderReloadBtn" type="button" style="font-size:1em; padding:9px 16px; background:#9fd3ea;">🔄 Презареди последната</button>
+  <input id="folderInput" type="file" webkitdirectory multiple style="display:none">
+  <input id="filesInput" type="file" accept=".json,application/json" multiple style="display:none">
+  <div style="margin-top:6px; font-size:0.8em;"><a href="#" id="filesLink" style="color:#9fd3ea;">или избери отделни файлове</a></div>
+  <div id="folderStatus" style="margin-top:8px; font-size:0.85em; line-height:1.7;"></div>
+</div>
+
 <br>
 <button id="startBtn">СТАРТ</button>
+
+<div style="margin-top:30px;">
+  <button id="adminOpenBtn" type="button" style="font-size:0.9em; padding:8px 16px; background:#555; color:#fff; opacity:.8;">🔧 Админ</button>
+</div>
+<div id="adminPanel" style="display:none; margin:20px auto 0; max-width:760px; text-align:left; background:rgba(255,255,255,0.06); border:2px solid #ffd100; border-radius:12px; padding:14px; font-size:1em;"></div>
 
 <div id="log"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, deleteDoc, getDoc, getDocs, collection
+  getFirestore, doc, setDoc, deleteDoc, getDoc, getDocs, collection, onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -110,6 +125,7 @@ let izborPool=[], izborAreas=[];
 const R10_RESERVED = 3;
 let tiebreakPoolIndex = R10_RESERVED; // брояч за дузпите при равенство
 let hiddenSteps = [];      // ⭐ скритите класирания (кръг 9 — последните 2 въпроса, кръг 10 — 3 дузпи), пазени за финалното повторение
+const GRACE = 1500;        // ⭐ малка пауза след края на въпроса, за да стигнат последните отговори до хоста
 
 function log(msg) {
   const el = document.getElementById("log");
@@ -126,27 +142,119 @@ function hashString(str) {
   return Math.abs(hash) % 233280;
 }
 
-async function loadAllQuestions() {
-  const [r1,r2,r3,r4,r5,r6,r7,r8,pool,r10] = await Promise.all([
-    fetch(FOLDER + "questions1.json").then(r => r.json()),
-    fetch(FOLDER + "questions2.json").then(r => r.json()),
-    fetch(FOLDER + "questions3.json").then(r => r.json()),
-    fetch(FOLDER + "questions4.json").then(r => r.json()),
-    fetch(FOLDER + "questions5.json").then(r => r.json()),
-    fetch(FOLDER + "questions6.json").then(r => r.json()),
-    fetch(FOLDER + "questions7.json").then(r => r.json()),
-    fetch(FOLDER + "questions8.json").then(r => r.json()),
-    fetch("izbor/pull.json").then(r => r.json()),
-    fetch(FOLDER + "questions10.json").then(r => r.json())
-  ]);
-  questions1=r1; questions2=r2; questions3=r3; questions4=r4; questions5=r5; questions6=r6;
-  questions7=r7; questions8=r8; questions10=r10;
-  izborPool = pool;
-  izborAreas = [...new Set(pool.map(q => q.area.trim()))];
-  log(`Заредени въпроси: 1=${r1.length} 2=${r2.length} 3=${r3.length} 4=${r4.length} 5=${r5.length} 6(теми)=${r6.length} 7=${r7.length} 8(теми)=${r8.length} 10/дузпи-пул=${r10.length}, Избор пул=${pool.length} (${izborAreas.length} теми)`);
+// ===============================
+// ⭐ ВЪПРОСИТЕ СЕ ЧЕТАТ ОТ ЛОКАЛНА ПАПКА НА КОМПЮТЪРА НА ВОДЕЩИЯ (не са публични, не са в клиентите)
+// ===============================
+const NEED_FILES = ["questions1","questions2","questions3","questions4","questions5","questions6","questions7","questions8","questions10","pull"];
+let loadedFiles = {};      // име (без .json) -> разчетен JSON
+let folderLabel = "";
+
+function folderReady() { return NEED_FILES.every(n => Array.isArray(loadedFiles[n]) && loadedFiles[n].length > 0); }
+
+function validateQuestions() {
+  const warn = [];
+  const need = (arr, name, fields, extra) => (arr || []).forEach((q, i) => {
+    fields.forEach(f => { if (q[f] === undefined || q[f] === null || q[f] === "") warn.push(`${name}[${i + 1}]: липсва „${f}“`); });
+    if (extra) { const w = extra(q); if (w) warn.push(`${name}[${i + 1}]: ${w}`); }
+  });
+  const f = loadedFiles;
+  need(f.questions1, "Кръг 1", ["question","answers","correct"], q => (q.answers || []).map(a => String(a).trim()).includes(String(q.correct).trim()) ? "" : "верният отговор не е сред отговорите");
+  need(f.questions2, "Кръг 2", ["question","answers","correct"], q => (q.answers || []).map(a => String(a).trim()).includes(String(q.correct).trim()) ? "" : "верният отговор не е сред отговорите");
+  need(f.questions3, "Кръг 3", ["question","letter"]);
+  need(f.questions4, "Кръг 4", ["question","letter","image"]);
+  need(f.questions5, "Кръг 5", ["question","answer","ranges"]);
+  need(f.questions6, "Кръг 6", ["title","pairs"]);
+  need(f.questions7, "Кръг 7", ["question","letter","video"]);
+  need(f.questions8, "Кръг 8", ["title","items","groups","answers"]);
+  need(f.questions10, "Дузпи", ["question","answer"]);
+  need(f.pull, "Избор", ["question","answers","correct","area"], q => (q.answers || []).map(a => String(a).trim()).includes(String(q.correct).trim()) ? "" : "верният отговор не е сред отговорите");
+  return warn;
 }
 
+function updateFolderStatus() {
+  const el = document.getElementById("folderStatus");
+  if (!el) return;
+  const parts = NEED_FILES.map(n => {
+    const a = loadedFiles[n];
+    return a ? `<span style="color:#7CFC9A">✔ ${n}.json (${a.length})</span>` : `<span style="color:#ff8a80">✖ ${n}.json</span>`;
+  });
+  el.innerHTML = (folderLabel ? `<div style="opacity:.8; margin-bottom:4px;">Папка: ${folderLabel}</div>` : "") + parts.join(" &nbsp; ");
+  const b = document.getElementById("startBtn");
+  if (b && !b.dataset.running) b.style.opacity = folderReady() ? "1" : ".55";
+}
+
+async function ingestFiles(files, label) {
+  for (const f of files) {
+    const m = String(f.name || "").toLowerCase().match(/^(questions\d+|pull)\.json$/);
+    if (!m) continue;
+    try {
+      const txt = (await f.text()).replace(/^﻿/, "");
+      loadedFiles[m[1]] = JSON.parse(txt);
+    } catch (e) { log(`❌ Файл ${f.name}: невалиден JSON — ${e.message}`); delete loadedFiles[m[1]]; }
+  }
+  if (label) folderLabel = label;
+  updateFolderStatus();
+  const missing = NEED_FILES.filter(n => !loadedFiles[n]);
+  if (missing.length) log(`ℹ️ Още липсват: ${missing.join(", ")}`);
+  else {
+    const w = validateQuestions();
+    log(w.length ? `⚠️ Папката е заредена, но има ${w.length} забележки:\n• ` + w.slice(0, 15).join("\n• ") : "✅ Всички файлове с въпроси са заредени и проверени.");
+  }
+}
+
+async function walkDir(dirHandle, depth = 0) {
+  const out = [];
+  for await (const [name, h] of dirHandle.entries()) {
+    if (h.kind === "file") { if (/\.json$/i.test(name)) out.push(await h.getFile()); }
+    else if (depth < 2) out.push(...await walkDir(h, depth + 1));
+  }
+  return out;
+}
+
+// запомняме последно избраната папка (само в този браузър), за да е достатъчен един клик следващия път
+function idbOpen() {
+  return new Promise((res, rej) => { const r = indexedDB.open("mega100host", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+}
+async function idbPut(k, v) { try { const d = await idbOpen(); await new Promise((res, rej) => { const t = d.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (e) {} }
+async function idbGet(k) { try { const d = await idbOpen(); return await new Promise((res, rej) => { const t = d.transaction("kv"); const r = t.objectStore("kv").get(k); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); } catch (e) { return null; } }
+
+async function pickFolder() {
+  if (window.showDirectoryPicker) {
+    try {
+      const h = await window.showDirectoryPicker({ id: "mega100q", mode: "read" });
+      await idbPut("dir", h);
+      await ingestFiles(await walkDir(h), h.name);
+      return;
+    } catch (e) { if (e && e.name === "AbortError") return; /* иначе — резервен вариант */ }
+  }
+  document.getElementById("folderInput").click();
+}
+async function reloadLastFolder() {
+  const h = await idbGet("dir");
+  if (!h) return alert("Още няма запомнена папка — натисни „Избери папка“.");
+  try {
+    let p = await h.queryPermission({ mode: "read" });
+    if (p !== "granted") p = await h.requestPermission({ mode: "read" });
+    if (p !== "granted") return alert("Няма разрешение за папката.");
+    await ingestFiles(await walkDir(h), h.name);
+  } catch (e) { alert("Не успях да прочета папката: " + (e && e.message ? e.message : e)); }
+}
+
+async function loadAllQuestions() {
+  const miss = NEED_FILES.filter(n => !Array.isArray(loadedFiles[n]) || !loadedFiles[n].length);
+  if (miss.length) throw new Error("Не са заредени въпросите (" + miss.join(", ") + "). Натисни „Избери папка с въпроси“.");
+  const f = loadedFiles;
+  questions1 = f.questions1; questions2 = f.questions2; questions3 = f.questions3; questions4 = f.questions4;
+  questions5 = f.questions5; questions6 = f.questions6; questions7 = f.questions7; questions8 = f.questions8;
+  questions10 = f.questions10;
+  izborPool = f.pull;
+  izborAreas = [...new Set(izborPool.map(q => String(q.area).trim()))];
+  log(`Въпроси: 1=${questions1.length} 2=${questions2.length} 3=${questions3.length} 4=${questions4.length} 5=${questions5.length} 6(теми)=${questions6.length} 7=${questions7.length} 8(теми)=${questions8.length} 10/дузпи-пул=${questions10.length}, Избор пул=${izborPool.length} (${izborAreas.length} теми)`);
+}
+
+let curPhase = null, curRound = null, curEp = null;   // ⭐ за админ панела
 async function setState(ep, phase, duration, extra = {}) {
+  curPhase = phase; curEp = ep; if (extra && extra.round !== undefined) curRound = extra.round;
   await setDoc(
     doc(db, "games", GAME_ID, "state", "current"),
     { episodeId: ep, phase, startTime: Date.now(), duration, ...extra },
@@ -155,20 +263,40 @@ async function setState(ep, phase, duration, extra = {}) {
 }
 async function resetState() {
   try { await deleteDoc(doc(db, "games", GAME_ID, "state", "current")); } catch(e) {}
+  try { await deleteDoc(doc(db, "games", GAME_ID, "state", "answered")); } catch(e) {}
 }
 
 // ===============================
-// ⭐ ТОЧКУВАНЕ (огледално на клиента, нужно за да смятаме класирания по пътя)
+// ⭐ ТОЧКУВАНЕ (само на хоста — клиентите вече не знаят верните отговори)
 // ===============================
+const LATIN_TO_CYRILLIC = { "A":"А","B":"В","C":"С","E":"Е","H":"Н","K":"К","M":"М","O":"О","P":"Р","T":"Т","X":"Х","Y":"У" };
+function normalizeLetter(letter) { const u = (letter || "").toUpperCase(); return LATIN_TO_CYRILLIC[u] || u; }
+function normalizeLetterPlain(letter) { return (letter || "").toUpperCase(); }
+function letterOk(q, input, plain) {
+  const typed = (plain ? normalizeLetterPlain : normalizeLetter)(String(input || "").trim());
+  if (!typed) return false;
+  const main = (q.letter || "").toUpperCase();
+  const alts = (q.alt_letters || []).map(l => String(l).toUpperCase());
+  return typed === main || alts.includes(typed);
+}
 function isR1Correct(data, q) {
   if (data.guaranteed === true) return true;
-  return (data.answer || "").trim() === (q.correct || "").trim();
+  return String(data.answer || "").trim() === String(q.correct || "").trim();
 }
 function isR2Correct(data, q) {
-  const correctNorm = (q.correct || "").trim();
-  const c1 = (data.answer || "").trim();
+  const correctNorm = String(q.correct || "").trim();
+  const c1 = String(data.answer || "").trim();
   const c2 = data.answer2 ? String(data.answer2).trim() : null;
   return c1 === correctNorm || (c2 !== null && c2 === correctNorm);
+}
+function calcPoints5(userAnswer, q) {
+  const diff = Math.abs(userAnswer - Number(q.answer));
+  const r = q.ranges || {};
+  if (diff === 0)     return 5;
+  if (diff <= r.near) return 3;
+  if (diff <= r.mid)  return 2;
+  if (diff <= r.far)  return 1;
+  return 0;
 }
 function calcPoints10_0(diffs, myDiff) {
   const unique = [...new Set(diffs)].sort((a,b)=>a-b);
@@ -196,8 +324,8 @@ function calcPoints10(index, diffs, myDiff) {
 }
 function pointsForRanking9(ranking, correct) {
   if (!ranking || !ranking.length) return 0;
-  const correctNorm = (correct || "").trim();
-  const pos = ranking.findIndex(a => (a || "").trim() === correctNorm);
+  const correctNorm = String(correct || "").trim();
+  const pos = ranking.findIndex(a => String(a || "").trim() === correctNorm);
   if (pos === -1) return 0;
   return RANK_POINTS9[pos] || 0;
 }
@@ -214,88 +342,328 @@ function computeCashInFinalBonus(jokers) {
   return bonus;
 }
 
-// ⭐ Класиране през ВСИЧКОТО изиграно досега (огледално на клиента)
-async function computeStandingsHost(ep, isFinal) {
-  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results"));
-  const adjMap = {};   // ⭐ ръчни корекции на точки от админа
-  try {
-    const adjSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "adjustments"));
-    adjSnap.forEach(d => { adjMap[d.id] = Number(d.data().delta) || 0; });
-  } catch(e) {}
-  const perPlayerRaw = [];
-  const r10diffsByIndex = [[], [], []];
+// ===============================
+// ⭐ ЖИВО СЪСТОЯНИЕ НА ХОСТА: играчи, ръчни корекции, книга с точките (ledger), отговори на жокери
+// ===============================
+let live = null;           // { ep, players:{име:{jokers}}, adj:{име:delta}, unsubs:[], startedAt }
+let ledger = {};           // име -> { slots: { slotId: {r, idx, pts, time, ok, diff} } }
+let watch = null;          // следене на отговорите за текущия въпрос
+let curQ = null;           // { slot, round, q, open } — за жокерите, които искат верен отговор/подсказка
 
-  for (const playerDoc of playersSnap.docs) {
-    const name = playerDoc.id;
-    const answersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results", name, "answers"));
+const col = (...p) => collection(db, "games", GAME_ID, "episodes", live.ep, ...p);
 
-    let totalPoints = 0, totalTime = 0, tiebreakPoints = 0;
-    const correctByRound = { 1:0, 2:0, 3:0, 4:0, 7:0 };
-    let r5PerfectCount = 0, r5AnsweredCount = 0;
-    const r10answers = {};
+function putSlot(name, slot, obj) {
+  if (!ledger[name]) ledger[name] = { slots: {} };
+  ledger[name].slots[slot] = obj;
+}
 
-    answersSnap.forEach(ansDoc => {
-      const id = ansDoc.id;
-      const data = ansDoc.data();
-
-      if (id.startsWith("tb-")) { tiebreakPoints += (data.points || 0); return; }
-
-      // ⭐ Кръг 9: ID-то е "r9-choice1-<Име>" / "r9-choice2-<Име>" и НЕ пасва на шаблона r<кръг>-<номер> долу,
-      // затова точките му преди се пропускаха. Броим ги тук (точките ги записва scoreSlot9).
-      if (id.startsWith("r9-")) {
-        totalPoints += (data.points || 0);
-        if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
-        return;
-      }
-
-      const m = id.match(/^r(\d+)-(\d+)$/);
-      if (!m) return;
-      const round = Number(m[1]), idx = Number(m[2]);
-
-      if (round === 1) { const q = questions1[idx]; if (q && isR1Correct(data,q)) { totalPoints += 2; correctByRound[1]++; } }
-      else if (round === 2) { const q = questions2[idx]; if (q && isR2Correct(data,q)) { let p=3; if (data.doubled) p*=2; totalPoints += p; correctByRound[2]++; } }
-      else if (round === 3) { if (data.isCorrect) { totalPoints += 4; correctByRound[3]++; } }
-      else if (round === 4) { if (data.isCorrect) { totalPoints += 4; correctByRound[4]++; } }
-      else if (round === 5) { totalPoints += (data.points||0); r5AnsweredCount++; if (data.points===5) r5PerfectCount++; }
-      else if (round === 6) { totalPoints += (data.total||0); }
-      else if (round === 7) { if (data.isCorrect) { totalPoints += 4; correctByRound[7]++; } }
-      else if (round === 8) { totalPoints += (data.total||0); }
-      else if (round === 9) { totalPoints += (data.points||0); }
-      else if (round === 10) { r10answers[idx] = data.diff; if (idx>=0 && idx<=2) r10diffsByIndex[idx].push(data.diff); }
-
-      if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
-    });
-
-    if (correctByRound[1] === questions1.length && questions1.length>0) totalPoints += 3;
-    if (correctByRound[2] === questions2.length && questions2.length>0) totalPoints += 3;
-    if (correctByRound[3] === questions3.length && questions3.length>0) totalPoints += 3;
-    if (correctByRound[4] === questions4.length && questions4.length>0) totalPoints += 3;
-    if (r5AnsweredCount === questions5.length && r5PerfectCount === questions5.length && questions5.length>0) totalPoints += 3;
-    if (correctByRound[7] === questions7.length && questions7.length>0) totalPoints += 3;
-
-    totalPoints += tiebreakPoints;
-    totalPoints += (adjMap[name] || 0);
-
-    const jokersData = playerDoc.data().jokers || {};
-    perPlayerRaw.push({ name, totalPoints, totalTime, r10answers, jokersData });
+// слотът от документа (за възстановяване при „старт от кръг X“ или рестарт на хоста)
+function slotFromDoc(id, data) {
+  const t = (typeof data.thinkingTime === "number") ? data.thinkingTime : 0;
+  if (id.startsWith("tb-")) return { r: "tb", idx: 0, pts: data.points || 0, time: 0 };
+  if (id.startsWith("r9-")) return { r: 9, idx: 0, pts: data.points || 0, time: t };
+  const m = id.match(/^r(\d+)-(\d+)$/);
+  if (!m) return null;
+  const r = Number(m[1]), idx = Number(m[2]);
+  if (r === 1) { const ok = typeof data.isCorrect === "boolean" ? data.isCorrect : (data.guaranteed === true || String(data.answer || "").trim() === String(data.correct || "").trim()); return { r, idx, ok, pts: ok ? 2 : 0, time: t }; }
+  if (r === 2) {
+    let ok = data.isCorrect;
+    if (typeof ok !== "boolean") { const c = String(data.correct || "").trim(); ok = String(data.answer || "").trim() === c || (data.answer2 ? String(data.answer2).trim() === c : false); }
+    return { r, idx, ok, pts: ok ? (data.doubled ? 6 : 3) : 0, time: t };
   }
+  if (r === 3 || r === 4 || r === 7) return { r, idx, ok: !!data.isCorrect, pts: data.isCorrect ? 4 : 0, time: t };
+  if (r === 5) return { r, idx, pts: data.points || 0, time: t };
+  if (r === 6 || r === 8) return { r, idx, pts: data.total || 0, time: t };
+  if (r === 10) return { r, idx, pts: 0, diff: data.diff, time: t };
+  return null;
+}
 
-  perPlayerRaw.forEach(p => {
-    let points10 = 0;
-    Object.entries(p.r10answers).forEach(([idxStr, diff]) => {
-      const idx = Number(idxStr);
-      points10 += calcPoints10(idx, r10diffsByIndex[idx]||[], diff);
+async function rebuildLedger(ep) {
+  ledger = {};
+  const players = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results"));
+  for (const p of players.docs) {
+    const ans = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results", p.id, "answers"));
+    ans.forEach(a => { const s = slotFromDoc(a.id, a.data()); if (s) putSlot(p.id, a.id, s); });
+  }
+}
+
+function stopLive() {
+  if (!live) return;
+  live.unsubs.forEach(u => { try { u(); } catch(e) {} });
+  unwatch(false);
+  live = null;
+}
+
+async function startLive(ep, rebuild) {
+  stopLive();
+  live = { ep, players: {}, adj: {}, unsubs: [], startedAt: Date.now(), handled: new Set() };
+  if (rebuild) await rebuildLedger(ep); else ledger = {};
+  live.unsubs.push(onSnapshot(col("results"), snap => {
+    const seen = {};
+    snap.forEach(d => { seen[d.id] = { jokers: d.data().jokers || {} }; });
+    live.players = seen;
+    syncWatch();
+  }));
+  live.unsubs.push(onSnapshot(col("adjustments"), snap => {
+    const a = {}; snap.forEach(d => { a[d.id] = Number(d.data().delta) || 0; }); live.adj = a;
+  }));
+  live.unsubs.push(onSnapshot(col("jokerReq"), snap => {
+    snap.forEach(d => {
+      if (live.handled.has(d.id)) return;
+      live.handled.add(d.id);
+      const req = d.data();
+      if ((req.ts || 0) < live.startedAt - 2000) return;   // стара заявка от преди старта
+      handleJokerReq(d.id, req);
     });
-    p.totalPoints += points10;
-  });
+  }));
+  // изчакваме първия снимък на играчите, за да е пълно класирането още от началото
+  await sleep(600);
+}
 
-  const list = perPlayerRaw.map(p => {
-    let total = p.totalPoints;
-    if (isFinal) total += computeCashInFinalBonus(p.jokersData);
-    return { name: p.name, points: Math.round(total*10000)/10000, time: p.totalTime, jokersData: p.jokersData };
+// ⭐ Класиране от книгата с точките — без нито едно четене от базата
+function standingsNow(isFinal) {
+  const names = new Set([...Object.keys(live ? live.players : {}), ...Object.keys(ledger)]);
+  const r10 = [[], [], []];
+  names.forEach(n => {
+    const L = ledger[n]; if (!L) return;
+    Object.values(L.slots).forEach(s => { if (s.r === 10 && s.idx >= 0 && s.idx <= 2 && typeof s.diff === "number") r10[s.idx].push(s.diff); });
   });
+  const bonusSizes = { 1: questions1.length, 2: questions2.length, 3: questions3.length, 4: questions4.length, 7: questions7.length };
+  const list = [];
+  names.forEach(name => {
+    const L = ledger[name] || { slots: {} };
+    let pts = 0, time = 0, r5n = 0, r5p = 0;
+    const ok = { 1: 0, 2: 0, 3: 0, 4: 0, 7: 0 };
+    Object.values(L.slots).forEach(s => {
+      time += s.time || 0;
+      if (s.r === 10) { if (s.idx >= 0 && s.idx <= 2 && typeof s.diff === "number") pts += calcPoints10(s.idx, r10[s.idx], s.diff); return; }
+      pts += s.pts || 0;
+      if (ok[s.r] !== undefined && s.ok) ok[s.r]++;
+      if (s.r === 5) { r5n++; if (s.pts === 5) r5p++; }
+    });
+    [1, 2, 3, 4, 7].forEach(r => { if (bonusSizes[r] > 0 && ok[r] === bonusSizes[r]) pts += 3; });
+    if (questions5.length > 0 && r5n === questions5.length && r5p === questions5.length) pts += 3;
+    pts += (live && live.adj[name]) || 0;
+    const jokersData = (live && live.players[name] && live.players[name].jokers) || {};
+    const bonus = isFinal ? computeCashInFinalBonus(jokersData) : 0;
+    list.push({ name, points: Math.round((pts + bonus) * 10000) / 10000, time, bonus, jokersData });
+  });
+  return list.sort((a, b) => b.points !== a.points ? b.points - a.points : (a.time !== b.time ? a.time - b.time : a.name.localeCompare(b.name, "bg")));
+}
+async function computeStandingsHost(ep, isFinal) { return standingsNow(isFinal); }
+const rowsOf = (st, withExtra) => st.map(s => withExtra ? { name: s.name, points: s.points, time: s.time, bonus: s.bonus } : { name: s.name, points: s.points });
 
-  return list.sort((a,b) => b.points!==a.points ? b.points-a.points : (a.time!==b.time ? a.time-b.time : a.name.localeCompare(b.name,"bg")));
+// ===============================
+// ⭐ СЛЕДЕНЕ НА ОТГОВОРИТЕ ЗА ТЕКУЩИЯ ВЪПРОС (един слушател на играч, само на хоста)
+// ===============================
+function syncWatch() {
+  if (!watch || !live) return;
+  const names = watch.fixed || Object.keys(live.players);
+  names.forEach(n => {
+    if (watch.subs.has(n)) return;
+    const slot = watch.slot;
+    const u = onSnapshot(doc(db, "games", GAME_ID, "episodes", live.ep, "results", n, "answers", slot), sn => {
+      if (!watch || watch.slot !== slot) return;
+      if (sn.exists()) {
+        if (!(n in watch.data)) watch.order.push(n);
+        watch.data[n] = sn.data();
+      } else { delete watch.data[n]; }
+      watch.dirty = true;
+    });
+    watch.subs.set(n, u);
+  });
+}
+function answeredText(slot, n, d) {
+  if (/^r6-/.test(slot)) return `${n} — ${(d.pairs || []).length} чифта`;
+  if (/^r8-/.test(slot)) return `${n} — ${Object.keys(d.assignments || {}).length} обекта`;
+  if (/^r9-/.test(slot)) return `${n} — ${(d.ranking || []).length}/5 подредени`;
+  return `${n} отговори`;
+}
+async function publishAnswered(force) {
+  if (!watch || (!watch.dirty && !force)) return;
+  watch.dirty = false;
+  const slot = watch.slot;
+  const items = watch.order.filter(n => watch.data[n]).map(n => answeredText(slot, n, watch.data[n]));
+  try { await setDoc(doc(db, "games", GAME_ID, "state", "answered"), { slot, items, ts: Date.now() }); } catch(e) {}
+}
+function watchSlot(slot, fixedNames) {
+  unwatch(false);
+  watch = { slot, data: {}, order: [], subs: new Map(), dirty: false, fixed: fixedNames || null, timer: null };
+  syncWatch();
+  watch.timer = setInterval(() => publishAnswered(false), 4000);
+}
+function unwatch(clearBoard) {
+  if (!watch) return;
+  clearInterval(watch.timer);
+  watch.subs.forEach(u => { try { u(); } catch(e) {} });
+  watch = null;
+  if (clearBoard) setDoc(doc(db, "games", GAME_ID, "state", "answered"), { slot: null, items: [], ts: Date.now() }).catch(() => {});
+}
+
+// записваме обратно в документите на играчите (за историята) — на заден план, на порции
+async function writeBack(items) {
+  if (!live) return;
+  const ep = live.ep;
+  for (let i = 0; i < items.length; i += 25) {
+    await Promise.all(items.slice(i, i + 25).map(it =>
+      setDoc(doc(db, "games", GAME_ID, "episodes", ep, "results", it.name, "answers", it.slot), it.data, { merge: true }).catch(() => {})
+    ));
+  }
+}
+
+// ===============================
+// ⭐ ЖОКЕРИ, ИЗИСКВАЩИ ТАЙНА (Патрондаш, Дай Три) — отговаря хостът
+// ===============================
+async function handleJokerReq(id, req) {
+  const resp = doc(db, "games", GAME_ID, "episodes", live.ep, "jokerResp", id);
+  const ok = curQ && curQ.open && curQ.slot === req.slot;
+  let out = { ok: false, ts: Date.now() };
+  if (ok) {
+    const q = curQ.q;
+    if (req.kind === "syl") out = { ok: true, text: String(q.syllable2 || "").trim(), ts: Date.now() };
+    else if (req.kind === "bullet") {
+      const correct = String(q.correct || "").trim();
+      const cands = (req.avail || []).map(String).filter(a => a.trim() !== correct && (q.answers || []).map(x => String(x)).includes(a));
+      out = { ok: true, eliminate: cands.length ? cands[Math.floor(Math.random() * cands.length)] : null, ts: Date.now() };
+    }
+  }
+  try { await setDoc(resp, out); } catch(e) {}
+}
+
+// ===============================
+// ⭐ ПУБЛИЧНА (без тайни) и "разкриваща" част от въпроса
+// ===============================
+function pubQ(round, q) {
+  if (round === 1 || round === 2) return { question: q.question, answers: q.answers };
+  if (round === 3) return { question: q.question };
+  if (round === 4) return { question: q.question, image: q.image || "" };
+  if (round === 5) return { question: q.question };
+  if (round === 6) return { title: q.title, left: Object.keys(q.pairs).filter(k => k !== "").sort(), right: Object.values(q.pairs).filter(v => v !== "").sort() };
+  if (round === 7) return { question: q.question, video: q.video || "" };
+  if (round === 8) return { title: q.title, items: q.items, groups: Array.isArray(q.groups) ? q.groups : String(q.groups || "").split(",").map(s => s.trim()) };
+  if (round === 9) return { question: q.question, answers: q.answers, area: q.area };
+  return { question: q.question };   // 10 / дузпи
+}
+function revealQ(round, q) {
+  if (round === 1 || round === 2 || round === 9) return { correct: q.correct, explanation: q.explanation || "" };
+  if (round === 3 || round === 4 || round === 7) return { letter: q.letter, alt_letters: q.alt_letters || [], explanation: q.explanation || "" };
+  if (round === 5) return { answer: Number(q.answer) };
+  if (round === 6) return { pairs: q.pairs };
+  if (round === 8) return { answers: q.answers };
+  return { answer: q.answer, explanation: q.explanation || "" };   // 10
+}
+
+// ⭐ Точкува един въпрос от всички получени отговори. Връща { stats, scores?, rows? } за публикуване.
+function scoreSlot(round, idx, slot, q) {
+  const names = Object.keys(watch ? watch.data : {});
+  const data = watch ? watch.data : {};
+  const wb = [];
+  const t = d => (typeof d.thinkingTime === "number" ? d.thinkingTime : 0);
+  const res = { stats: {}, scores: null, rows: null, total: null };
+
+  if (round === 1 || round === 2) {
+    const counts = {}; (q.answers || []).forEach(a => counts[String(a).trim()] = 0);
+    names.forEach(n => {
+      const d = data[n];
+      const ok = round === 1 ? isR1Correct(d, q) : isR2Correct(d, q);
+      const pts = ok ? (round === 1 ? 2 : (d.doubled ? 6 : 3)) : 0;
+      putSlot(n, slot, { r: round, idx, ok, pts, time: t(d) });
+      const c1 = String(d.answer || "").trim(); if (counts[c1] !== undefined) counts[c1]++;
+      if (round === 2 && d.answer2) { const c2 = String(d.answer2).trim(); if (counts[c2] !== undefined) counts[c2]++; }
+      wb.push({ name: n, slot, data: { isCorrect: ok, points: pts, correct: q.correct, explanation: q.explanation || "" } });
+    });
+    res.stats = { counts };
+  } else if (round === 3 || round === 4 || round === 7) {
+    const counts = {};
+    names.forEach(n => {
+      const d = data[n];
+      const ok = letterOk(q, d.answer, round === 7);
+      putSlot(n, slot, { r: round, idx, ok, pts: ok ? 4 : 0, time: t(d) });
+      const typed = (round === 7 ? normalizeLetterPlain : normalizeLetter)(d.answer || "");
+      counts[typed] = (counts[typed] || 0) + 1;
+      wb.push({ name: n, slot, data: { isCorrect: ok, points: ok ? 4 : 0, correct: String(q.letter || "").toUpperCase(), explanation: q.explanation || "" } });
+    });
+    res.stats = { counts };
+  } else if (round === 5) {
+    const results = [];
+    names.forEach(n => {
+      const d = data[n]; const ans = Number(d.answer);
+      if (!Number.isFinite(ans)) return;
+      const pts = calcPoints5(ans, q), diff = Math.abs(ans - Number(q.answer));
+      putSlot(n, slot, { r: 5, idx, pts, diff, time: t(d) });
+      results.push({ name: n, answer: ans, diff, points: pts });
+      wb.push({ name: n, slot, data: { points: pts, diff, correct: Number(q.answer) } });
+    });
+    results.sort((a, b) => a.diff - b.diff);
+    res.stats = { results };
+  } else if (round === 6) {
+    const totalPairs = Object.keys(q.pairs).length;
+    const scores = {}, rows = [];
+    names.forEach(n => {
+      const d = data[n]; let correct = 0;
+      (d.pairs || []).forEach(p => { if (q.pairs[p.left] && q.pairs[p.left] === p.right) correct++; });
+      const bonus = correct === totalPairs ? 3 : 0, total = correct + bonus;
+      putSlot(n, slot, { r: 6, idx, pts: total, time: t(d) });
+      scores[n] = [correct, bonus, total];
+      rows.push({ name: n, pts: total, correct, time: t(d) });
+      wb.push({ name: n, slot, data: { correct, bonus, total } });
+    });
+    rows.sort((a, b) => b.pts !== a.pts ? b.pts - a.pts : a.time - b.time);
+    res.scores = scores; res.rows = rows; res.total = totalPairs;
+  } else if (round === 8) {
+    const total = q.items.length;
+    const scores = {}, rows = [];
+    names.forEach(n => {
+      const d = data[n]; let correct = 0;
+      Object.entries(d.assignments || {}).forEach(([item, group]) => { if (q.answers[item] === group) correct++; });
+      const bonus = correct === total ? 3 : 0, tot = correct + bonus;
+      putSlot(n, slot, { r: 8, idx, pts: tot, time: t(d) });
+      scores[n] = [correct, bonus, tot];
+      rows.push({ name: n, pts: tot, correct, time: t(d) });
+      wb.push({ name: n, slot, data: { correct, bonus, total: tot } });
+    });
+    rows.sort((a, b) => b.pts !== a.pts ? b.pts - a.pts : a.time - b.time);
+    res.scores = scores; res.rows = rows; res.total = total;
+  } else if (round === 10) {
+    names.forEach(n => {
+      const d = data[n]; const ans = Number(d.answer);
+      if (!Number.isFinite(ans)) return;
+      const diff = Math.abs(ans - Number(q.answer));
+      putSlot(n, slot, { r: 10, idx, pts: 0, diff, time: t(d) });
+      wb.push({ name: n, slot, data: { diff, correct: Number(q.answer), points: 0, q } });
+    });
+  }
+  if (curQ) curQ.open = false;
+  return { res, wb };
+}
+
+// ⭐ Кръг 9: точки по подредбата (избиращият ×2 при "Избор 1"), стат. по позиции, класиране по въпроса
+function scoreSlot9(slot, q, chooserName, multiplier) {
+  const data = watch ? watch.data : {};
+  const players = Object.keys(live.players);
+  const posCounts = [0, 0, 0, 0, 0]; let answeredCount = 0, notAnswered = 0;
+  const rows = [], wb = [];
+  const correctNorm = String(q.correct || "").trim();
+  players.forEach(n => {
+    const d = data[n];
+    const ranking = d ? (d.ranking || []) : [];
+    let pts = 0;
+    if (d) {
+      pts = pointsForRanking9(ranking, q.correct);
+      if (chooserName && n === chooserName && multiplier === 2) pts *= 2;
+      putSlot(n, slot, { r: 9, idx: 0, pts, time: (typeof d.thinkingTime === "number" ? d.thinkingTime : 0) });
+      wb.push({ name: n, slot, data: { points: pts, q } });
+    }
+    if (ranking.length > 0) {
+      answeredCount++;
+      const pos = ranking.findIndex(a => String(a || "").trim() === correctNorm);
+      if (pos >= 0) posCounts[pos]++;
+    } else notAnswered++;
+    rows.push({ name: n, pts, answered: ranking.length > 0 });
+  });
+  rows.sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name, "bg"));
+  if (curQ) curQ.open = false;
+  return { stats: { pos: posCounts, answered: answeredCount, notAnswered }, rows, wb };
 }
 
 // ===============================
@@ -326,7 +694,7 @@ function findTiedGroups(standings, onlyLastPlace, excludeNames) {
 // ⭐ Запомняме класирането ТОЧНО както е в момента (без бонуса за жокерите), за да го покажем накрая.
 // deltaFn(name) връща { delta } или { tag } — точките от въпроса за този играч.
 async function snapshotHiddenStep(ep, title, deltaFn, note) {
-  const standings = await computeStandingsHost(ep, false);
+  const standings = standingsNow(false);
   const rows = [];
   for (const st of standings) {
     let extra = {};
@@ -340,23 +708,7 @@ async function snapshotHiddenStep(ep, title, deltaFn, note) {
   log(`🤫 Запазено скрито класиране: ${title}`);
 }
 
-// точки на всеки играч за дадена дузпа от кръг 10 (относително точкуване)
-async function r10DeltaMap(ep, tier) {
-  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results"));
-  const diffs = {};
-  for (const pDoc of playersSnap.docs) {
-    try {
-      const sn = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "results", pDoc.id, "answers", `r10-${tier}`));
-      if (sn.exists() && typeof sn.data().diff === "number") diffs[pDoc.id] = sn.data().diff;
-    } catch(e) {}
-  }
-  const all = Object.values(diffs);
-  const out = {};
-  Object.entries(diffs).forEach(([n, d]) => { out[n] = calcPoints10(tier, all, d); });
-  return out;
-}
-
-// ⭐ Пауза след кръг — по заявка от админа (games/<GAME>/control/flow { pauseAfterRound })
+// ⭐ Пауза след въпрос — по заявка от админа (games/<GAME>/control/flow { pauseAfterRound })
 async function maybePause(ep, afterRound, afterIndex) {
   const ref = doc(db, "games", GAME_ID, "control", "flow");
   let want = false;
@@ -391,7 +743,7 @@ function nextTiebreakQuestion() {
 // за всички засегнати). Победител във всяка група +0.1 т., при 3 отбора в група — вторият +0.05 т.
 // При пак точно равенство — решава по-бързият отговор (без втора дузпа).
 async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames, chooserLabel) {
-  let standings = await computeStandingsHost(ep, false);
+  let standings = standingsNow(false);
   const groups = findTiedGroups(standings, onlyLastPlace, excludeNames);
 
   if (groups.length === 0) {
@@ -404,26 +756,22 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames, 
   const q = nextTiebreakQuestion();
   const slotIdStr = "tb-" + checkpoint;
 
+  watchSlot(slotIdStr, groups.flat());
   // ⚠️ Firestore не поддържа масив в масив — затова всяка група е обект { names: [...] }
-  await setState(ep, "tiebreak", TIEBREAK_TIME, { checkpoint, tiedGroups: groups.map(g => ({ names: g })), question: q });
-  await sleep(TIEBREAK_TIME);
+  await setState(ep, "tiebreak", TIEBREAK_TIME, { checkpoint, tiedGroups: groups.map(g => ({ names: g })), question: { question: q.question } });
+  await sleep(TIEBREAK_TIME + GRACE);
 
+  const data = watch ? watch.data : {};
   const resultGroups = [];
+  const wb = [];
   for (const group of groups) {
-    const results = [];
-    for (const name of group) {
-      try {
-        const ansSnap = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "results", name, "answers", slotIdStr));
-        if (ansSnap.exists()) {
-          const d = ansSnap.data();
-          results.push({ name, answer: d.answer ?? null, diff: d.diff, time: d.thinkingTime ?? Infinity });
-        } else {
-          results.push({ name, answer: null, diff: Infinity, time: Infinity });
-        }
-      } catch(e) {
-        results.push({ name, answer: null, diff: Infinity, time: Infinity });
+    const results = group.map(name => {
+      const d = data[name];
+      if (d && Number.isFinite(Number(d.answer))) {
+        return { name, answer: Number(d.answer), diff: Math.abs(Number(d.answer) - Number(q.answer)), time: typeof d.thinkingTime === "number" ? d.thinkingTime : Infinity };
       }
-    }
+      return { name, answer: null, diff: Infinity, time: Infinity };
+    });
     const cmp = (x, y) => x === y ? 0 : (x < y ? -1 : 1);
     results.sort((a, b) => cmp(a.diff, b.diff) || cmp(a.time, b.time));
 
@@ -438,12 +786,10 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames, 
         let pts = 0;
         if (k === 0) pts = 0.1;
         else if (k === 1 && results.length >= 3 && Number.isFinite(results[k].diff)) pts = 0.05;
-        try {
-          await setDoc(
-            doc(db, "games", GAME_ID, "episodes", ep, "results", results[k].name, "answers", slotIdStr),
-            { points: pts }, { merge: true }
-          );
-        } catch(e) {}
+        if (Number.isFinite(results[k].diff)) {
+          putSlot(results[k].name, slotIdStr, { r: "tb", idx: 0, pts, time: 0 });
+          wb.push({ name: results[k].name, slot: slotIdStr, data: { points: pts, diff: results[k].diff, q } });
+        }
         rowsOut.push({
           name: results[k].name,
           answer: results[k].answer,
@@ -455,9 +801,11 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames, 
     }
     resultGroups.push({ rows: rowsOut, noAnswer });
   }
+  unwatch(true);
+  writeBack(wb);
 
   // ⭐ Класиране СЛЕД дузпата и ясно обявяване кой има правото да избира тема
-  standings = await computeStandingsHost(ep, false);
+  standings = standingsNow(false);
   const chooserName = pickChooser(standings, excludeNames);
   log(`👉 ${chooserLabel || "Право на избор има"} ${chooserName || "—"}`);
 
@@ -475,7 +823,7 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames, 
 }
 
 // ===============================
-// КРЪГОВЕ 1-5, 7, 10 — стандартен цикъл (roundIntro → N × [question→explanation→ranking])
+// КРЪГОВЕ 1-5, 7 — стандартен цикъл (roundIntro → N × [question→explanation→ranking])
 // ===============================
 async function runStandardRound(ep, round, questions, Q, EXPL, RANK, introTime) {
   log(`=== Кръг ${round}: обяснение (${introTime/1000} сек.) ===`);
@@ -484,23 +832,31 @@ async function runStandardRound(ep, round, questions, Q, EXPL, RANK, introTime) 
 
   for (let i = 0; i < questions.length; i++) {
     log(`Кръг ${round}, въпрос ${i+1}/${questions.length}`);
+    const q = questions[i];
+    const slot = `r${round}-${i}`;
+    watchSlot(slot);
+    curQ = { slot, round, q, open: true };
 
-    await setState(ep, "question", Q, { round, index: i });
+    await setState(ep, "question", Q, { round, index: i, q: pubQ(round, q) });
     await sleep(Q);
 
     if (round === 2) {
       const usageSnap = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "jokerUsage", `r2-${i}`));
       const usage = usageSnap.exists() ? usageSnap.data() : {};
       if (usage.majorityUsed || usage.spyUsed) {
-        await setState(ep, "jokerBuffer", JOKER_BUFFER2, { round, index: i });
+        await setState(ep, "jokerBuffer", JOKER_BUFFER2, { round, index: i, q: pubQ(round, q), players: standingsNow(false).map(s => s.name) });
         await sleep(JOKER_BUFFER2);
       }
     }
 
-    await setState(ep, "explanation", EXPL, { round, index: i });
+    await sleep(GRACE);
+    const { res, wb } = scoreSlot(round, i, slot, q);
+    unwatch(true);
+    await setState(ep, "explanation", EXPL, { round, index: i, q: pubQ(round, q), reveal: revealQ(round, q), stats: res.stats });
+    writeBack(wb);
     await sleep(EXPL);
 
-    await setState(ep, "ranking", RANK, { round, index: i, isFinal: false });
+    await setState(ep, "ranking", RANK, { round, index: i, isFinal: false, rows: rowsOf(standingsNow(false)) });
     await sleep(RANK);
 
     // ⭐ пауза по заявка на админа — след всеки въпрос
@@ -512,13 +868,14 @@ async function runStandardRound(ep, round, questions, Q, EXPL, RANK, introTime) 
 // КРЪГ 6/8 — избор на тема (един играч) + самия кръг
 // ===============================
 async function runChooseAndRound(ep, round, questions, {
-  lobbyTime, chooseTime, revealTime, Q, explDurations, chooserExcluded, topicKeyField, presetChooser
+  lobbyTime, chooseTime, revealTime, Q, EXPL, RESULTS, RANK, chooserExcluded, presetChooser
 }) {
   log(`=== Кръг ${round}: обяснение (${lobbyTime/1000} сек.) ===`);
   await setState(ep, "roundIntro", lobbyTime, { round });
   await sleep(lobbyTime);
 
-  const standings = await computeStandingsHost(ep, false);
+  const standings = standingsNow(false);
+  const topics = questions.map(t => t.title);
   const eligible = chooserExcluded ? standings.filter(s => !chooserExcluded.includes(s.name)) : standings;
   // ⭐ Избиращият вече е определен (и обявен) след дузпата — ползваме същия човек, за да няма разминаване
   const chooserName = presetChooser || (eligible.length ? eligible[eligible.length - 1].name : null);
@@ -527,7 +884,8 @@ async function runChooseAndRound(ep, round, questions, {
   const slotId = `r${round}-choice`;
   try { await deleteDoc(doc(db, "games", GAME_ID, "episodes", ep, "choicePicks", slotId)); } catch(e) {}
 
-  await setState(ep, "choose", chooseTime, { round, slotId, chooserName, frozenRanking: standings });
+  const frozen = rowsOf(standings);
+  await setState(ep, "choose", chooseTime, { round, slotId, chooserName, frozenRanking: frozen, topics });
   await sleep(chooseTime);
 
   let chosenTopic = null, autoChosen = false;
@@ -536,7 +894,7 @@ async function runChooseAndRound(ep, round, questions, {
     if (snap.exists()) chosenTopic = snap.data().topic;
   } catch(e) {}
 
-  if (!chosenTopic) {
+  if (!chosenTopic || !topics.includes(chosenTopic)) {
     autoChosen = true;
     const seed = hashString(ep + slotId);
     const idx = Math.floor((seed / 233280) * questions.length);
@@ -548,16 +906,27 @@ async function runChooseAndRound(ep, round, questions, {
   }
   log(`Кръг ${round} — избрана тема: "${chosenTopic}"${autoChosen ? " (автоматично)" : ""}`);
 
-  await setState(ep, "choose-reveal", revealTime, { round, chosenTopic, chooserName, autoChosen, frozenRanking: standings });
+  await setState(ep, "choose-reveal", revealTime, { round, chosenTopic, chooserName, autoChosen, frozenRanking: frozen, topics });
   await sleep(revealTime);
 
-  await setState(ep, "question", Q, { round, index: 0, chosenTopic });
-  await sleep(Q);
+  const tq = questions.find(t => t.title === chosenTopic) || questions[0];
+  const slot = `r${round}-0`;
+  watchSlot(slot);
+  curQ = { slot, round, q: tq, open: true };
+  await setState(ep, "question", Q, { round, index: 0, chosenTopic, q: pubQ(round, tq) });
+  await sleep(Q + GRACE);
 
-  for (const [phaseName, dur] of explDurations) {
-    await setState(ep, phaseName, dur, { round, index: 0, chosenTopic });
-    await sleep(dur);
-  }
+  const { res, wb } = scoreSlot(round, 0, slot, tq);
+  unwatch(true);
+  await setState(ep, "explanation", EXPL, { round, index: 0, chosenTopic, q: pubQ(round, tq), reveal: revealQ(round, tq), scores: res.scores });
+  writeBack(wb);
+  await sleep(EXPL);
+
+  await setState(ep, "q-ranking", RESULTS, { round, index: 0, chosenTopic, rows: res.rows, total: res.total });
+  await sleep(RESULTS);
+
+  await setState(ep, "ranking", RANK, { round, index: 0, chosenTopic, isFinal: false, rows: rowsOf(standingsNow(false)) });
+  await sleep(RANK);
 
   return chooserName;
 }
@@ -566,36 +935,12 @@ async function runChooseAndRound(ep, round, questions, {
 // КРЪГ 9 — ИЗБОР (без warmup, от замразеното класиране след кръг 8)
 // ===============================
 function pickQuestionForArea(area, usedKeys) {
-  const candidates = izborPool.filter(q => q.area.trim() === area);
+  const candidates = izborPool.filter(q => String(q.area).trim() === area);
   const unused = candidates.filter(q => !usedKeys.has(q.question));
   const chooseFrom = unused.length ? unused : candidates;
   const picked = chooseFrom[0];
   usedKeys.add(picked.question);
   return picked;
-}
-
-async function scoreSlot9(ep, slotId, correct, chooserName, multiplier) {
-  const resultsSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "results"));
-  for (const pDoc of resultsSnap.docs) {
-    const pName = pDoc.id;
-    const ansRef = doc(db, "games", GAME_ID, "episodes", ep, "results", pName, "answers", slotId);
-    try {
-      const ansSnap = await getDoc(ansRef);
-      if (!ansSnap.exists()) continue;
-      const ranking = ansSnap.data().ranking || [];
-      let pts = pointsForRanking9(ranking, correct);
-      if (chooserName && pName === chooserName && multiplier === 2) pts *= 2;
-      try {
-        await setDoc(ansRef, { points: pts }, { merge: true });
-      } catch(e1) {
-        // един повторен опит (напр. при кратко претоварване на Firestore), после предупреждение в лога
-        await sleep(1500);
-        await setDoc(ansRef, { points: pts }, { merge: true });
-      }
-    } catch(e) {
-      log(`⚠️ Кръг 9: НЕ успях да запиша точките на ${pName} за ${slotId} — ${e && e.code ? e.code : e}`);
-    }
-  }
 }
 
 async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQuestionKeys, totalSlotsSoFar, totalSlotsOverall) {
@@ -621,13 +966,14 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
     // при скрито класиране екранът за избор показва само реда на избиране (без точки)
     const frozenNow = hidden
       ? frozenRanking.map(e => ({ name: e.name }))
-      : await computeStandingsHost(ep, false);
+      : rowsOf(standingsNow(false));
     await setState(ep, "choose", CHOOSE_TIME9, {
       round: 9, slotId, chooserName,
       roundLabel: `Избор ${choiceRoundNumber}`,
       frozenRanking: frozenNow,
       hidePoints: hidden,
-      burnedTopics: burnedNow()
+      burnedTopics: burnedNow(),
+      topics: izborAreas
     });
 
     let chosenTopic = null, autoChosen = false;
@@ -659,7 +1005,8 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
       round: 9, chooserName, roundLabel: `Избор ${choiceRoundNumber}`,
       frozenRanking: frozenNow, chosenTopic, autoChosen, slotId,
       hidePoints: hidden,
-      burnedTopics: burnedNow()
+      burnedTopics: burnedNow(),
+      topics: izborAreas
     });
     await sleep(CHOOSE_REVEAL9);
 
@@ -670,12 +1017,16 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
       ? `Кръг 9 — Избор 1 — тема: ${chosenTopic} (×2 точки за ${chooserName})`
       : `Кръг 9 — Избор 2 — тема: ${chosenTopic} (${chooserName} не участва)`;
 
-    const extra = { round: 9, q, slotId, chooserName, chooserMultiplier: multiplier, excludedPlayer, roundLabel };
+    const extra = { round: 9, q: pubQ(9, q), slotId, chooserName, chooserMultiplier: multiplier, excludedPlayer, roundLabel };
 
+    watchSlot(slotId);
+    curQ = { slot: slotId, round: 9, q, open: true };
     await setState(ep, "question", Q9, extra);
-    await sleep(Q9);
+    await sleep(Q9 + GRACE);
 
-    await scoreSlot9(ep, slotId, q.correct, chooserName, multiplier);
+    const sc = scoreSlot9(slotId, q, chooserName, multiplier);
+    unwatch(true);
+    writeBack(sc.wb);
 
     // ⭐ запазваме скритото класиране за финалното повторение
     if (hidden) {
@@ -685,23 +1036,23 @@ async function runRound9ChoiceRound(ep, choiceRoundNumber, frozenRanking, usedQu
         isSecondToLast ? "Класиране след предпоследния въпрос (Кръг 9)" : "Класиране след последния въпрос (Кръг 9)",
         async (name) => {
           if (name === excludedPlayer) return { tag: "не участва в този въпрос" };
-          const sn = await getDoc(doc(db, "games", GAME_ID, "episodes", ep, "results", name, "answers", slotId));
-          return sn.exists() ? { delta: sn.data().points || 0 } : { tag: "не е отговорил на този въпрос" };
+          const s = ledger[name] && ledger[name].slots[slotId];
+          return s ? { delta: s.pts || 0 } : { tag: "не е отговорил на този въпрос" };
         }
       );
     }
 
-    await setState(ep, "explanation", EXPL9, extra);
+    await setState(ep, "explanation", EXPL9, { ...extra, reveal: revealQ(9, q), stats: sc.stats });
     await sleep(EXPL9);
 
     // класиране по въпроса — само докато не сме в последните 2 въпроса
     if (!hidden) {
-      await setState(ep, "q-ranking", QRANK9, { round: 9, slotId, correct: q.correct });
+      await setState(ep, "q-ranking", QRANK9, { round: 9, slotId, rows: sc.rows });
       await sleep(QRANK9);
     }
 
     done++;
-    await setState(ep, "ranking", RANK9, { round: 9, isFinal: false, hideRanking: hidden });
+    await setState(ep, "ranking", RANK9, { round: 9, isFinal: false, hideRanking: hidden, rows: hidden ? [] : rowsOf(standingsNow(false)) });
     await sleep(RANK9);
 
     // ⭐ пауза по заявка на админа — след всеки въпрос
@@ -738,23 +1089,34 @@ async function runRound10(ep) {
   for (let tier = 0; tier < 3; tier++) {
     const q = questions10[tier];   // ⭐ винаги първите 3 въпроса от файла, по ред
     log(`Кръг 10, дузпа ${tier+1}/3`);
+    const slot = `r10-${tier}`;
+    watchSlot(slot);
+    curQ = { slot, round: 10, q, open: true };
 
-    await setState(ep, "question", Q10, { round: 10, index: tier, tier, q });
-    await sleep(Q10);
+    await setState(ep, "question", Q10, { round: 10, index: tier, tier, q: pubQ(10, q) });
+    await sleep(Q10 + GRACE);
+
+    const { wb } = scoreSlot(10, tier, slot, q);
+    unwatch(true);
+    writeBack(wb);
 
     // ⭐ запазваме класирането след дузпата, но НЕ го показваме сега
-    const deltaMap = await r10DeltaMap(ep, tier);
+    const diffs = [];
+    Object.values(ledger).forEach(L => { const s = L.slots[slot]; if (s && typeof s.diff === "number") diffs.push(s.diff); });
     await snapshotHiddenStep(
       ep,
       `Класиране след дузпа ${tier + 1} от 3 (Кръг 10)`,
-      async (name) => (name in deltaMap) ? { delta: deltaMap[name] } : { tag: "не е отговорил на тази дузпа" },
+      async (name) => {
+        const s = ledger[name] && ledger[name].slots[slot];
+        return s ? { delta: calcPoints10(tier, diffs, s.diff) } : { tag: "не е отговорил на тази дузпа" };
+      },
       tier === 2 ? "Това е класирането преди добавянето на бонуса за неизползвани жокери." : ""
     );
 
-    await setState(ep, "explanation", EXPL10, { round: 10, index: tier, tier, q });
+    await setState(ep, "explanation", EXPL10, { round: 10, index: tier, tier, q: pubQ(10, q), reveal: revealQ(10, q) });
     await sleep(EXPL10);
 
-    await setState(ep, "ranking", RANK10, { round: 10, isFinal: false, hideRanking: true });
+    await setState(ep, "ranking", RANK10, { round: 10, isFinal: false, hideRanking: true, rows: [] });
     await sleep(RANK10);
 
     if (tier < 2) await maybePause(ep, 10, tier);
@@ -768,16 +1130,17 @@ async function runThanksAndFinalReveal(ep) {
   await setState(ep, "thanks", THANKS_TIME, {});
   await sleep(THANKS_TIME);
 
-  const standings = await computeStandingsHost(ep, true);
+  const standings = standingsNow(true);
+  const rows = rowsOf(standings, true);
   const total = standings.length;
 
   log("Разкриваме класирането отзад напред...");
   for (let revealed = 1; revealed <= total; revealed++) {
-    await setState(ep, "final-reveal", REVEAL_STEP_TIME, { revealedCount: revealed });
+    await setState(ep, "final-reveal", REVEAL_STEP_TIME, { revealedCount: revealed, rows });
     await sleep(REVEAL_STEP_TIME);
   }
 
-  await setState(ep, "final-reveal", REVEAL_SETTLE_TIME, { revealedCount: total });
+  await setState(ep, "final-reveal", REVEAL_SETTLE_TIME, { revealedCount: total, rows });
   await sleep(REVEAL_SETTLE_TIME);
 
   // ⭐ Едва сега показваме скритите класирания — как се е стигнало до крайния резултат
@@ -788,7 +1151,7 @@ async function runThanksAndFinalReveal(ep) {
   }
 
   log("Играта приключи — крайно класиране (остава завинаги).");
-  await setState(ep, "finalRanking", FINAL_RANK_TIME, { isFinal: true });
+  await setState(ep, "finalRanking", FINAL_RANK_TIME, { isFinal: true, rows });
 }
 
 // ===============================
@@ -796,6 +1159,7 @@ async function runThanksAndFinalReveal(ep) {
 // ===============================
 async function runGame(ep, start = 1) {
   await loadAllQuestions();
+  await startLive(ep, true);   // книгата с точките се възстановява от записаното (важно при „старт от кръг X“)
   const go = n => start <= n;
   if (start > 1) log(`▶ Продължаваме от кръг ${start} (резултатите от по-ранните кръгове се запазват).`);
 
@@ -817,7 +1181,7 @@ async function runGame(ep, start = 1) {
     const tb5 = await runTiebreakIfNeeded(ep, "r5", true, [], "Право да избере тема за Кръг 6 има:");
     r6Chooser = await runChooseAndRound(ep, 6, questions6, {
       lobbyTime: LOBBY_TIME6, chooseTime: CHOOSE_TIME6, revealTime: CHOOSE_REVEAL6, Q: Q6,
-      explDurations: [["explanation", EXPL6], ["q-ranking", RESULTS6], ["ranking", RANK6]],
+      EXPL: EXPL6, RESULTS: RESULTS6, RANK: RANK6,
       chooserExcluded: [], presetChooser: tb5.chooserName
     });
     try {
@@ -840,7 +1204,7 @@ async function runGame(ep, start = 1) {
     const tb7 = await runTiebreakIfNeeded(ep, "r7", true, r6Chooser ? [r6Chooser] : [], "Право да избере тема за Кръг 8 има:");
     await runChooseAndRound(ep, 8, questions8, {
       lobbyTime: LOBBY_TIME8, chooseTime: CHOOSE_TIME8, revealTime: CHOOSE_REVEAL8, Q: Q8,
-      explDurations: [["explanation", EXPL8], ["q-ranking", RESULTS8], ["ranking", RANK8]],
+      EXPL: EXPL8, RESULTS: RESULTS8, RANK: RANK8,
       chooserExcluded: r6Chooser ? [r6Chooser] : [], presetChooser: tb7.chooserName
     });
     await maybePause(ep, 8);
@@ -864,12 +1228,122 @@ async function runGame(ep, start = 1) {
   log("🏁 Играта приключи напълно.");
 }
 
+// ===============================
+// ⭐ АДМИН (код → пауза след въпрос + ръчни точки)
+// ===============================
+const ADMIN_CODE = "t861182";
+const adminBtn = document.getElementById("adminOpenBtn");
+const adminPanel = document.getElementById("adminPanel");
+let adminOn = false, adminFlow = {}, adminFlowUnsub = null, adminAdj = {};
+const adminEsc = t => String(t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const adminFmt = n => String(Math.round(n * 10000) / 10000).replace(".", ",");
+function adminEp() { return curEp || document.getElementById("ep").value.trim() || null; }
+
+adminBtn.onclick = () => {
+  if (!adminOn) {
+    const code = prompt("Админ код:");
+    if (code === null) return;
+    if (code.trim() !== ADMIN_CODE) return alert("Грешен код.");
+    adminOn = true;
+  }
+  const opening = adminPanel.style.display !== "block";
+  adminPanel.style.display = opening ? "block" : "none";
+  if (opening) adminOpen(); else if (adminFlowUnsub) { adminFlowUnsub(); adminFlowUnsub = null; }
+};
+
+function updateAdminStatus() {
+  const el = document.getElementById("adState");
+  if (!el) return;
+  let t;
+  if (curPhase === "pause") t = "⏸ Играта е в ПАУЗА — натисни „Продължи“.";
+  else if (adminFlow.pauseAfterRound) t = "⏳ Пауза е заявена — играта ще спре след края на текущия въпрос.";
+  else t = "▶ " + (curPhase ? `Играта тече (фаза: ${adminEsc(curPhase)}${curRound ? ", кръг " + curRound : ""}).` : "Играта още не е започнала.");
+  el.innerHTML = t;
+}
+setInterval(updateAdminStatus, 1000);
+
+function adminOpen() {
+  const ep = adminEp();
+  adminPanel.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <b>🔧 Админ</b><span style="opacity:.7">епизод: ${ep ? adminEsc(ep) : "—"}</span>
+      <button id="adClose" style="padding:6px 12px; font-size:0.9em;">✕ Затвори</button></div>
+    <div style="background:rgba(255,255,255,0.06); border-radius:10px; padding:10px; margin-bottom:10px;">
+      <div id="adState" style="margin-bottom:8px;"></div>
+      <button id="adPause" style="padding:8px 14px; font-size:1em;">⏸ Пауза след края на въпроса</button>
+      <button id="adResume" style="padding:8px 14px; font-size:1em;">▶ Продължи / отмени паузата</button>
+    </div>
+    <div style="background:rgba(255,255,255,0.06); border-radius:10px; padding:10px;">
+      <b>Точки</b> · стъпка: <input id="adStep" type="number" step="0.5" min="0" value="1" style="width:70px; padding:4px; margin:0;">
+      <button id="adLoad" style="padding:8px 14px; font-size:1em;">↻ Зареди играчите</button>
+      <div id="adList" style="margin-top:8px; opacity:.85;">Натисни „Зареди играчите“.</div>
+    </div>`;
+  document.getElementById("adClose").onclick = () => { adminPanel.style.display = "none"; if (adminFlowUnsub) { adminFlowUnsub(); adminFlowUnsub = null; } };
+  const flowRef = doc(db, "games", GAME_ID, "control", "flow");
+  document.getElementById("adPause").onclick  = async () => { try { await setDoc(flowRef, { pauseAfterRound: true,  updatedAt: Date.now() }, { merge: true }); log("⏸ Заявена пауза след края на въпроса."); } catch (e) { alert("Грешка: " + e.message); } };
+  document.getElementById("adResume").onclick = async () => { try { await setDoc(flowRef, { pauseAfterRound: false, updatedAt: Date.now() }, { merge: true }); log("▶ Паузата е махната / продължаваме."); } catch (e) { alert("Грешка: " + e.message); } };
+  document.getElementById("adLoad").onclick = adminLoad;
+  if (adminFlowUnsub) adminFlowUnsub();
+  adminFlowUnsub = onSnapshot(flowRef, sn => { adminFlow = sn.exists() ? sn.data() : {}; updateAdminStatus(); });
+  updateAdminStatus();
+}
+
+async function adminLoad() {
+  const ep = adminEp();
+  const list = document.getElementById("adList");
+  if (!ep) { list.textContent = "Въведи име на епизод най-горе."; return; }
+  list.textContent = "Зареждам…";
+  try {
+    if (!live || live.ep !== ep) { if (!questions1.length) { try { await loadAllQuestions(); } catch(e) {} } await startLive(ep, true); }
+    const adjSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", ep, "adjustments"));
+    adminAdj = {}; adjSnap.forEach(d => { adminAdj[d.id] = Number(d.data().delta) || 0; });
+    if (live) live.adj = { ...adminAdj };
+    const st = standingsNow(false);   // вече включва ръчните корекции
+    if (!st.length) { list.textContent = "Още няма играчи."; return; }
+    list.innerHTML = "";
+    st.forEach((p, i) => {
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.12);";
+      row.innerHTML = `<span style="width:28px; opacity:.7;">${i + 1}.</span><span style="flex:1; word-break:break-word;">${adminEsc(p.name)}</span>
+        <span class="pts" style="min-width:64px; text-align:right;"><b>${adminFmt(p.points)}</b></span>
+        <span class="adj" style="min-width:56px; opacity:.7; text-align:right;">${adminAdj[p.name] ? "(" + (adminAdj[p.name] > 0 ? "+" : "") + adminFmt(adminAdj[p.name]) + ")" : ""}</span>
+        <button class="m" style="margin:0; padding:4px 14px; font-size:1.1em;">−</button><button class="p" style="margin:0; padding:4px 14px; font-size:1.1em;">+</button>`;
+      let pts = p.points;
+      const change = async sign => {
+        const step = Number(document.getElementById("adStep").value) || 0;
+        if (!step) return;
+        const next = Math.round(((adminAdj[p.name] || 0) + sign * step) * 10000) / 10000;
+        try {
+          await setDoc(doc(db, "games", GAME_ID, "episodes", ep, "adjustments", p.name), { delta: next, updatedAt: Date.now() }, { merge: true });
+          adminAdj[p.name] = next;
+          pts = Math.round((pts + sign * step) * 10000) / 10000;
+          row.querySelector(".pts").innerHTML = `<b>${adminFmt(pts)}</b>`;
+          row.querySelector(".adj").textContent = next ? "(" + (next > 0 ? "+" : "") + adminFmt(next) + ")" : "";
+          log(`✏️ Корекция: ${p.name} ${sign > 0 ? "+" : "−"}${adminFmt(step)} (общо корекция ${adminFmt(next)})`);
+        } catch (e) { alert("Не успях да запиша: " + e.message); }
+      };
+      row.querySelector(".m").onclick = () => change(-1);
+      row.querySelector(".p").onclick = () => change(+1);
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = "Грешка: " + (e && e.message ? e.message : e); }
+}
+
+
+document.getElementById("folderBtn").onclick = pickFolder;
+document.getElementById("folderReloadBtn").onclick = reloadLastFolder;
+document.getElementById("folderInput").onchange = async e => { const fs = [...e.target.files]; const lbl = fs[0] && fs[0].webkitRelativePath ? fs[0].webkitRelativePath.split("/")[0] : ""; await ingestFiles(fs, lbl); e.target.value = ""; };
+document.getElementById("filesLink").onclick = e => { e.preventDefault(); document.getElementById("filesInput").click(); };
+document.getElementById("filesInput").onchange = async e => { await ingestFiles([...e.target.files], "избрани файлове"); e.target.value = ""; };
+updateFolderStatus();
+
 document.getElementById("startBtn").onclick = async () => {
   const ep = document.getElementById("ep").value.trim();
   const startTimeRaw = document.getElementById("startTime").value;
   const startRound = Number(document.getElementById("startRound").value) || 1;
 
   if (!ep) return alert("Въведи име на епизод!");
+  if (!folderReady()) return alert("Първо избери папката с въпросите (бутон „Избери папка с въпроси“).");
 
   // ⭐ Продължаване от кръг X — без лоби и престарт, започваме веднага
   if (startRound > 1) {
