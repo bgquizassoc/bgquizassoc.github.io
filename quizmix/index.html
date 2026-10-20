@@ -950,9 +950,19 @@ const qTimerBox  = document.getElementById("qTimerBox");
 const qTimerFill = document.getElementById("qTimerFill");
 const qTimerTxt  = document.getElementById("qTimerTxt");
 
+// ⭐ Когато времето за въпроса изтече, отговорите се ЗАКЛЮЧВАТ — вече нищо не може да се маркира
+let lockPhase = false, lockDone = false;
+function lockInputs() {
+  try {
+    document.querySelectorAll("#answers button, #rankAnswers button, #joker-correction").forEach(b => { b.disabled = true; });
+    [letterInput, submitBtn, numberInput, numberSubmitBtn, tiebreakInput, tiebreakSubmitBtn, correctionBtn9].forEach(e => { if (e) e.disabled = true; });
+    rankLocked9 = true; matchSubmitted = true; groupingSubmitted = true;
+  } catch (e) {}
+}
 function updateTimer(startTime, duration) {
   const now = Date.now();
   const leftMs = Math.max(0, duration - (now - startTime));
+  if (leftMs <= 0 && lockPhase && !lockDone) { lockDone = true; lockInputs(); }
   const remaining = Math.max(0, Math.ceil(leftMs / 1000));
   if (barTimerActive) {
     globalTimer.style.display = "none";
@@ -3356,6 +3366,7 @@ async function applyPhaseImmediately(data) {
   const { phase, round, index, startTime, duration } = data;
   if (timerInterval) clearInterval(timerInterval);
   barTimerActive = false;
+  lockPhase = ["question", "jokerBuffer", "tiebreak"].includes(phase); lockDone = false;
   qTimerBox.style.display = "none";
   if (phase !== "question" || round !== 8) clearTimeout(autoSubmitTimeoutR);
 
