@@ -79,7 +79,10 @@
   #qTimerTxt { text-align: right; font-size: 0.85em; color: #bbb; margin-top: 3px; }
   #qTimerBox.warning #qTimerTxt { color: #ff4c4c; font-weight: 700; }
 
-  #question { font-size: 1.6em; margin: 20px 0; font-weight: 600; }
+  /* ⭐⭐ РАЗМЕРИ НА ШРИФТОВЕТЕ — променяй само тези три числа ⭐⭐
+     --q-size = текст на въпроса, --a-size = отговори (бутони), --joker-size = бутони на жокерите */
+  :root { --q-size: 1.3em; --a-size: 1.05em; --joker-size: 0.78em; }
+  #question { font-size: var(--q-size); margin: 14px 0; font-weight: 600; line-height: 1.3; }
 
   /* ⭐ жълт таг за кръга, над всеки въпрос — стил като sravnenie30 */
   #roundTag {
@@ -95,9 +98,9 @@
   }
 
   .answers button {
-    display: block; width: 100%; margin: 10px 0; padding: 16px;
+    display: block; width: 100%; margin: 8px 0; padding: 12px 14px;
     border: none; border-radius: 10px; cursor: pointer;
-    font-size: 1.2em; background: #333; color: #fff;
+    font-size: var(--a-size); background: #333; color: #fff;
   }
   .answers button.selected {
     background: #00e5ff; color: #003344; font-weight: bold;
@@ -137,7 +140,7 @@
   .stat-answer {
     display: block; width: 100%; margin: 10px 0; padding: 16px;
     border-radius: 10px; background: #333; color: #fff;
-    font-size: 1.2em; text-align: left; position: relative;
+    font-size: var(--a-size); text-align: left; position: relative;
   }
   .stat-answer.correct { background: #2e7d32; font-weight: bold; }
   .stat-answer .pct {
@@ -191,21 +194,22 @@
 
   /* ⭐ ЖОКЕРИ */
   .jokers-panel {
-    display: flex; flex-wrap: wrap; gap: 12px;
-    justify-content: center; margin-top: 22px; margin-bottom: 10px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    justify-content: center; margin-top: 12px; margin-bottom: 6px;
   }
   .joker-btn {
     background: #0d47a1; color: #ffffff; border: 2px solid #1565c0;
-    border-radius: 10px; padding: 10px 16px; font-size: 1.05em;
-    font-weight: bold; cursor: pointer; margin-top: 0;
+    border-radius: 8px; padding: 6px 9px; font-size: var(--joker-size);
+    font-weight: bold; cursor: pointer; margin-top: 0; white-space: nowrap;
   }
   .joker-btn:hover:not(:disabled) { background:#1565c0; transform: scale(1.03); }
   .joker-btn:disabled { opacity: 0.35; cursor: not-allowed; background:#555; border-color:#555; }
 
-  #jokerStatus { margin-top: 12px; min-height: 20px; font-size: 1em; color: #ffd100; font-weight: bold; }
-  #jokerBufferInfo { margin-top: 15px; text-align: left; }
+  #jokerStatus { margin-top: 6px; min-height: 18px; font-size: 0.95em; color: #ffd100; font-weight: bold; }
+  #jokerBufferInfo { margin: 8px 0 10px; text-align: left; }
 
-  #spyTargetPicker { margin-top: 12px; text-align: left; }
+  #spyTargetPicker { margin: 8px 0 10px; text-align: left; }
+  body.locked #jokers button, body.locked #correctionBtn9 { pointer-events: none; }
   #spyTargetPicker .spy-title { color: #ffd100; font-weight: bold; margin-bottom: 8px; }
   .spy-target-btn {
     display: block; width: 100%; margin: 8px 0; padding: 12px;
@@ -538,6 +542,10 @@
   <!-- ⭐ таймер с черта (под въпроса/снимката/клипа, над отговорите) -->
   <div id="qTimerBox"><div id="qTimerTrack"><div id="qTimerFill"></div></div><div id="qTimerTxt"></div></div>
 
+  <div id="jokerStatus"></div>
+  <div id="spyTargetPicker" style="display:none;"></div>
+  <div id="jokerBufferInfo" style="display:none;"></div>
+
   <!-- кръгове 1,2: отговори с бутони -->
   <div id="answers" class="answers"></div>
 
@@ -593,9 +601,6 @@
     <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Дай три</button>
     <button class="joker-btn" id="joker-correction" style="display:none;" disabled>🔁 Поправка</button>
   </div>
-  <div id="jokerStatus"></div>
-  <div id="spyTargetPicker" style="display:none;"></div>
-  <div id="jokerBufferInfo" style="display:none;"></div>
 
   <div id="answeredList" style="display:none;">
     <strong>Отговорили:</strong>
@@ -953,6 +958,14 @@ const qTimerTxt  = document.getElementById("qTimerTxt");
 // ⭐ Когато времето за въпроса изтече, отговорите се ЗАКЛЮЧВАТ — вече нищо не може да се маркира
 let lockPhase = false, lockDone = false;
 function lockInputs() {
+  // ⭐ ако е написана буква/число, но „Изпрати“ не е натиснато — взема се написаното в момента на края
+  try {
+    const vis = e => e && e.offsetParent !== null && !e.disabled;
+    if (vis(letterInput) && letterInput.value.trim() && vis(submitBtn)) submitBtn.click();
+    if (vis(numberInput) && numberInput.value.trim() !== "" && !isNaN(Number(numberInput.value)) && vis(numberSubmitBtn)) numberSubmitBtn.click();
+    if (vis(tiebreakInput) && tiebreakInput.value.trim() !== "" && !isNaN(Number(tiebreakInput.value)) && vis(tiebreakSubmitBtn)) tiebreakSubmitBtn.click();
+  } catch (e) {}
+  document.body.classList.add("locked");
   try {
     document.querySelectorAll("#answers button, #rankAnswers button, #joker-correction").forEach(b => { b.disabled = true; });
     [letterInput, submitBtn, numberInput, numberSubmitBtn, tiebreakInput, tiebreakSubmitBtn, correctionBtn9].forEach(e => { if (e) e.disabled = true; });
@@ -3367,6 +3380,7 @@ async function applyPhaseImmediately(data) {
   if (timerInterval) clearInterval(timerInterval);
   barTimerActive = false;
   lockPhase = ["question", "jokerBuffer", "tiebreak"].includes(phase); lockDone = false;
+  document.body.classList.remove("locked");
   qTimerBox.style.display = "none";
   if (phase !== "question" || round !== 8) clearTimeout(autoSubmitTimeoutR);
 
