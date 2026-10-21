@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="bg"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>.</title>
+<style>
+body{margin:0;background:#111;color:#eee;font-family:system-ui,sans-serif;padding:14px}
+#pad{display:flex;gap:8px;justify-content:center;margin:20px 0}
+#pad button{width:calc((100vw - 28px - 40px)/6);max-width:56px;aspect-ratio:1;border:0;border-radius:6px;background:#2a2a2a;padding:0}
+#pad button:active{background:#3a3a3a}
+#panel{display:none;max-width:560px;margin:0 auto}
+.box{background:#1d1d1d;border-radius:10px;padding:10px;margin-bottom:10px}
+button.b{padding:10px 14px;font-size:1em;margin:3px;border:0;border-radius:8px;background:#3b5bdb;color:#fff}
+.row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #333}
+.row button{margin:0;padding:4px 14px;font-size:1.1em;border:0;border-radius:6px;background:#444;color:#fff}
+input{padding:4px;width:70px}
+</style></head><body>
+<div id="pad"><button></button><button></button><button></button><button id="k4"></button><button></button><button></button></div>
+<div id="panel"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+const GAME_ID = "quizmix100";   // ← за друга игра: megalite / megaquiz10
+const ADMIN_CODE = "8611";
+const db = getFirestore(initializeApp({
+  apiKey: "AIzaSyB6ds9mU-xvF1LSvhaeCNtMbROu0k", authDomain: "cifromania-ac182.firebaseapp.com",
+  projectId: "cifromania-ac182", storageBucket: "cifromania-ac182.appspot.com",
+  messagingSenderId: "165208255580", appId: "1:165208255580:web:b36744f0eb527b6571129" }));
+const panel = document.getElementById("panel");
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = n => String(Math.round(n*10000)/10000).replace(".", ",");
+let ok = false, cur = {}, flow = {}, st = {}, adj = {}, unsubs = [];
+document.getElementById("k4").onclick = () => {
+  if (!ok) { const c = prompt("Код:"); if (c === null) return; if (c.trim() !== ADMIN_CODE) return; ok = true; }
+  if (panel.style.display === "block") { panel.style.display = "none"; unsubs.forEach(u => u()); unsubs = []; return; }
+  panel.style.display = "block"; open();
+};
+function status() {
+  const el = document.getElementById("s"); if (!el) return;
+  el.textContent = cur.phase === "pause" ? "⏸ Играта е в ПАУЗА" : flow.pauseAfterRound ? "⏳ Пауза е заявена — ще спре след края на въпроса"
+    : "▶ " + (cur.phase ? `Играта тече (${cur.phase}${cur.round ? ", кръг " + cur.round : ""})` : "Няма активна игра");
+}
+function open() {
+  panel.innerHTML = `<div class="box"><div id="s" style="margin-bottom:8px"></div>
+    <button class="b" id="p">⏸ Пауза след въпроса</button><button class="b" id="r">▶ Продължи / отмени</button></div>
+    <div class="box"><b>Точки</b> · стъпка <input id="step" type="number" step="0.5" min="0" value="1"><div id="l" style="margin-top:8px"></div></div>`;
+  const flowRef = doc(db, "games", GAME_ID, "control", "flow");
+  p.onclick = () => setDoc(flowRef, { pauseAfterRound: true, updatedAt: Date.now() }, { merge: true }).catch(e => alert(e.message));
+  r.onclick = () => setDoc(flowRef, { pauseAfterRound: false, updatedAt: Date.now() }, { merge: true }).catch(e => alert(e.message));
+  unsubs.push(onSnapshot(flowRef, s => { flow = s.exists() ? s.data() : {}; status(); }));
+  unsubs.push(onSnapshot(doc(db, "games", GAME_ID, "state", "current"), s => { cur = s.exists() ? s.data() : {}; status(); watchEp(); }));
+  unsubs.push(onSnapshot(doc(db, "games", GAME_ID, "control", "standings"), s => { st = s.exists() ? s.data() : {}; list(); }));
+}
+let epW = null, epU = null;
+function watchEp() {
+  const ep = cur.episodeId; if (!ep || ep === epW) return; epW = ep; if (epU) epU();
+  epU = onSnapshot(collection(db, "games", GAME_ID, "episodes", ep, "adjustments"), s => { adj = {}; s.forEach(d => adj[d.id] = Number(d.data().delta) || 0); list(); });
+  unsubs.push(() => epU && epU());
+}
+function list() {
+  const l = document.getElementById("l"); if (!l) return;
+  const rows = (st.rows || []);
+  if (!rows.length) { l.textContent = "Още няма класиране (появява се след първия въпрос)."; return; }
+  l.innerHTML = "";
+  rows.forEach((p, i) => {
+    const d = document.createElement("div"); d.className = "row";
+    d.innerHTML = `<span style="width:26px;opacity:.6">${i+1}.</span><span style="flex:1;word-break:break-word">${esc(p.name)}</span>
+      <b style="min-width:56px;text-align:right">${fmt(p.points)}</b><span style="min-width:50px;opacity:.6;text-align:right">${adj[p.name] ? "(" + (adj[p.name] > 0 ? "+" : "") + fmt(adj[p.name]) + ")" : ""}</span>
+      <button>−</button><button>+</button>`;
+    const [m, pl] = d.querySelectorAll("button");
+    const chg = async sign => {
+      const step = Number(document.getElementById("step").value) || 0; const ep = cur.episodeId; if (!step || !ep) return;
+      const next = Math.round(((adj[p.name] || 0) + sign * step) * 10000) / 10000;
+      try { await setDoc(doc(db, "games", GAME_ID, "episodes", ep, "adjustments", p.name), { delta: next, updatedAt: Date.now() }, { merge: true }); adj[p.name] = next;
+        p.points = Math.round((p.points + sign * step) * 10000) / 10000; list(); } catch (e) { alert(e.message); }
+    };
+    m.onclick = () => chg(-1); pl.onclick = () => chg(1); l.appendChild(d);
+  });
+}
+</script></body></html>
