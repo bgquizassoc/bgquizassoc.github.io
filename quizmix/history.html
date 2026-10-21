@@ -140,17 +140,26 @@ function buildImageHtml(url) {
 
 async function loadHistory() {
   let Q = {};
+  // ⭐ Въпросите вече не са публични файлове — хостът ги записва в базата след края на играта (archive/q1..q8)
   try {
-    const [q1,q2,q3,q4,q5,q6,q7,q8] = await Promise.all([
-      fetch("questions1.json").then(r=>r.json()), fetch("questions2.json").then(r=>r.json()),
-      fetch("questions3.json").then(r=>r.json()), fetch("questions4.json").then(r=>r.json()),
-      fetch("questions5.json").then(r=>r.json()), fetch("questions6.json").then(r=>r.json()),
-      fetch("questions7.json").then(r=>r.json()), fetch("questions8.json").then(r=>r.json())
-    ]);
-    Q = { q1,q2,q3,q4,q5,q6,q7,q8 };
+    const nums = [1,2,3,4,5,6,7,8];
+    const snaps = await Promise.all(nums.map(n => getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "archive", "q" + n))));
+    if (!snaps.every(sn => sn.exists())) throw new Error("няма архив");
+    nums.forEach((n, i) => { Q["q" + n] = snaps[i].data().list; });
   } catch(e) {
-    summary.textContent = "Не мога да заредя въпросите.";
-    return;
+    // резервен вариант за стари епизоди — ако въпросите още са като файлове до тази страница
+    try {
+      const [q1,q2,q3,q4,q5,q6,q7,q8] = await Promise.all([
+        fetch("questions1.json").then(r=>r.json()), fetch("questions2.json").then(r=>r.json()),
+        fetch("questions3.json").then(r=>r.json()), fetch("questions4.json").then(r=>r.json()),
+        fetch("questions5.json").then(r=>r.json()), fetch("questions6.json").then(r=>r.json()),
+        fetch("questions7.json").then(r=>r.json()), fetch("questions8.json").then(r=>r.json())
+      ]);
+      Q = { q1,q2,q3,q4,q5,q6,q7,q8 };
+    } catch(e2) {
+      summary.textContent = "Историята ще е достъпна след края на играта (въпросите още не са записани).";
+      return;
+    }
   }
 
   let answers = {};
