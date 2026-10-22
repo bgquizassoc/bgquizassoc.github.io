@@ -21,7 +21,7 @@
     align-items: center; justify-content: flex-start;
     font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
     max-width: 900px; margin: 0 auto;
-    padding-top: 20px;
+    padding-top: var(--top-pad, 6px);
     padding-left: 20px;
     padding-right: 20px;
     padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
@@ -31,13 +31,15 @@
   h1 {
     text-align: center; color: #ffd100;
     font-size: clamp(1.4em, 4vw, 2em);
-    margin: 10px auto 15px auto;
+    margin: 2px auto 4px auto; line-height: 1.15;
     text-shadow: 0 0 5px #ffb400;
   }
+  #quiz { padding: 12px 14px; }
+  h1 small { font-size: 0.5em; font-weight: 600; opacity: .85; text-shadow: none; }
 
   #start-screen, #waiting-screen, #round-intro, #quiz, #explanation, #ranking {
     width: 100%; max-width: 600px; text-align: center;
-    margin-top: 30px;
+    margin-top: var(--box-gap, 8px);
     background: rgba(255,255,255,0.05);
     border-radius: 16px; padding: 20px;
     box-shadow: 0 0 10px rgba(255,209,0,0.2);
@@ -57,7 +59,7 @@
   button:disabled { opacity: 0.35; cursor: not-allowed; }
 
   #globalTimer {
-    text-align: center; font-weight: 800; margin: 20px 0;
+    text-align: center; font-weight: 800; margin: 4px 0;
     font-size: clamp(1.8em, 5vw, 2.6em);
     color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
   }
@@ -81,8 +83,8 @@
 
   /* ⭐⭐ РАЗМЕРИ НА ШРИФТОВЕТЕ — променяй само тези три числа ⭐⭐
      --q-size = текст на въпроса, --a-size = отговори (бутони), --joker-size = бутони на жокерите */
-  :root { --q-size: 1.3em; --a-size: 1.05em; --joker-size: 0.78em; }
-  #question { font-size: var(--q-size); margin: 14px 0; font-weight: 600; line-height: 1.3; }
+  :root { --top-pad: 6px; --box-gap: 8px; --q-size: 1.3em; --a-size: 1.05em; --joker-size: 0.78em; }
+  #question { font-size: var(--q-size); margin: 8px 0; font-weight: 600; line-height: 1.3; }
 
   /* ⭐ жълт таг за кръга, над всеки въпрос — стил като sravnenie30 */
   #roundTag {
@@ -395,7 +397,7 @@
 
 <body>
 
-<h1> Игри на Знания <br> 🧩 Мегакуиз 🧩 <br>епизод  - тест</h1>
+<h1><small> Игри на Знания </small><br>🧩 Мегакуиз 100, епзиод 1 🧩</h1>
 
 <div id="spectatorBanner">👁 Режим зрител — гледаш играта, не участваш и не се броиш в класирането</div>
 <audio id="bg-music" src="../music/games.mp3" loop preload="auto"></audio>
