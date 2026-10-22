@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>🧩 Мегакуиз 100 🧩</title>
+  <title>🧩 Мегакуиз 10 🧩</title>
 
   <link rel="manifest" href="manifest.json">
   <script>
@@ -21,7 +21,7 @@
     align-items: center; justify-content: flex-start;
     font-size: 18px; font-family: 'Segoe UI', Arial, sans-serif;
     max-width: 900px; margin: 0 auto;
-    padding-top: 20px;
+    padding-top: var(--top-pad, 6px);
     padding-left: 20px;
     padding-right: 20px;
     padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
@@ -31,13 +31,15 @@
   h1 {
     text-align: center; color: #ffd100;
     font-size: clamp(1.4em, 4vw, 2em);
-    margin: 10px auto 15px auto;
+    margin: 2px auto 4px auto; line-height: 1.15;
     text-shadow: 0 0 5px #ffb400;
   }
+  #quiz { padding: 12px 14px; }
+  h1 small { font-size: 0.5em; font-weight: 600; opacity: .85; text-shadow: none; }
 
   #start-screen, #waiting-screen, #round-intro, #quiz, #explanation, #ranking {
     width: 100%; max-width: 600px; text-align: center;
-    margin-top: 30px;
+    margin-top: var(--box-gap, 8px);
     background: rgba(255,255,255,0.05);
     border-radius: 16px; padding: 20px;
     box-shadow: 0 0 10px rgba(255,209,0,0.2);
@@ -57,26 +59,21 @@
   button:disabled { opacity: 0.35; cursor: not-allowed; }
 
   #globalTimer {
-    text-align: center; font-weight: 800; margin: 20px 0;
+    text-align: center; font-weight: 800; margin: 4px 0;
     font-size: clamp(1.8em, 5vw, 2.6em);
     color: #ffeb3b; text-shadow: 0 0 12px #ffcc00;
   }
   #globalTimer.warning { color: #ff4c4c; }
 
   /* ⭐ таймер с черта — между въпроса и отговорите (кръгове 1-5, 7, 9, 10) */
-  /* ⭐ АДМИН */
-  #adminOpenBtn { position: fixed; left: 8px; bottom: 8px; z-index: 9998; opacity: .35; font-size: 13px;
-    padding: 6px 10px; margin: 0; background: #444; color: #fff; border-radius: 8px; }
-  #adminOpenBtn:hover { opacity: 1; transform: none; background: #555; }
-  #adminPanel { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 9999; max-height: 75vh; overflow-y: auto;
-    background: #10151f; border-top: 3px solid #ffd100; padding: 12px; text-align: left; font-size: 0.95em; color: #fff; }
-  #adminPanel button { margin: 4px 4px 4px 0; padding: 8px 12px; font-size: 0.95em; }
-  #adminPanel .ad-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  #adminPanel .ad-box { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 10px; margin-bottom: 10px; }
-  #adminPanel .ad-row { display: flex; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-  #adminPanel .ad-row .nm { flex: 1; word-break: break-word; }
-  #adminPanel .ad-row button { margin: 0; padding: 4px 12px; font-size: 1.1em; }
-  #adminPanel input { width: 70px; padding: 4px; font-size: 1em; border-radius: 6px; border: none; }
+  /* ⭐ режим зрител */
+  #spectatorBanner { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9990; text-align: center;
+    background: #2b4a6b; color: #fff; font-size: 0.85em; padding: 4px 8px; }
+  body.spectator #spectatorBanner { display: block; }
+  body.spectator { padding-top: 26px; }
+  body.spectator #answers, body.spectator #letterArea, body.spectator #numberArea, body.spectator #matchArea,
+  body.spectator #groupArea, body.spectator #jokers, body.spectator #choose-screen button,
+  body.spectator #rankArea, body.spectator #tiebreak-screen input, body.spectator #tiebreak-screen button { pointer-events: none; opacity: 0.85; }
   #qTimerBox { display: none; margin: 10px 0 14px; }
   #qTimerTrack { height: 10px; background: #2b2b2b; border-radius: 6px; overflow: hidden; }
   #qTimerFill { height: 100%; width: 100%; background: #ffd100; transition: width .2s linear; }
@@ -84,7 +81,10 @@
   #qTimerTxt { text-align: right; font-size: 0.85em; color: #bbb; margin-top: 3px; }
   #qTimerBox.warning #qTimerTxt { color: #ff4c4c; font-weight: 700; }
 
-  #question { font-size: 1.6em; margin: 20px 0; font-weight: 600; }
+  /* ⭐⭐ РАЗМЕРИ НА ШРИФТОВЕТЕ — променяй само тези три числа ⭐⭐
+     --q-size = текст на въпроса, --a-size = отговори (бутони), --joker-size = бутони на жокерите */
+  :root { --top-pad: 6px; --box-gap: 8px; --q-size: 1.3em; --a-size: 1.05em; --joker-size: 0.78em; }
+  #question { font-size: var(--q-size); margin: 8px 0; font-weight: 600; line-height: 1.3; }
 
   /* ⭐ жълт таг за кръга, над всеки въпрос — стил като sravnenie30 */
   #roundTag {
@@ -100,9 +100,9 @@
   }
 
   .answers button {
-    display: block; width: 100%; margin: 10px 0; padding: 16px;
+    display: block; width: 100%; margin: 8px 0; padding: 12px 14px;
     border: none; border-radius: 10px; cursor: pointer;
-    font-size: 1.2em; background: #333; color: #fff;
+    font-size: var(--a-size); background: #333; color: #fff;
   }
   .answers button.selected {
     background: #00e5ff; color: #003344; font-weight: bold;
@@ -196,21 +196,22 @@
 
   /* ⭐ ЖОКЕРИ */
   .jokers-panel {
-    display: flex; flex-wrap: wrap; gap: 12px;
-    justify-content: center; margin-top: 22px; margin-bottom: 10px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    justify-content: center; margin-top: 12px; margin-bottom: 6px;
   }
   .joker-btn {
     background: #0d47a1; color: #ffffff; border: 2px solid #1565c0;
-    border-radius: 10px; padding: 10px 16px; font-size: 1.05em;
-    font-weight: bold; cursor: pointer; margin-top: 0;
+    border-radius: 8px; padding: 6px 9px; font-size: var(--joker-size);
+    font-weight: bold; cursor: pointer; margin-top: 0; white-space: nowrap;
   }
   .joker-btn:hover:not(:disabled) { background:#1565c0; transform: scale(1.03); }
   .joker-btn:disabled { opacity: 0.35; cursor: not-allowed; background:#555; border-color:#555; }
 
-  #jokerStatus { margin-top: 12px; min-height: 20px; font-size: 1em; color: #ffd100; font-weight: bold; }
-  #jokerBufferInfo { margin-top: 15px; text-align: left; }
+  #jokerStatus { margin-top: 6px; min-height: 18px; font-size: 0.95em; color: #ffd100; font-weight: bold; }
+  #jokerBufferInfo { margin: 8px 0 10px; text-align: left; }
 
-  #spyTargetPicker { margin-top: 12px; text-align: left; }
+  #spyTargetPicker { margin: 8px 0 10px; text-align: left; }
+  body.locked #jokers button, body.locked #correctionBtn9 { pointer-events: none; }
   #spyTargetPicker .spy-title { color: #ffd100; font-weight: bold; margin-bottom: 8px; }
   .spy-target-btn {
     display: block; width: 100%; margin: 8px 0; padding: 12px;
@@ -396,8 +397,9 @@
 
 <body>
 
-<h1> Игри на Знания <br> 🧩 Мегакуиз 🧩 <br>епизод  - тест</h1>
+<h1> Бълг. Нац. Куиз Асоциация <br>🧩 Мегакуиз Демо 10 🧩</h1>
 
+<div id="spectatorBanner">👁 Режим зрител — гледаш играта, не участваш и не се броиш в класирането</div>
 <audio id="bg-music" src="../music/games.mp3" loop preload="auto"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
@@ -406,6 +408,7 @@
   <p>Въведете Двете си имена:</p>
   <input type="text" id="player-id" placeholder="Име ..." />
   <button id="start-btn">Започни!</button>
+  <button id="spectator-btn" style="background:#2b4a6b; color:#fff;">👁 Гледам като зрител</button>
   <button id="archiveBtn">Архив класирания</button>
 </div>
 
@@ -413,11 +416,11 @@
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
   <p>Моля, изчакайте<span id="dots">...</span></p>
 
- <img id="lobby-image" src="https://i.imgur.com/hwZGsfM.jpeg" alt="Мегакуиз 100 въпроса" />
+ <img id="lobby-image" src="https://i.imgur.com/hwZGsfM.jpeg" alt="Мегакуиз 10" />
 
 
 <div id="lobby-instructions">
-    <p>🧩 Очакват ви 10 кръга с над 100 въпроса от 30 различни области.</p>
+    <p>🧩 Очакват ви 10 кръга с по един въпрос — мини версия на играта.</p>
     <p>🧩 Преди всеки кръг има подробно обяснение за кръга и неговите жокери.</p>
     <p>🧩 Запознайте се преди да играете, а тук накратко:</p>
      <p>🧩 1-ви кръг - Твърдение или сравнение.</p>
@@ -428,26 +431,24 @@
     <p>🧩Време  - <strong>25 секунди </strong>; Точки - <strong> по 4 </strong> за верен отговор.</p>
     <p>🧩 4-ти кръг – Фотомания </p>
     <p>🧩Време  - <strong>25 секунди </strong>; Точки - <strong> по 4 </strong> за верен отговор.</p>
-    <p>🧩 <strong> Почивка - 2 минути </strong> </p>
     <p>🧩 5-ти кръг – Цифромания </p>
     <p>🧩Време  - <strong>25 секунди </strong>; Точки - <strong> по 5 за верен отговор </strong>  или <strong> 3,2,1 точки </strong> в зависимост колко сте близо до верния отговор</p>
     <p>🧩 6-ти кръг – Чифтосване </p>
-    <p>🧩 Последният отбор в класирането избира тема от 10 възможни </p>
+    <p>🧩 Последният отбор в класирането избира тема </p>
     <p>🧩Време  - <strong>60 секунди </strong> ; Точки - <strong> по 1 </strong> за верен отговор.</p>
     <p>🧩 7-ми кръг – Мултимедия 3 в 1 (Кино, Музика и Спорт) </p>
     <p>🧩 Време - <strong>40 секунди </strong>; Точки - <strong> по 4 </strong> за верен отговор.</p>
     <p>🧩 8-ми кръг – Групиране </p>
-    <p>🧩 Последният отбор, който не избирал тема в Кръг Чифтосване, избира тема от 10 възможни </p>
+    <p>🧩 Последният отбор, който не е избирал в Кръг Чифтосване, избира тема </p>
     <p>🧩 Време - <strong>60 секунди </strong>; Точки - <strong> по 1 </strong> за верен отговор.</p>
-    <p>🧩 <strong> Почивка - 2 минути </strong> </p>
     <p>🧩 9-ти кръг – Избор </p>
     <p> 🧩 Всеки въпрос има <strong>5 отговора</strong>. Кликате ги по ред на увереност (1-ви клик = "най-вероятно вярно"). Втори - по-малко вероятно, трети и т.н. </p>
     <p> 🧩 Печелите точки според позицията на верния отговор във вашата подредба: <strong>6 / 4 / 3 / 2 / 1</strong>, или 0 при пропуснат въпрос.</p>
-    <p> 🧩 Всеки отбор избира тема <strong>два пъти</strong>: първия път избира тема, в която е силен и при верен отговор, точките му се <strong>удвоят</strong> за този въпрос. Вторият път избирате тема, която ще затрудни другите, като отборът не отговарят на този въпрос, а е само зрител.</p>
+    <p> 🧩 Тема избира последният в класирането. Всички отговарят, точките не се удвояват.</p>
     <p> 🧩 Време за размисъл — <strong>25 сек.</strong> на въпрос, <strong>20 сек.</strong> за избор на тема.</p>
-    <p>🧩 10-ти кръг – По 3 дузпи към всички.</p>
+    <p>🧩 10-ти кръг – Дузпа към всички.</p>
     <p>🧩 Време - <strong> 25 секунди </strong></p>
-    <p>🧩Ако отговорите правилно на всички въпроси в даден кръг, получавате <strong>  бонус от 3 точки </strong> , затова използвайте активно и разумно жокерите си, за да запазите безпогрешна серия.</p>
+    <p>🧩Използвайте разумно жокерите си.</p>
     <p>🧩Неизползваните жокери автоматично се осребряват в края на играта и печелите по 1 точка за всеки от тях <strong>  без Патрондаш </strong> (който не се осребрява)</p>
 
 
@@ -541,6 +542,10 @@
   <!-- ⭐ таймер с черта (под въпроса/снимката/клипа, над отговорите) -->
   <div id="qTimerBox"><div id="qTimerTrack"><div id="qTimerFill"></div></div><div id="qTimerTxt"></div></div>
 
+  <div id="jokerStatus"></div>
+  <div id="spyTargetPicker" style="display:none;"></div>
+  <div id="jokerBufferInfo" style="display:none;"></div>
+
   <!-- кръгове 1,2: отговори с бутони -->
   <div id="answers" class="answers"></div>
 
@@ -596,9 +601,6 @@
     <button class="joker-btn" id="joker-syllable2" style="display:none;">🔤 Дай три</button>
     <button class="joker-btn" id="joker-correction" style="display:none;" disabled>🔁 Поправка</button>
   </div>
-  <div id="jokerStatus"></div>
-  <div id="spyTargetPicker" style="display:none;"></div>
-  <div id="jokerBufferInfo" style="display:none;"></div>
 
   <div id="answeredList" style="display:none;">
     <strong>Отговорили:</strong>
@@ -635,16 +637,18 @@
   <button id="historyBtn" style="display:none;">История на играта</button>
 </div>
 
-<button id="adminOpenBtn" type="button">🔧 Админ</button>
-<div id="adminPanel"></div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, onSnapshot, setDoc, deleteDoc, collection, getDocs, getDoc
+  getFirestore, doc, onSnapshot, setDoc as setDocRaw, deleteDoc as deleteDocRaw, collection, getDocs, getDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-const GAME_ID = "quizmix100";
+// ⭐ РЕЖИМ ЗРИТЕЛ: гледа играта, но не се записва и нищо не пише във Firestore
+let spectator = false;
+const setDoc    = (...a) => spectator ? Promise.resolve() : setDocRaw(...a);
+const deleteDoc = (...a) => spectator ? Promise.resolve() : deleteDocRaw(...a);
+
+const GAME_ID = "megaquiz10";
 const POINTS = { 1: 2, 2: 3, 3: 4 };
 const ROUND_BONUS = 3;
 
@@ -893,24 +897,31 @@ historyBtn.onclick = () => {
 };
 
 async function loadAllQuestions() {
-  const [r1, r2, r3, r4, r5, r6, r7, r8, pool, r10] = await Promise.all([
-    fetch("questions1.json").then(r => r.json()),
-    fetch("questions2.json").then(r => r.json()),
-    fetch("questions3.json").then(r => r.json()),
-    fetch("questions4.json").then(r => r.json()),
-    fetch("questions5.json").then(r => r.json()),
-    fetch("questions6.json").then(r => r.json()),
-    fetch("questions7.json").then(r => r.json()),
-    fetch("questions8.json").then(r => r.json()),
-    fetch("../izbor/pull.json").then(r => r.json()),
-    fetch("questions10.json").then(r => r.json())
-  ]);
-  questions1 = r1; questions2 = r2; questions3 = r3;
-  questions4 = r4; questions5 = r5; questions6 = r6;
-  questions7 = r7; questions8 = r8;
-  izborPool = pool;
-  izborAreas = [...new Set(pool.map(q => q.area.trim()))];
-  questions10 = r10;
+  // ⭐ Въпросите вече НЕ са в клиента — идват от хоста, един по един, чак когато му дойде времето.
+}
+
+// ⭐ Кеш на въпросите, получени от хоста (data.q — без верните отговори; data.reveal — след края на въпроса)
+function ingestQ(data) {
+  const r = data && data.round;
+  if (!r || !data.q) return;
+  const merged = { ...data.q, ...(data.reveal || {}) };
+  const byIndex = { 1: questions1, 2: questions2, 3: questions3, 4: questions4, 5: questions5, 7: questions7 };
+  if (byIndex[r] && typeof data.index === "number") byIndex[r][data.index] = { ...(byIndex[r][data.index] || {}), ...merged };
+  else if (r === 6) questions6 = [{ ...((questions6[0] && questions6[0].title === merged.title) ? questions6[0] : {}), ...merged }];
+  else if (r === 8) questions8 = [{ ...((questions8[0] && questions8[0].title === merged.title) ? questions8[0] : {}), ...merged }];
+}
+
+// ⭐ Заявка към хоста за жокер, който иска тайна (Патрондаш, Дай Три)
+function askHost(kind, slot, extra) {
+  const id = `${player}__${slot}__${kind}__${Date.now()}`;
+  const base = ["games", GAME_ID, "episodes", episodeId];
+  return new Promise(resolve => {
+    let done = false, unsub = null, to = null;
+    const fin = v => { if (done) return; done = true; clearTimeout(to); if (unsub) { try { unsub(); } catch(e) {} } resolve(v); };
+    to = setTimeout(() => fin(null), 8000);
+    unsub = onSnapshot(doc(db, ...base, "jokerResp", id), sn => { if (sn.exists()) fin(sn.data()); });
+    setDoc(doc(db, ...base, "jokerReq", id), { kind, slot, player, ts: Date.now(), ...(extra || {}) }).catch(() => fin(null));
+  });
 }
 
 function showOnly(div) {
@@ -944,9 +955,27 @@ const qTimerBox  = document.getElementById("qTimerBox");
 const qTimerFill = document.getElementById("qTimerFill");
 const qTimerTxt  = document.getElementById("qTimerTxt");
 
+// ⭐ Когато времето за въпроса изтече, отговорите се ЗАКЛЮЧВАТ — вече нищо не може да се маркира
+let lockPhase = false, lockDone = false;
+function lockInputs() {
+  // ⭐ ако е написана буква/число, но „Изпрати“ не е натиснато — взема се написаното в момента на края
+  try {
+    const vis = e => e && e.offsetParent !== null && !e.disabled;
+    if (vis(letterInput) && letterInput.value.trim() && vis(submitBtn)) submitBtn.click();
+    if (vis(numberInput) && numberInput.value.trim() !== "" && !isNaN(Number(numberInput.value)) && vis(numberSubmitBtn)) numberSubmitBtn.click();
+    if (vis(tiebreakInput) && tiebreakInput.value.trim() !== "" && !isNaN(Number(tiebreakInput.value)) && vis(tiebreakSubmitBtn)) tiebreakSubmitBtn.click();
+  } catch (e) {}
+  document.body.classList.add("locked");
+  try {
+    document.querySelectorAll("#answers button, #rankAnswers button, #joker-correction").forEach(b => { b.disabled = true; });
+    [letterInput, submitBtn, numberInput, numberSubmitBtn, tiebreakInput, tiebreakSubmitBtn, correctionBtn9].forEach(e => { if (e) e.disabled = true; });
+    rankLocked9 = true; matchSubmitted = true; groupingSubmitted = true;
+  } catch (e) {}
+}
 function updateTimer(startTime, duration) {
   const now = Date.now();
   const leftMs = Math.max(0, duration - (now - startTime));
+  if (leftMs <= 0 && lockPhase && !lockDone) { lockDone = true; lockInputs(); }
   const remaining = Math.max(0, Math.ceil(leftMs / 1000));
   if (barTimerActive) {
     globalTimer.style.display = "none";
@@ -1014,6 +1043,19 @@ function isR2Correct(data, q) {
 // ===============================
 // ВХОД (с две имена, свободен текст — по образец на Куиз Микс 7810)
 // ===============================
+document.getElementById("spectator-btn").onclick = async () => {
+  spectator = true;
+  document.body.classList.add("spectator");
+  playerId = "👁 зрител";
+  player   = "👁 зрител";
+  await loadAllQuestions();
+  ready = true;
+  showOnly(waitingScreen);
+  globalTimer.style.display = "none";
+  setMusic("../music/games.mp3");
+  if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
+};
+
 startBtn.onclick = async () => {
   // махаме символи, които чупят Firestore идентификатори или HTML-а на класиранията
   const name = playerIdInput.value.replace(/[<>&"'`\/\\]/g, "").replace(/\s+/g, " ").trim();
@@ -1041,38 +1083,26 @@ startBtn.onclick = async () => {
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
-function startAnswerListener(slotIdStr, formatFn) {
-  if (answersUnsub) answersUnsub();
+let answeredBoardUnsub = null, answeredSlotNow = null, answeredLast = null;
+function paintAnswered() {
+  if (!answeredLast || answeredLast.slot !== answeredSlotNow) return;
+  answeredNames.innerHTML = "";
+  (answeredLast.items || []).forEach(t => {
+    const div = document.createElement("div");
+    div.textContent = t;
+    answeredNames.appendChild(div);
+  });
+}
+function startAnswerListener(slotIdStr) {
+  answeredSlotNow = slotIdStr;
   answeredNames.innerHTML = "";
   answeredList.style.display = "block";
-
-  const fmt = formatFn || ((pName) => pName + " отговори");
-
-  answersUnsub = onSnapshot(
-    collection(db, "games", GAME_ID, "episodes", episodeId, "results"),
-    resultsSnap => {
-      resultsSnap.forEach(playerDoc => {
-        const pName = playerDoc.id;
-        onSnapshot(
-          doc(db, "games", GAME_ID, "episodes", episodeId, "results", pName, "answers", slotIdStr),
-          ansDoc => {
-            if (ansDoc.exists()) {
-              const data = ansDoc.data();
-              const text = fmt(pName, data);
-              const existing = Array.from(answeredNames.children).find(d => d.dataset.player === pName);
-              if (existing) existing.textContent = text;
-              else {
-                const div = document.createElement("div");
-                div.dataset.player = pName;
-                div.textContent = text;
-                answeredNames.appendChild(div);
-              }
-            }
-          }
-        );
-      });
-    }
-  );
+  if (!answeredBoardUnsub) {
+    answeredBoardUnsub = onSnapshot(doc(db, "games", GAME_ID, "state", "answered"), sn => {
+      answeredLast = sn.exists() ? sn.data() : null;
+      paintAnswered();
+    });
+  } else paintAnswered();
 }
 
 // ===============================
@@ -1095,126 +1125,16 @@ async function loadAdjustments(ep) {
   return out;
 }
 
-async function computeStandings(isFinal) {
-  const playersSnap = await getDocs(
-    collection(db, "games", GAME_ID, "episodes", episodeId, "results")
-  );
-  const adjMap = await loadAdjustments(episodeId);
-
-  const perPlayerRaw = [];
-  const r10diffsByIndex = [[], [], []];
-
-  for (const playerDoc of playersSnap.docs) {
-    const name = playerDoc.id;
-    const answersSnap = await getDocs(
-      collection(db, "games", GAME_ID, "episodes", episodeId, "results", name, "answers")
-    );
-
-    let totalPoints = 0, totalTime = 0, tiebreakPoints = 0;
-    const correctByRound = { 1: 0, 2: 0, 3: 0, 4: 0, 7: 0 };
-    let r5PerfectCount = 0, r5AnsweredCount = 0;
-    const r10answers = {};
-
-    answersSnap.forEach(ansDoc => {
-      const id = ansDoc.id;
-      const data = ansDoc.data();
-
-      // ⭐ Кръг 9: ID-то е "r9-choice1-<Име>" и не пасва на шаблона долу — точките му преди се пропускаха
-      if (id.startsWith("r9-")) {
-        totalPoints += (data.points || 0);
-        if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
-        return;
-      }
-
-      if (id.startsWith("tb-")) {
-        tiebreakPoints += (data.points || 0);
-        return;
-      }
-
-      const m = id.match(/^r(\d+)-(\d+)$/);
-      if (!m) return;
-      const round = Number(m[1]);
-      const idx = Number(m[2]);
-
-      if (round === 1) {
-        const q = questions1[idx]; if (q && isR1Correct(data, q)) { totalPoints += POINTS[1]; correctByRound[1]++; }
-      } else if (round === 2) {
-        const q = questions2[idx];
-        if (q && isR2Correct(data, q)) {
-          let pts = POINTS[2]; if (data.doubled) pts *= 2;
-          totalPoints += pts; correctByRound[2]++;
-        }
-      } else if (round === 3) {
-        if (data.isCorrect) { totalPoints += POINTS[3]; correctByRound[3]++; }
-      } else if (round === 4) {
-        if (data.isCorrect) { totalPoints += 4; correctByRound[4]++; }
-      } else if (round === 5) {
-        totalPoints += (data.points || 0);
-        r5AnsweredCount++;
-        if (data.points === 5) r5PerfectCount++;
-      } else if (round === 6) {
-        totalPoints += (data.total || 0);
-      } else if (round === 7) {
-        if (data.isCorrect) { totalPoints += 4; correctByRound[7]++; }
-      } else if (round === 8) {
-        totalPoints += (data.total || 0);
-      } else if (round === 9) {
-        totalPoints += (data.points || 0);
-      } else if (round === 10) {
-        r10answers[idx] = data.diff;
-        if (idx >= 0 && idx <= 2) r10diffsByIndex[idx].push(data.diff);
-      }
-
-      if (typeof data.thinkingTime === "number") totalTime += data.thinkingTime;
-    });
-
-    if (correctByRound[1] === questions1.length && questions1.length > 0) totalPoints += ROUND_BONUS;
-    if (correctByRound[2] === questions2.length && questions2.length > 0) totalPoints += ROUND_BONUS;
-    if (correctByRound[3] === questions3.length && questions3.length > 0) totalPoints += ROUND_BONUS;
-    if (correctByRound[4] === questions4.length && questions4.length > 0) totalPoints += ROUND_BONUS;
-    if (r5AnsweredCount === questions5.length && r5PerfectCount === questions5.length && questions5.length > 0) totalPoints += ROUND_BONUS;
-    if (correctByRound[7] === questions7.length && questions7.length > 0) totalPoints += ROUND_BONUS;
-
-    totalPoints += tiebreakPoints;
-    totalPoints += (adjMap[name] || 0);   // ⭐ ръчна корекция от админа
-
-    const jokersData = playerDoc.data().jokers || {};
-    perPlayerRaw.push({ name, totalPoints, totalTime, r10answers, jokersData });
-  }
-
-  perPlayerRaw.forEach(p => {
-    let points10 = 0;
-    Object.entries(p.r10answers).forEach(([idxStr, diff]) => {
-      const idx = Number(idxStr);
-      points10 += calcPoints10(idx, r10diffsByIndex[idx] || [], diff);
-    });
-    p.totalPoints += points10;
-  });
-
-  const list = perPlayerRaw.map(p => {
-    let total = p.totalPoints;
-    if (isFinal) total += computeCashInFinalBonus(p.jokersData);
-    return { name: p.name, points: Math.round(total * 10000) / 10000, time: p.totalTime, jokersData: p.jokersData };
-  });
-
-  return list.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    if (a.time   !== b.time)   return a.time   - b.time;
-    return a.name.localeCompare(b.name, "bg");
-  });
-}
-
-async function renderRanking(isFinal) {
+// ⭐ Класирането се смята ВЕДНЪЖ от хоста и идва готово в състоянието (data.rows)
+function renderRanking(isFinal, data) {
   showOnly(rankingDiv);
-  rankingList.innerHTML = "Зареждам класирането...";
   rankingTitle.textContent = isFinal ? "Крайно класиране" : "Временно класиране";
   historyBtn.style.display = isFinal ? "block" : "none";
 
-  const sorted = await computeStandings(isFinal);
-
+  const sorted = (data && data.rows) || [];
   rankingList.innerHTML = sorted.map((obj, i) => {
     const pts = fmtPoints(obj.points);
-    const time = (obj.time / 1000).toFixed(1);
+    const time = ((obj.time || 0) / 1000).toFixed(1);
     const isMe = obj.name === player;
     let cls = "", medal = "";
     if (i === 0) { cls = "gold"; medal = "🥇"; }
@@ -1222,10 +1142,7 @@ async function renderRanking(isFinal) {
     else if (i === 2) { cls = "bronze"; medal = "🥉"; }
     const timeText = isFinal ? ` (време: ${time} сек)` : "";
     let bonusText = "";
-    if (isFinal) {
-      const bonus = computeCashInFinalBonus(obj.jokersData);
-      if (bonus > 0) bonusText = `<span class="rank-breakdown">вкл. +${bonus} т. бонус за неизползвани жокери</span>`;
-    }
+    if (isFinal && obj.bonus > 0) bonusText = `<span class="rank-breakdown">вкл. +${obj.bonus} т. бонус за неизползвани жокери</span>`;
     return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
       ${i+1}. ${medal} ${obj.name} — ${pts} т.${timeText}
       ${bonusText}
@@ -1241,12 +1158,11 @@ const ROUND_META = {
     music: "../music/despa.mp3",
     image: "https://i.imgur.com/pjkY1GH.jpeg",
     html: `
-      <p>⭐ Очакват ви 10 твърдения / сравнения — възможните отговори са само <strong>два</strong>.</p>
+      <p>⭐ Очаква ви се 1 твърдение / сравнение — възможните отговори са само <strong>два</strong>.</p>
       <p>⭐ Време за отговор — <strong>20 секунди</strong> на въпрос. Всеки верен отговор носи <strong>2 точки</strong>.</p>
       <p>⭐ Всички жокери се ползват преди да отговорите на въпроса!</p>
       <p>🥞 Жокер <strong>Палачинка</strong> (гарантира верен отговор, дори ако отговорът Ви е грешен — обръща се като палачинка, но трябва да го натиснете преди да отговорите). Еднократна за кръга.</p>
       <p>🔁 <strong>Поправка</strong> е достъпна през целия кръг — неограничена употреба.</p>
-      <p>⭐ БОНУС: Ако познаете всичките 10, получавате бонус от <strong>+3 точки</strong> за кръга.</p>
       <p>⭐ Ако не използвате жокер Палачинка, той ще се осребри автоматично в края на играта и ще получите <strong> 1 точка </strong>. </p>
     `
   },
@@ -1255,7 +1171,7 @@ const ROUND_META = {
     music: "../music/dance.mp3",
     image: "https://i.imgur.com/QLiqx4w.jpeg",
     html: `
-      <p>⚡ Очакват ви 10 въпроса с повишаваща степен на трудност.</p>
+      <p>⚡ Очаква ви се 1 въпрос.</p>
       <p>⚡ Отговаря се с натискане на бутон върху някой от четирите отговора.</p>
       <p>⚡Време за мислене и отговор — <strong>20 секунди</strong> на въпрос. Всеки верен отговор носи <strong>3 точки</strong>.</p>
       <p>⚡По време на играта имате достъп до няколко <strong>жокера</strong> — всеки от тях може да се ползва само веднъж за целия кръг, с изключение на <strong>🔁 Поправка</strong>, която е с неограничена употреба (сменяй отговора си, докато не изтече времето).</p>
@@ -1266,7 +1182,6 @@ const ROUND_META = {
       <p>🔎Шпионин — показва ви списък с играчи (подредени по азбучен ред за лесно намиране). Избирате кого да шпионирате и през допълнителните секунди виждате какво е отговорил той на текущия въпрос (ако вече е отговорил) — и тогава решавате сами какво да отговорите. Ако шпионираният все още се колебае, вместо неговия отговор ще видите какво мисли мнозинството дотук — жокерът се брои за използван.</p>
       <p>🔅Патрондаш — имате 5 патрона, използването на всеки един от тях премахва един от грешните отговори. Може да използвате патроните на различни или на един и същ въпрос.</p>
       <p>✖️2 Бонус Удвояване. Ако сте много сигурен в отговора си, може да натиснете Удвои и след това отговора си, и точките Ви от този въпрос ще се удвоят.</p>
-      <p>⭐ БОНУС: Ако познаете всичките 10, получавате бонус от <strong>+3 точки</strong> за кръга.</p>
       <p>⭐ Всеки неизползван жокер (без Патрондаш) се осребрява автоматично в самия край на цялата игра.</p>
     `
   },
@@ -1275,7 +1190,7 @@ const ROUND_META = {
     music: "../music/Ellie.mp3",
     image: "https://i.imgur.com/pmIhEXf.jpeg",
     html: `
-      <p>🅰️ Очакват ви 10 отворени въпроса с нарастваща степен на трудност.</p>
+      <p>🅰️ Очаква ви се 1 отворен въпрос.</p>
       <p>🅰️ Отговаря се с изписване на първа буква от това, което сте си намислили.</p>
       <p>🅰️ Ако се пита за име на човек, пише се фамилната му буква; ако е обект или термин, пише се първата буква на първата дума.</p>
       <p>🅰️ Пример: За Стара планина пишем С, за Иван Вазов пишем В.</p>
@@ -1285,7 +1200,6 @@ const ROUND_META = {
       <p>🅰️ При равенство в точките се гледа общото време за целия куиз.</p>
       <p>🔤 Жокер <strong> Дай Три</strong> — дава следващите три букви от търсеата дума/израз.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
-      <p>⭐ БОНУС: Ако познаете всичките 10 въпроса , получавате бонус от <strong>+3 точки</strong> за кръга.</p>
       <p>⭐ Всеки неизползван жокер се осребрява автоматично в самия край на цялата игра.</p>
     `
   },
@@ -1294,12 +1208,11 @@ const ROUND_META = {
     music: "../music/VeronicaApo.mp3",
     image: "https://i.imgur.com/90Xs576.jpeg",
     html: `
-      <p>📷 Очакват ви 10 въпроса, придружени със снимка, от различни области.</p>
+      <p>📷 Очаква ви се 1 въпрос със снимка.</p>
       <p>📷 Отговаря се с изписване на първата буква от търсеното.</p>
       <p>📷 Време за отговор — <strong>25 секунди</strong>. Всеки верен отговор носи <strong>4 точки</strong>.</p>
       <p>🔤 Жокер <strong>Дай Три</strong> — дава следващите три букви от търсениата дума/израз.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
-      <p>⭐ БОНУС: Ако познаете всичките 10 въпроса , получавате бонус от <strong>+3 точки</strong> за кръга.</p>
     `
   },
   5: {
@@ -1307,10 +1220,9 @@ const ROUND_META = {
     music: "../music/music.mp3",
     image: "https://i.imgur.com/CJ665Up.jpeg",
     html: `
-      <p>🔢 Очакват ви 10 цифрови въпроса от различни области.</p>
+      <p>🔢 Очаква ви се 1 цифров въпрос.</p>
       <p>🔢 Време за отговор — <strong>45 секунди</strong>.</p>
       <p>🔢 Точкуване — 5 / 3 / 2 / 1 точки според близостта до верния отговор.</p>
-      <p>⭐ БОНУС: Ако познаете всичките 10 въпроса , получавате бонус от <strong>+3 точки</strong> за кръга.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате числото наново.</p>      
     `
   },
@@ -1319,10 +1231,10 @@ const ROUND_META = {
     music: "../music/Analog.mp3",
     image: "https://i.imgur.com/mUbjQU6.jpeg",
     html: `
-      <p>🔗 Последният в класирането избира тема от възможните.</p>
+      <p>🔗 Последният в класирането избира тема.</p>
       <p>🔗 Очакват ви 10 имена вляво и 10 имена вдясно от избраната тема — трябва да ги съчетаете правилно.</p>
-      <p>🔗 Време за целия кръг — <strong>60 секунди</strong>.</p>
-      <p>🔗 Точкуване - По <strong>1 точка</strong> за верен чифт. При 10/10 — бонус от <strong>3 точки</strong>.</p>
+      <p>🔗 Време за кръга — <strong>60 секунди</strong>.</p>
+      <p>🔗 Точкуване - По <strong>1 точка</strong> за верен чифт.</p>
       <p>🔁 <strong>Поправка</strong> — маха последния чифт, неограничена.</p>
     `
   },
@@ -1331,11 +1243,10 @@ const ROUND_META = {
     music: "../music/VeronicaSafe.mp3",
     image: "https://i.imgur.com/fYVFGFf.jpeg",
     html: `
-      <p>🎬 9 въпроса с клипче (Музика, Кино, Спорт).</p>
+      <p>🎬 1 въпрос с клипче.</p>
       <p>🎬 Време за клипа и отговора — <strong>40 секунди</strong>. Верен отговор — <strong>4 точки</strong>.</p>
       <p>🔤 Жокер <strong>Дай Три</strong> — дава следващите три букви от търсениата дума/израз.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена.</p>
-      <p>⭐ 10/10 верни носят бонус от <strong>3 точки</strong>.</p>
     `
   },
   8: {
@@ -1344,10 +1255,10 @@ const ROUND_META = {
     image: "https://i.imgur.com/o2elJRG.jpeg",
     html: `
       <p>🧱 Последният в класирането избира тема.</p>
-      <p>🧱 Ако е избирал преди кръг 6, право на избор има следващия играч нагоре в класирането.</p>
+      <p>🧱 Ако е избирал в кръг 6, право на избор има следващият нагоре в класирането.</p>
       <p>🧱 Имате 10 обекта, които трябва да разпределите по групи.</p>
-      <p>🧱 Време за целия кръг — <strong>60 секунди</strong>.</p>
-      <p>⭐ По <strong>1 точка</strong> за верен обект. При 10/10 — бонус от <strong>3 точки</strong>.</p>
+      <p>🧱 Време за кръга — <strong>60 секунди</strong>.</p>
+      <p>⭐ По <strong>1 точка</strong> за верен обект.</p>
       <p>🔁 <strong>Поправка</strong> — маха последния групиран обект, неограничена.</p>
     `
   },
@@ -1356,8 +1267,7 @@ const ROUND_META = {
     music: "../music/Future.mp3",
     image: "https://i.imgur.com/WEbh5YM.jpeg",
     html: `
-      <p>🎯 Играчите избират теми отзад напред по замразено класиране. Първи избира тема последният в класираенто. После - предпоследният и т.н.</p>   
-     <p>🎯 Всеки играч избира тема <strong>два пъти</strong>: първия път избира тема, в която е силен и при верен отговор, точките му се <strong>удвоят</strong> за този въпрос. След като всички играчи се изредят, започва вторият избор пак отзад напред в класирането — този път се стремите да изберете тема, която ще затрудни другите, като Вие не отговаряте на този въпрос, а сте само зрител.</p>
+      <p>🎯 Последният в класирането избира тема. На въпроса отговарят <strong>всички</strong> играчи.</p>
      <p>🎯 Всеки въпрос има <strong>5 отговора</strong> — Хубаво е да ги маркирате и петте. Кликате ги по ред на увереност (1-ви клик = "най-вероятно вярно"). Втори - по-малко вероятно, трети и т.н. </p>
     <p> 🎯 Печелите точки според позицията на верния отговор във вашата подредба: <strong>6 / 4 / 3 / 2 / 1</strong>, или 0 при пропуснат въпрос.</p>
     <p>🎯 Време за отговор — <strong>25 секунди</strong>, за избор на тема — <strong>15 секунди</strong>.</p>
@@ -1365,11 +1275,11 @@ const ROUND_META = {
     `
   },
   10: {
-    title: "⚽ Кръг 10 — По 3 дузпи към всички",
+    title: "⚽ Кръг 10 — Дузпа към всички",
     music: "../music/VeronicaDeep.mp3",
     image: "https://i.imgur.com/H1laDn6.jpeg",
     html: `
-      <p>⚽ 3 специални въпроса с число за отговор.</p>
+      <p>⚽ 1 специален въпрос с число за отговор.</p>
       <p>⚽ Точките се печелят спрямо близостта ви до верния отговор В СРАВНЕНИЕ С ОСТАНАЛИТЕ играчи.</p>
       <p>⚽ Време за отговор — <strong>25 секунди</strong> на въпрос.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате числото наново.</p>
@@ -1414,7 +1324,7 @@ function renderR1Question(index, startTime, duration) {
       { merge: true }
     );
     const thinkingTime = Date.now() - startTime;
-    const payload = { answer: ans, correct: q.correct, explanation: q.explanation, timestamp: Date.now(), thinkingTime };
+    const payload = { answer: ans, timestamp: Date.now(), thinkingTime };
     if (currentQuestionJokerFlags.pancake) payload.guaranteed = true;
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(1, index)),
@@ -1466,37 +1376,28 @@ function renderR1Question(index, startTime, duration) {
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
 
-async function renderR1Explanation(index) {
-  showOnly(explanationDiv);
-  statsBlock.innerHTML = ""; explanationText.textContent = "";
-  answeredList.style.display = "none"; answeredNames.innerHTML = "";
-
-  const q = questions1[index];
-  if (!q) return;
+function renderStatsAnswers(q, data) {
+  const counts = (data.stats && data.stats.counts) || {};
   const correct = (q.correct || "").trim();
-  explanationText.textContent = q.explanation || "";
-
-  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-  const counts = {}; q.answers.forEach(a => counts[a.trim()] = 0);
-
-  for (const pDoc of playersSnap.docs) {
-    const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
-    const ansDoc = ansSnap.docs.find(d => d.id === slotId(1, index));
-    if (ansDoc) {
-      const chosen = (ansDoc.data().answer || "").trim();
-      if (counts[chosen] !== undefined) counts[chosen]++;
-    }
-  }
-
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const total = (q.answers || []).reduce((a, x) => a + (counts[x.trim()] || 0), 0);
   let html = "";
-  q.answers.forEach(a => {
+  (q.answers || []).forEach(a => {
     const key = a.trim(); const c = counts[key] || 0;
     const pct = total ? Math.round(c / total * 100) : 0;
     const isCorrect = key === correct;
     html += `<div class="stat-answer ${isCorrect ? "correct" : ""}">${a}<span class="pct">${pct}%</span>${isCorrect ? " ✔" : ""}</div>`;
   });
   statsBlock.innerHTML = html;
+}
+
+function renderR1Explanation(index, data) {
+  showOnly(explanationDiv);
+  statsBlock.innerHTML = ""; explanationText.textContent = "";
+  answeredList.style.display = "none"; answeredNames.innerHTML = "";
+  const q = questions1[index];
+  if (!q) return;
+  explanationText.textContent = q.explanation || "";
+  renderStatsAnswers(q, data);
 }
 
 // ===============================
@@ -1538,7 +1439,7 @@ function renderR2Question(index, startTime, duration) {
       { merge: true }
     );
     const thinkingTime = Date.now() - startTime;
-    const payload = { answer: selectedAnswers[0] || null, correct: q.correct, explanation: q.explanation, timestamp: Date.now(), thinkingTime };
+    const payload = { answer: selectedAnswers[0] || null, timestamp: Date.now(), thinkingTime };
     if (selectedAnswers[1]) payload.answer2 = selectedAnswers[1];
     if (currentQuestionJokerFlags.doubled) payload.doubled = true;
     await setDoc(
@@ -1638,12 +1539,15 @@ function renderR2Question(index, startTime, duration) {
 
   document.getElementById("joker-bullets").onclick = async () => {
     if (playerJokers.r2_bullets <= 0 || answered) return;
-    const correctNorm = (q.correct || "").trim();
-    const candidates = Array.from(answersDiv.children).filter(b =>
-      !b.disabled && !b.classList.contains("eliminated") && b.textContent.trim() !== correctNorm
-    );
-    if (candidates.length === 0) return;
-    const target = candidates[Math.floor(Math.random() * candidates.length)];
+    const avail = Array.from(answersDiv.children).filter(b => !b.disabled && !b.classList.contains("eliminated")).map(b => b.textContent);
+    if (avail.length === 0) return;
+    const bb = document.getElementById("joker-bullets");
+    bb.disabled = true;
+    jokerStatusNote("🔅 Патрондашът се зарежда…");
+    const r = await askHost("bullet", slotId(2, index), { avail });
+    if (!r || !r.ok) { jokerStatusNote("⚠️ Няма отговор от хоста — опитай пак."); updateJokerButtonsUI(2); return; }
+    const target = r.eliminate ? Array.from(answersDiv.children).find(b => b.textContent === r.eliminate && !b.disabled) : null;
+    if (!target) { jokerStatusNote("🔅 Няма какво да се премахне."); updateJokerButtonsUI(2); return; }
     target.classList.add("eliminated"); target.disabled = true;
     playerJokers.r2_bullets -= 1;
     await setDoc(
@@ -1725,7 +1629,7 @@ async function renderR2Buffer(index, startTime, duration) {
         Array.from(answersDiv.children).forEach(b => b.disabled = true);
         btn.classList.add("selected");
         const thinkingTime = Date.now() - (questionPhaseStartTime || startTime);
-        const payload = { answer: ans, correct: q.correct, explanation: q.explanation, timestamp: Date.now(), thinkingTime };
+        const payload = { answer: ans, timestamp: Date.now(), thinkingTime };
         if (currentQuestionJokerFlags.doubled) payload.doubled = true;
         await setDoc(
           doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(2, index)),
@@ -1742,8 +1646,7 @@ async function renderR2Buffer(index, startTime, duration) {
     spyTargetPicker.style.display = "block";
     let candidates = [];
     try {
-      const standings = await computeStandings(false);
-      candidates = standings.map(st => st.name).filter(n => n !== player).slice(0, 20).sort((a,b) => a.localeCompare(b, "bg"));
+      candidates = ((lastPhaseSnapshot && lastPhaseSnapshot.players) || []).filter(n => n !== player).slice(0, 20).sort((a,b) => a.localeCompare(b, "bg"));
     } catch(e) {}
 
     if (candidates.length === 0) {
@@ -1804,42 +1707,14 @@ async function renderR2Buffer(index, startTime, duration) {
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
 
-async function renderR2Explanation(index) {
+function renderR2Explanation(index, data) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = ""; explanationText.textContent = "";
   answeredList.style.display = "none"; answeredNames.innerHTML = "";
-
   const q = questions2[index];
   if (!q) return;
-  const correct = (q.correct || "").trim();
   explanationText.textContent = q.explanation || "";
-
-  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-  const counts = {}; q.answers.forEach(a => counts[a.trim()] = 0);
-
-  for (const pDoc of playersSnap.docs) {
-    const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
-    const ansDoc = ansSnap.docs.find(d => d.id === slotId(2, index));
-    if (ansDoc) {
-      const data = ansDoc.data();
-      const chosen = (data.answer || "").trim();
-      if (counts[chosen] !== undefined) counts[chosen]++;
-      if (data.answer2) {
-        const c2 = String(data.answer2).trim();
-        if (counts[c2] !== undefined) counts[c2]++;
-      }
-    }
-  }
-
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  let html = "";
-  q.answers.forEach(a => {
-    const key = a.trim(); const c = counts[key] || 0;
-    const pct = total ? Math.round(c / total * 100) : 0;
-    const isCorrect = key === correct;
-    html += `<div class="stat-answer ${isCorrect ? "correct" : ""}">${a}<span class="pct">${pct}%</span>${isCorrect ? " ✔" : ""}</div>`;
-  });
-  statsBlock.innerHTML = html;
+  renderStatsAnswers(q, data);
 }
 
 // ===============================
@@ -1881,7 +1756,6 @@ function renderR3Question(index, startTime, duration) {
     answered = true;
 
     const typed = normalizeLetter(raw);
-    const correct = isCorrectLetterAnswer(q, raw);
 
     letterInput.classList.add("submitted");
     letterInput.disabled = true;
@@ -1895,10 +1769,7 @@ function renderR3Question(index, startTime, duration) {
     const thinkingTime = Date.now() - startTime;
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(3, index)),
-      {
-        answer: typed, correct: (q.letter || "").toUpperCase(), isCorrect: correct,
-        explanation: q.explanation || "", timestamp: Date.now(), thinkingTime
-      }
+      { answer: typed, timestamp: Date.now(), thinkingTime }
     );
 
     document.getElementById("joker-correction").disabled = false;
@@ -1910,10 +1781,18 @@ function renderR3Question(index, startTime, duration) {
 
   document.getElementById("joker-syllable2").onclick = async () => {
     if (playerJokers.r3_syllable2) return;
-    const syll = (q.syllable2 || "").trim();
     playerJokers.r3_syllable2 = true;
-    jokerStatusNote(syll ? `🔤 Втора сричка: "${syll}"` : `🔤 Думата няма втора сричка.`);
+    jokerStatusNote("🔤 Питам хоста…");
     updateJokerButtonsUI(3);
+    const resp = await askHost("syl", slotId(3, index));
+    if (!resp || !resp.ok) {
+      playerJokers.r3_syllable2 = false;
+      jokerStatusNote("⚠️ Няма отговор от хоста — опитай пак.");
+      updateJokerButtonsUI(3);
+      return;
+    }
+    const syll = (resp.text || "").trim();
+    jokerStatusNote(syll ? `🔤 Втора сричка: "${syll}"` : `🔤 Думата няма втора сричка.`);
     try {
       await setDoc(
         doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
@@ -1947,44 +1826,34 @@ function renderR3Question(index, startTime, duration) {
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
 
-async function renderR3Explanation(index) {
-  showOnly(explanationDiv);
-  statsBlock.innerHTML = ""; explanationText.textContent = "";
-  answeredList.style.display = "none"; answeredNames.innerHTML = "";
-
-  const q = questions3[index];
-  if (!q) return;
-  explanationText.textContent = q.explanation || "";
-
-  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-  const counts = {};
-
-  for (const pDoc of playersSnap.docs) {
-    const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
-    const ansDoc = ansSnap.docs.find(d => d.id === slotId(3, index));
-    if (ansDoc) {
-      const typed = normalizeLetter(ansDoc.data().answer || "");
-      counts[typed] = (counts[typed] || 0) + 1;
-    }
-  }
-
+function renderLetterStats(q, data, plain) {
+  const counts = (data.stats && data.stats.counts) || {};
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const mainLetter = (q.letter || "").toUpperCase();
-  const altLetters = (q.alt_letters || []).map(l => l.toUpperCase());
-  const allCorrect = [mainLetter, ...altLetters];
-
+  const allCorrect = [(q.letter || "").toUpperCase(), ...(q.alt_letters || []).map(l => String(l).toUpperCase())];
   let html = "";
   allCorrect.forEach(l => {
     const c = counts[l] || 0;
     const pct = total ? Math.round(c / total * 100) : 0;
-    html += `<div class="stat-answer correct">${l} — верен отговор<span class="pct">${pct}%</span> ✔</div>`;
+    html += plain
+      ? `<div class="stat-answer correct"><span>${l} — верен отговор</span><span class="pct">${pct}% ✔</span></div>`
+      : `<div class="stat-answer correct">${l} — верен отговор<span class="pct">${pct}%</span> ✔</div>`;
   });
   Object.entries(counts).forEach(([letter, count]) => {
     if (allCorrect.includes(letter)) return;
     const pct = total ? Math.round(count / total * 100) : 0;
-    html += `<div class="stat-answer">${letter}<span class="pct">${pct}%</span></div>`;
+    html += plain ? `<div class="stat-answer"><span>${letter}</span><span class="pct">${pct}%</span></div>` : `<div class="stat-answer">${letter}<span class="pct">${pct}%</span></div>`;
   });
   statsBlock.innerHTML = html || "<p>Няма отговори.</p>";
+}
+
+function renderR3Explanation(index, data) {
+  showOnly(explanationDiv);
+  statsBlock.innerHTML = ""; explanationText.textContent = "";
+  answeredList.style.display = "none"; answeredNames.innerHTML = "";
+  const q = questions3[index];
+  if (!q) return;
+  explanationText.textContent = q.explanation || "";
+  renderLetterStats(q, data, false);
 }
 
 function showImage(imgEl, url) {
@@ -2043,7 +1912,6 @@ function renderR4Question(index, startTime, duration) {
     answered = true;
 
     const typed = normalizeLetter(raw);
-    const correct = isCorrectLetterAnswer(q, raw);
 
     letterInput.classList.add("submitted");
     letterInput.disabled = true;
@@ -2057,10 +1925,7 @@ function renderR4Question(index, startTime, duration) {
     const thinkingTime = Date.now() - startTime;
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(4, index)),
-      {
-        answer: typed, correct: (q.letter || "").toUpperCase(), isCorrect: correct,
-        explanation: q.explanation || "", timestamp: Date.now(), thinkingTime
-      }
+      { answer: typed, timestamp: Date.now(), thinkingTime }
     );
 
     document.getElementById("joker-correction").disabled = false;
@@ -2072,10 +1937,18 @@ function renderR4Question(index, startTime, duration) {
 
   document.getElementById("joker-syllable2").onclick = async () => {
     if (playerJokers.r4_syllable2) return;
-    const syll = (q.syllable2 || "").trim();
     playerJokers.r4_syllable2 = true;
-    jokerStatusNote(syll ? `🔤 Дай Три: "${syll}"` : `🔤 Думата няма подсказка.`);
+    jokerStatusNote("🔤 Питам хоста…");
     updateJokerButtonsUI(4);
+    const resp = await askHost("syl", slotId(4, index));
+    if (!resp || !resp.ok) {
+      playerJokers.r4_syllable2 = false;
+      jokerStatusNote("⚠️ Няма отговор от хоста — опитай пак.");
+      updateJokerButtonsUI(4);
+      return;
+    }
+    const syll = (resp.text || "").trim();
+    jokerStatusNote(syll ? `🔤 Дай Три: "${syll}"` : `🔤 Думата няма подсказка.`);
     try {
       await setDoc(
         doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
@@ -2109,48 +1982,17 @@ function renderR4Question(index, startTime, duration) {
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
 
-async function renderR4Explanation(index) {
+function renderR4Explanation(index, data) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = ""; explanationText.textContent = "";
   explTextTitle.style.display = "block";
   stopMedia(explanationMedia);
   answeredList.style.display = "none"; answeredNames.innerHTML = "";
-
   const q = questions4[index];
   if (!q) return;
-
   showImage(explanationImage, q.image);
   explanationText.textContent = q.explanation || "";
-
-  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-  const counts = {};
-  for (const pDoc of playersSnap.docs) {
-    const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
-    const ansDoc = ansSnap.docs.find(d => d.id === slotId(4, index));
-    if (ansDoc) {
-      const typed = normalizeLetter(ansDoc.data().answer || "");
-      counts[typed] = (counts[typed] || 0) + 1;
-    }
-  }
-
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const mainLetter = (q.letter || "").toUpperCase();
-  const altLetters = (q.alt_letters || []).map(l => l.toUpperCase());
-  const allCorrect = [mainLetter, ...altLetters];
-
-  let html = "";
-  allCorrect.forEach(l => {
-    const c = counts[l] || 0;
-    const pct = total ? Math.round(c / total * 100) : 0;
-    html += `<div class="stat-answer correct"><span>${l} — верен отговор</span><span class="pct">${pct}% ✔</span></div>`;
-  });
-  Object.entries(counts).forEach(([letter, count]) => {
-    if (allCorrect.includes(letter)) return;
-    const pct = total ? Math.round(count / total * 100) : 0;
-    html += `<div class="stat-answer"><span>${letter}</span><span class="pct">${pct}%</span></div>`;
-  });
-
-  statsBlock.innerHTML = html || "<p>Няма отговори.</p>";
+  renderLetterStats(q, data, true);
 }
 
 // ===============================
@@ -2208,8 +2050,6 @@ function renderR5Question(index, startTime, duration) {
     if (isNaN(userAnswer)) { alert("Въведи валидно число!"); return; }
     answered = true;
 
-    const pts = calcPoints5(userAnswer, q);
-
     numberInput.classList.add("submitted");
     numberInput.disabled = true;
     numberSubmitBtn.disabled = true;
@@ -2225,11 +2065,7 @@ function renderR5Question(index, startTime, duration) {
 
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(5, index)),
-      {
-        answer: userAnswer, correct: Number(q.answer), points: pts,
-        diff: Math.abs(userAnswer - Number(q.answer)),
-        timestamp: Date.now(), thinkingTime
-      }
+      { answer: userAnswer, timestamp: Date.now(), thinkingTime }
     );
 
     document.getElementById("joker-correction").disabled = false;
@@ -2262,7 +2098,7 @@ function renderR5Question(index, startTime, duration) {
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
 
-async function renderR5Explanation(index) {
+function renderR5Explanation(index, data) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = ""; explanationText.textContent = "";
   // ⭐ В кръг 5 няма обяснение — само статистика
@@ -2273,20 +2109,8 @@ async function renderR5Explanation(index) {
 
   const q = questions5[index];
   if (!q) return;
-
   const correct = Number(q.answer);
-
-  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-  const results = [];
-  for (const pDoc of playersSnap.docs) {
-    const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
-    const ansDoc = ansSnap.docs.find(d => d.id === slotId(5, index));
-    if (ansDoc) {
-      const data = ansDoc.data();
-      results.push({ name: pDoc.id, answer: data.answer, diff: data.diff, points: data.points });
-    }
-  }
-  results.sort((a, b) => a.diff - b.diff);
+  const results = (data.stats && data.stats.results) || [];
 
   let html = `<div class="stat-row correct-answer"><span>✔ Верен отговор: <strong>${correct}</strong></span></div>`;
   results.forEach(r => {
@@ -2390,8 +2214,8 @@ function buildMatchUI(q, startTime) {
   answeredList.style.display = "block";
   document.getElementById("joker-correction").disabled = true;
 
-  const leftItems  = Object.keys(q.pairs).filter(k => k !== "").sort();
-  const rightItems = Object.values(q.pairs).filter(v => v !== "").sort();
+  const leftItems  = [...(q.left || [])];
+  const rightItems = [...(q.right || [])];
   leftCol.innerHTML = "";
   rightCol.innerHTML = "";
 
@@ -2482,14 +2306,6 @@ function undoLastPair() {
 
 async function saveCurrentPairs(startTime) {
   if (!episodeId || !player || !currentMatchQuestion) return;
-  const q = currentMatchQuestion;
-
-  let correct = 0;
-  pairs.forEach(p => { if (q.pairs[p.left] && q.pairs[p.left] === p.right) correct++; });
-
-  const totalPairs = Object.keys(q.pairs).length;
-  const bonus = correct === totalPairs ? 3 : 0;
-  const total = correct + bonus;
   const thinkingTime = lastClickTime6 ?? (Date.now() - startTime);
 
   await setDoc(
@@ -2497,12 +2313,10 @@ async function saveCurrentPairs(startTime) {
     { exists: true }, { merge: true }
   );
 
+  // ⭐ Точките ги смята хостът след края на времето
   await setDoc(
-    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", "r6-0"),
-    {
-      pairs: pairs.map(p => ({ left: p.left, right: p.right })),
-      correct, bonus, total, thinkingTime, timestamp: Date.now()
-    }
+    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(6, curR6Index)),
+    { pairs: pairs.map(p => ({ left: p.left, right: p.right })), thinkingTime, timestamp: Date.now() }
   );
 }
 
@@ -2512,7 +2326,9 @@ async function submitMatch(startTime) {
   await saveCurrentPairs(startTime);
 }
 
-function renderR6Question(chosenTopic, startTime, duration) {
+let curR6Index = 0, curR8Index = 0;
+function renderR6Question(chosenTopic, startTime, duration, index = 0) {
+  curR6Index = index;
   showOnly(quizDiv);
   roundTag.textContent = "Кръг 6 — Чифтосване: " + chosenTopic;
   qText.textContent = "";
@@ -2530,7 +2346,7 @@ function renderR6Question(chosenTopic, startTime, duration) {
 
   const q = questions6.find(t => t.title === chosenTopic) || questions6[0];
   buildMatchUI(q, startTime);
-  startAnswerListener("r6-0", (pName, data) => `${pName} — ${data.pairs?.length || 0} чифта`);
+  startAnswerListener(slotId(6, curR6Index));
 
   document.getElementById("joker-correction").onclick = undoLastPair;
 
@@ -2541,27 +2357,25 @@ function renderR6Question(chosenTopic, startTime, duration) {
   }, 200);
 }
 
-async function renderR6Results() {
+function renderMyScore(data) {
+  const sc = data.scores && data.scores[player];
+  if (!sc) return "";
+  return `<div style="margin-top:15px;color:#ffd100;font-weight:bold;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
+        Ти: ${sc[0]} верни = <strong>${sc[2]} т.</strong>
+      </div>`;
+}
+
+function renderR6Results(data) {
   showOnly(resultsDiv);
   resultsTitle.textContent = "Верни чифтове";
   if (answersUnsub) { answersUnsub(); answersUnsub = null; }
 
-  const q = currentMatchQuestion || questions6.find(t => t.title === currentChosenTopic[6]) || questions6[0];
+  const pairsObj = (data.reveal && data.reveal.pairs) || {};
   let html = "";
-  Object.entries(q.pairs).sort().forEach(([left, right]) => {
+  Object.entries(pairsObj).sort().forEach(([left, right]) => {
     html += `<div class="stat-answer correct"><span>${left} → ${right}</span><span>✔</span></div>`;
   });
-
-  try {
-    const ansSnap = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", "r6-0"));
-    if (ansSnap.exists()) {
-      const data = ansSnap.data();
-      html += `<div style="margin-top:15px;color:#ffd100;font-weight:bold;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
-        Ти: ${data.correct} верни + ${data.bonus} бонус = <strong>${data.total} т.</strong>
-      </div>`;
-    }
-  } catch(e) {}
-
+  html += renderMyScore(data);
   resultsBlock.innerHTML = html;
 }
 
@@ -2732,7 +2546,6 @@ function renderR7Question(index, startTime, duration) {
     answered = true;
 
     const typed = normalizeLetterPlain(raw);
-    const correct = isCorrectLetterAnswerPlain(q, raw);
 
     letterInput.classList.add("submitted");
     letterInput.disabled = true;
@@ -2746,10 +2559,7 @@ function renderR7Question(index, startTime, duration) {
     const thinkingTime = Date.now() - startTime;
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(7, index)),
-      {
-        answer: typed, correct: (q.letter || "").toUpperCase(), isCorrect: correct,
-        explanation: q.explanation || "", timestamp: Date.now(), thinkingTime
-      }
+      { answer: typed, timestamp: Date.now(), thinkingTime }
     );
 
     document.getElementById("joker-correction").disabled = false;
@@ -2761,10 +2571,18 @@ function renderR7Question(index, startTime, duration) {
 
   document.getElementById("joker-syllable2").onclick = async () => {
     if (playerJokers.r7_syllable2) return;
-    const syll = (q.syllable2 || "").trim();
     playerJokers.r7_syllable2 = true;
-    jokerStatusNote(syll ? `🔤 Дай Три: "${syll}"` : `🔤 Думата няма подсказка.`);
+    jokerStatusNote("🔤 Питам хоста…");
     updateJokerButtonsUI(7);
+    const resp = await askHost("syl", slotId(7, index));
+    if (!resp || !resp.ok) {
+      playerJokers.r7_syllable2 = false;
+      jokerStatusNote("⚠️ Няма отговор от хоста — опитай пак.");
+      updateJokerButtonsUI(7);
+      return;
+    }
+    const syll = (resp.text || "").trim();
+    jokerStatusNote(syll ? `🔤 Дай Три: "${syll}"` : `🔤 Думата няма подсказка.`);
     try {
       await setDoc(
         doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
@@ -2798,49 +2616,18 @@ function renderR7Question(index, startTime, duration) {
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
 
-async function renderR7Explanation(index) {
+function renderR7Explanation(index, data) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = ""; explanationText.textContent = "";
   explTextTitle.style.display = "block";
   showImage(explanationImage, "");
   stopMedia(questionMedia, fullscreenBtn);
   answeredList.style.display = "none"; answeredNames.innerHTML = "";
-
   const q = questions7[index];
   if (!q) return;
-
   loadMedia(explanationMedia, q.video, true);
   explanationText.textContent = q.explanation || "";
-
-  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-  const counts = {};
-  for (const pDoc of playersSnap.docs) {
-    const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
-    const ansDoc = ansSnap.docs.find(d => d.id === slotId(7, index));
-    if (ansDoc) {
-      const typed = normalizeLetterPlain(ansDoc.data().answer || "");
-      counts[typed] = (counts[typed] || 0) + 1;
-    }
-  }
-
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const mainLetter = (q.letter || "").toUpperCase();
-  const altLetters = (q.alt_letters || []).map(l => l.toUpperCase());
-  const allCorrect = [mainLetter, ...altLetters];
-
-  let html = "";
-  allCorrect.forEach(l => {
-    const c = counts[l] || 0;
-    const pct = total ? Math.round(c / total * 100) : 0;
-    html += `<div class="stat-answer correct"><span>${l} — верен отговор</span><span class="pct">${pct}% ✔</span></div>`;
-  });
-  Object.entries(counts).forEach(([letter, count]) => {
-    if (allCorrect.includes(letter)) return;
-    const pct = total ? Math.round(count / total * 100) : 0;
-    html += `<div class="stat-answer"><span>${letter}</span><span class="pct">${pct}%</span></div>`;
-  });
-
-  statsBlock.innerHTML = html || "<p>Няма отговори.</p>";
+  renderLetterStats(q, data, true);
 }
 
 // ===============================
@@ -2989,16 +2776,6 @@ function undoLastAssign8() {
 
 async function saveCurrentAssignments8(startTime) {
   if (!episodeId || !player || !currentGroupQuestion) return;
-  const q = currentGroupQuestion;
-
-  let correct = 0;
-  Object.entries(assignments).forEach(([item, group]) => {
-    if (q.answers[item] === group) correct++;
-  });
-
-  const total = q.items.length;
-  const bonus = correct === total ? 3 : 0;
-  const pts = correct + bonus;
   const thinkingTime = lastClickTime8 ?? (Date.now() - startTime);
 
   await setDoc(
@@ -3006,9 +2783,10 @@ async function saveCurrentAssignments8(startTime) {
     { exists: true }, { merge: true }
   );
 
+  // ⭐ Точките ги смята хостът след края на времето
   await setDoc(
-    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", "r8-0"),
-    { assignments: { ...assignments }, correct, bonus, total: pts, thinkingTime, timestamp: Date.now() }
+    doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(8, curR8Index)),
+    { assignments: { ...assignments }, thinkingTime, timestamp: Date.now() }
   );
 }
 
@@ -3018,7 +2796,8 @@ async function submitGrouping8(startTime) {
   await saveCurrentAssignments8(startTime);
 }
 
-function renderR8Question(chosenTopic, startTime, duration) {
+function renderR8Question(chosenTopic, startTime, duration, index = 0) {
+  curR8Index = index;
   showOnly(quizDiv);
   roundTag.textContent = "Кръг 8 — Групиране: " + chosenTopic;
   qText.textContent = "";
@@ -3037,7 +2816,7 @@ function renderR8Question(chosenTopic, startTime, duration) {
   buildGroupingUI(q, startTime);
   updateJokerButtonsUI(8);
   document.getElementById("joker-correction").onclick = undoLastAssign8;
-  startAnswerListener("r8-0", (pName, data) => `${pName} — ${Object.keys(data.assignments || {}).length} обекта`);
+  startAnswerListener(slotId(8, curR8Index));
 
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 
@@ -3047,12 +2826,12 @@ function renderR8Question(chosenTopic, startTime, duration) {
   }, duration);
 }
 
-async function renderR8Results() {
+function renderR8Results(data) {
   showOnly(resultsDiv);
   resultsTitle.textContent = "Верни групи";
   if (answersUnsub) { answersUnsub(); answersUnsub = null; }
 
-  const q = currentGroupQuestion || questions8.find(t => t.title === currentChosenTopic[8]) || questions8[0];
+  const q = { ...(data.q || {}), ...(data.reveal || {}) };
   let html = "";
 
   let groups = q.groups;
@@ -3072,69 +2851,28 @@ async function renderR8Results() {
       });
     });
   }
-
-  try {
-    const ansSnap = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", "r8-0"));
-    if (ansSnap.exists()) {
-      const data = ansSnap.data();
-      html += `<div style="margin-top:15px;color:#ffd100;font-weight:bold;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
-        Ти: ${data.correct} верни + ${data.bonus} бонус = <strong>${data.total} т.</strong>
-      </div>`;
-    }
-  } catch(e) {}
-
+  html += renderMyScore(data);
   resultsBlock.innerHTML = html;
 }
 
-// ⭐ Класиране САМО за кръга — общо за кръг 6 (чифтосване) и кръг 8 (групиране)
-function getRoundQuestionObj(round) {
-  if (round === 6) {
-    return currentMatchQuestion || questions6.find(t => t.title === currentChosenTopic[6]) || questions6[0];
-  }
-  return currentGroupQuestion || questions8.find(t => t.title === currentChosenTopic[8]) || questions8[0];
-}
-
-async function renderRoundQRanking(round) {
+// ⭐ Класиране САМО за кръга — общо за кръг 6 (чифтосване) и кръг 8 (групиране); идва готово от хоста
+function renderRoundQRanking(round, data) {
   showOnly(qRankingDiv);
   qRankingTitle.textContent = `Класиране за ${round}-ти кръг`;
-  qRankingList.innerHTML = "<p>Зареждане…</p>";
-
-  const qObj = getRoundQuestionObj(round);
-  const totalItems = round === 6
-    ? Object.keys(qObj?.pairs || {}).length
-    : (qObj?.items?.length || 10);
-  const slot = `r${round}-0`;
-
-  try {
-    const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-    const scores = [];
-    for (const playerDoc of playersSnap.docs) {
-      const pName = playerDoc.id;
-      const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pName, "answers"));
-      const ansDoc = ansSnap.docs.find(d => d.id === slot);
-      if (ansDoc) {
-        const data = ansDoc.data();
-        scores.push({ name: pName, pts: data.total || 0, correct: data.correct || 0, time: data.thinkingTime || 0 });
-      }
-    }
-    scores.sort((a, b) => b.pts !== a.pts ? b.pts - a.pts : a.time - b.time);
-    qRankingList.innerHTML = scores.map((obj, i) => {
-      const isMe = obj.name === player;
-      let cls = "", medal = "";
-      if (i === 0) { cls = "gold"; medal = "🥇"; }
-      else if (i === 1) { cls = "silver"; medal = "🥈"; }
-      else if (i === 2) { cls = "bronze"; medal = "🥉"; }
-      return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
-        ${i+1}. ${medal} ${obj.name} — ${obj.correct}/${totalItems} верни → <strong>${obj.pts} т.</strong>
-      </div>`;
-    }).join("") || "<p>Няма данни.</p>";
-  } catch(e) {
-    qRankingList.innerHTML = "<p>Грешка при зареждане.</p>";
-  }
+  const scores = (data && data.rows) || [];
+  const totalItems = (data && data.total) || 10;
+  qRankingList.innerHTML = scores.map((obj, i) => {
+    const isMe = obj.name === player;
+    let cls = "", medal = "";
+    if (i === 0) { cls = "gold"; medal = "🥇"; }
+    else if (i === 1) { cls = "silver"; medal = "🥈"; }
+    else if (i === 2) { cls = "bronze"; medal = "🥉"; }
+    return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">
+      ${i+1}. ${medal} ${obj.name} — ${obj.correct}/${totalItems} верни → <strong>${obj.pts} т.</strong>
+    </div>`;
+  }).join("") || "<p>Няма данни.</p>";
 }
 
-function renderR6QRanking() { return renderRoundQRanking(6); }
-function renderR8QRanking() { return renderRoundQRanking(8); }
 
 // ===============================
 // КРЪГ 9 — ИЗБОР (подредба по увереност, без warmup, от замразеното класиране след кръг 8)
@@ -3218,7 +2956,7 @@ async function saveRanking9(slotIdStr, thinkingTime) {
     );
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotIdStr),
-      { ranking: rankedSoFar9, thinkingTime, timestamp: Date.now(), q: currentRankQuestion }
+      { ranking: rankedSoFar9, thinkingTime, timestamp: Date.now() }
     );
   } catch(e) {}
 }
@@ -3280,7 +3018,7 @@ function renderR9Question(data, startTime, duration) {
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
 
-async function renderR9Explanation(data) {
+function renderR9Explanation(data) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = "";
   explTextTitle.style.display = "block";
@@ -3288,74 +3026,37 @@ async function renderR9Explanation(data) {
   stopMedia(explanationMedia);
   answeredList.style.display = "none"; answeredNames.innerHTML = "";
 
-  const q = data.q;
-  if (!q) return;
+  const q = { ...(data.q || {}), ...(data.reveal || {}) };
+  if (!data.q) return;
   explanationText.textContent = q.explanation || "";
 
-  try {
-    const answersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-    const posCounts = [0, 0, 0, 0, 0];
-    let answeredCount = 0, notAnsweredCount = 0;
-
-    for (const pDoc of answersSnap.docs) {
-      const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
-      const ansDoc = ansSnap.docs.find(d => d.id === data.slotId);
-      const ranking = ansDoc ? (ansDoc.data().ranking || []) : [];
-      if (ranking.length > 0) {
-        answeredCount++;
-        const pos = ranking.findIndex(a => (a || "").trim() === (q.correct || "").trim());
-        if (pos >= 0) posCounts[pos]++;
-      } else {
-        notAnsweredCount++;
-      }
-    }
-
-    const labels = ["1-во място (6 т.)", "2-ро място (4 т.)", "3-то място (3 т.)", "4-то място (2 т.)", "5-то място (1 т.)"];
-    let html = `<div class="stat-answer correct"><span>✔ Верен отговор: ${q.correct}</span></div>`;
-    html += labels.map((label, i) => {
-      const pct = answeredCount ? Math.round(posCounts[i] / answeredCount * 100) : 0;
-      return `<div class="stat-answer"><span>${label}</span><span class="pct">${pct}%</span></div>`;
-    }).join("");
-    if (notAnsweredCount > 0) {
-      const word = notAnsweredCount === 1 ? "играч" : "играча";
-      html += `<div class="stat-answer" style="opacity:0.6;"><span>Не отговориха</span><span class="pct">${notAnsweredCount} ${word}</span></div>`;
-    }
-    statsBlock.innerHTML = html;
-  } catch(e) {
-    statsBlock.innerHTML = "";
+  const st = data.stats || { pos: [0,0,0,0,0], answered: 0, notAnswered: 0 };
+  const labels = ["1-во място (6 т.)", "2-ро място (4 т.)", "3-то място (3 т.)", "4-то място (2 т.)", "5-то място (1 т.)"];
+  let html = `<div class="stat-answer correct"><span>✔ Верен отговор: ${q.correct}</span></div>`;
+  html += labels.map((label, i) => {
+    const pct = st.answered ? Math.round((st.pos[i] || 0) / st.answered * 100) : 0;
+    return `<div class="stat-answer"><span>${label}</span><span class="pct">${pct}%</span></div>`;
+  }).join("");
+  if (st.notAnswered > 0) {
+    const word = st.notAnswered === 1 ? "играч" : "играча";
+    html += `<div class="stat-answer" style="opacity:0.6;"><span>Не отговориха</span><span class="pct">${st.notAnswered} ${word}</span></div>`;
   }
+  statsBlock.innerHTML = html;
 }
 
-async function renderR9QRanking(data) {
+function renderR9QRanking(data) {
   showOnly(qRankingDiv);
   qRankingTitle.textContent = "Класиране по този въпрос";
-  const slotIdStr = data.slotId;
-  qRankingList.innerHTML = "<p>Зареждане…</p>";
-  if (!slotIdStr) { qRankingList.innerHTML = "<p>Няма данни.</p>"; return; }
-
-  try {
-    const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-    const rows = [];
-    for (const pDoc of playersSnap.docs) {
-      const name = pDoc.id;
-      const ansSnap = await getDoc(doc(db, "games", GAME_ID, "episodes", episodeId, "results", name, "answers", slotIdStr));
-      const pts = ansSnap.exists() ? (ansSnap.data().points || 0) : 0;
-      const answered = ansSnap.exists() && (ansSnap.data().ranking || []).length > 0;
-      rows.push({ name, pts, answered });
-    }
-    rows.sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name, "bg"));
-    qRankingList.innerHTML = rows.map((r, i) => {
-      const isMe = r.name === player;
-      let cls = "", medal = "";
-      if (i === 0 && r.pts > 0) { cls = "gold"; medal = "🥇"; }
-      else if (i === 1 && r.pts > 0) { cls = "silver"; medal = "🥈"; }
-      else if (i === 2 && r.pts > 0) { cls = "bronze"; medal = "🥉"; }
-      const label = r.answered ? `${r.pts} т. за този въпрос` : "не е отговорено";
-      return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">${i+1}. ${medal} ${r.name} — ${label}</div>`;
-    }).join("");
-  } catch(e) {
-    qRankingList.innerHTML = "<p>Грешка при зареждане.</p>";
-  }
+  const rows = (data && data.rows) || [];
+  qRankingList.innerHTML = rows.map((r, i) => {
+    const isMe = r.name === player;
+    let cls = "", medal = "";
+    if (i === 0 && r.pts > 0) { cls = "gold"; medal = "🥇"; }
+    else if (i === 1 && r.pts > 0) { cls = "silver"; medal = "🥈"; }
+    else if (i === 2 && r.pts > 0) { cls = "bronze"; medal = "🥉"; }
+    const label = r.answered ? `${r.pts} т. за този въпрос` : "не е отговорено";
+    return `<div class="rank-item ${cls} ${isMe ? "myself" : ""}">${i+1}. ${medal} ${r.name} — ${label}</div>`;
+  }).join("");
 }
 
 // ===============================
@@ -3391,7 +3092,7 @@ function calcPoints10(index, diffs, myDiff) {
 function renderR10Question(data, startTime, duration) {
   const index = data.tier ?? data.index ?? 0;
   showOnly(quizDiv);
-  roundTag.textContent = `Кръг 10 — Дузпа ${index + 1} от 3`;
+  roundTag.textContent = `Кръг 10 — Дузпа`;
   document.getElementById("jokers").style.display = "flex";
   showImage(questionImage, "");
   stopMedia(questionMedia, fullscreenBtn);
@@ -3428,12 +3129,10 @@ function renderR10Question(data, startTime, duration) {
     if (isNaN(userAnswer)) { alert("Въведи валидно число!"); return; }
     answered = true;
 
-    const diff = Math.abs(userAnswer - Number(q.answer));
-
     numberInput.classList.add("submitted");
     numberInput.disabled = true;
     numberSubmitBtn.disabled = true;
-    myPoints.textContent = `Отговор: ${userAnswer} | Отклонение: ${diff}`;
+    myPoints.textContent = `Отговор: ${userAnswer} ✓`;
 
     const thinkingTime = Date.now() - startTime;
 
@@ -3444,7 +3143,7 @@ function renderR10Question(data, startTime, duration) {
 
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotId(10, index)),
-      { answer: userAnswer, correct: Number(q.answer), diff, points: 0, q, timestamp: Date.now(), thinkingTime }
+      { answer: userAnswer, timestamp: Date.now(), thinkingTime }
     );
 
     document.getElementById("joker-correction").disabled = false;
@@ -3477,33 +3176,16 @@ function renderR10Question(data, startTime, duration) {
   timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
 }
 
-async function getR10AnswersForQuestion(index) {
-  const playersSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results"));
-  const results = [];
-  for (const pDoc of playersSnap.docs) {
-    const ansSnap = await getDocs(collection(db, "games", GAME_ID, "episodes", episodeId, "results", pDoc.id, "answers"));
-    const ansDoc = ansSnap.docs.find(d => d.id === slotId(10, index));
-    if (ansDoc) {
-      const data = ansDoc.data();
-      results.push({ name: pDoc.id, answer: data.answer, diff: data.diff });
-    }
-  }
-  const diffs = results.map(r => r.diff);
-  results.forEach(r => { r.points = calcPoints10(index, diffs, r.diff); });
-  return results;
-}
-
 async function renderR10Explanation(data) {
   const index = data.tier ?? data.index ?? 0;
   showOnly(explanationDiv);
   statsBlock.innerHTML = ""; explanationText.textContent = "";
-  explTextTitle.style.display = data.q?.explanation ? "block" : "none";
+  const q = { ...(data.q || {}), ...(data.reveal || {}) };
+  explTextTitle.style.display = q.explanation ? "block" : "none";
   showImage(explanationImage, "");
   stopMedia(explanationMedia);
   answeredList.style.display = "none"; answeredNames.innerHTML = "";
-
-  const q = data.q;
-  if (!q) return;
+  if (!data.q) return;
 
   explanationText.textContent = q.explanation || "";
 
@@ -3517,9 +3199,9 @@ async function renderR10Explanation(data) {
 
   let html = `<div class="stat-row correct-answer"><span>✔ Верен отговор: <strong>${q.answer}</strong></span></div>`;
   html += mine
-    ? `<div class="stat-row myself"><span>Твоят отговор: <strong>${mine.answer}</strong> (±${mine.diff})</span></div>`
+    ? `<div class="stat-row myself"><span>Твоят отговор: <strong>${mine.answer}</strong> (±${Math.abs(Number(mine.answer) - Number(q.answer))})</span></div>`
     : `<div class="stat-row"><span>Не отговори на тази дузпа</span></div>`;
-  html += `<p style="margin-top:14px; opacity:0.85;">🤫 Класирането за дузпите ще се разкрие в края на играта.</p>`;
+  if (data.showRanking === false) html += `<p style="margin-top:14px; opacity:0.85;">🤫 Класирането за дузпите ще се разкрие в края на играта.</p>`;
 
   statsBlock.innerHTML = html;
 }
@@ -3568,7 +3250,6 @@ function renderTiebreak(data) {
     tiebreakSubmitBtn.disabled = true;
     tiebreakWaitNote.textContent = "Отговорът е записан ✓ — изчакай резултата.";
 
-    const diff = Math.abs(userAnswer - Number(data.question.answer));
     const thinkingTime = Date.now() - (data.startTime?.toMillis?.() ?? data.startTime ?? Date.now());
 
     await setDoc(
@@ -3577,7 +3258,7 @@ function renderTiebreak(data) {
     );
     await setDoc(
       doc(db, "games", GAME_ID, "episodes", episodeId, "results", player, "answers", slotIdStr),
-      { answer: userAnswer, diff, thinkingTime, q: data.question || null, timestamp: Date.now() },
+      { answer: userAnswer, thinkingTime, timestamp: Date.now() },
       { merge: true }
     );
   };
@@ -3652,12 +3333,12 @@ function renderReplay(data) {
 // ===============================
 // ⭐ ДРАМАТИЧНО ФИНАЛНО КЛАСИРАНЕ — разкрива се отзад напред, на стъпки
 // ===============================
-async function renderFinalReveal(data) {
+function renderFinalReveal(data) {
   showOnly(rankingDiv);
   rankingTitle.textContent = "🏆 Класирането идва...";
   historyBtn.style.display = "none";
 
-  const sorted = await computeStandings(true);
+  const sorted = data.rows || [];
   const total = sorted.length;
   const revealedCount = Math.min(data.revealedCount || 1, total);
 
@@ -3694,12 +3375,17 @@ async function applyPhaseImmediately(data) {
   const { phase, round, index, startTime, duration } = data;
   if (timerInterval) clearInterval(timerInterval);
   barTimerActive = false;
+  lockPhase = ["question", "jokerBuffer", "tiebreak"].includes(phase); lockDone = false;
+  document.body.classList.remove("locked");
   qTimerBox.style.display = "none";
   if (phase !== "question" || round !== 8) clearTimeout(autoSubmitTimeoutR);
 
   // ⭐ При ВСЯКА смяна на фаза спираме клиповете. Фазите, на които реално им трябва клип
   // (въпрос и обяснение на кръг 7), го зареждат наново по-долу.
   killAllMedia();
+
+  // ⭐ въпросът идва от хоста (без верния отговор); обяснението носи и разкритото
+  if (data.q) ingestQ(data);
 
   if (phase === "lobby") {
     showOnly(waitingScreen);
@@ -3768,9 +3454,9 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "choose") {
     globalTimer.style.display = "block";
-    if (round === 6) { r6ChooserName = null; renderChoosePhase(6, data.slotId, questions6)(data); }
-    else if (round === 8) renderChoosePhase(8, data.slotId, questions8)(data);
-    else if (round === 9) renderChoosePhase(9, data.slotId, izborAreas)(data);
+    if (round === 6) { r6ChooserName = null; renderChoosePhase(6, data.slotId, data.topics || [])(data); }
+    else if (round === 8) renderChoosePhase(8, data.slotId, data.topics || [])(data);
+    else if (round === 9) renderChoosePhase(9, data.slotId, data.topics || [])(data);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
@@ -3778,9 +3464,9 @@ async function applyPhaseImmediately(data) {
   if (phase === "choose-reveal") {
     globalTimer.style.display = "block";
     currentChosenTopic[round] = data.chosenTopic;
-    if (round === 6) { r6ChooserName = data.chooserName; renderChooseRevealGeneric(6, questions6)(data); }
-    else if (round === 8) renderChooseRevealGeneric(8, questions8)(data);
-    else if (round === 9) renderChooseRevealGeneric(9, izborAreas)(data);
+    if (round === 6) { r6ChooserName = data.chooserName; renderChooseRevealGeneric(6, data.topics || [])(data); }
+    else if (round === 8) renderChooseRevealGeneric(8, data.topics || [])(data);
+    else if (round === 9) renderChooseRevealGeneric(9, data.topics || [])(data);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
   }
@@ -3792,9 +3478,9 @@ async function applyPhaseImmediately(data) {
     else if (round === 3) renderR3Question(index, startTime, duration);
     else if (round === 4) renderR4Question(index, startTime, duration);
     else if (round === 5) renderR5Question(index, startTime, duration);
-    else if (round === 6) renderR6Question(data.chosenTopic || currentChosenTopic[6], startTime, duration);
+    else if (round === 6) renderR6Question(data.chosenTopic || currentChosenTopic[6], startTime, duration, index || 0);
     else if (round === 7) renderR7Question(index, startTime, duration);
-    else if (round === 8) renderR8Question(data.chosenTopic || currentChosenTopic[8], startTime, duration);
+    else if (round === 8) renderR8Question(data.chosenTopic || currentChosenTopic[8], startTime, duration, index || 0);
     else if (round === 9) renderR9Question(data, startTime, duration);
     else if (round === 10) renderR10Question(data, startTime, duration);
     if (BAR_ROUNDS.includes(round)) { barTimerActive = true; updateTimer(startTime, duration); }
@@ -3809,14 +3495,14 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "explanation") {
     globalTimer.style.display = "block";
-    if (round === 1) renderR1Explanation(index);
-    else if (round === 2) renderR2Explanation(index);
-    else if (round === 3) renderR3Explanation(index);
-    else if (round === 4) renderR4Explanation(index);
-    else if (round === 5) renderR5Explanation(index);
-    else if (round === 6) renderR6Results();
-    else if (round === 7) renderR7Explanation(index);
-    else if (round === 8) renderR8Results();
+    if (round === 1) renderR1Explanation(index, data);
+    else if (round === 2) renderR2Explanation(index, data);
+    else if (round === 3) renderR3Explanation(index, data);
+    else if (round === 4) renderR4Explanation(index, data);
+    else if (round === 5) renderR5Explanation(index, data);
+    else if (round === 6) renderR6Results(data);
+    else if (round === 7) renderR7Explanation(index, data);
+    else if (round === 8) renderR8Results(data);
     else if (round === 9) renderR9Explanation(data);
     else if (round === 10) renderR10Explanation(data);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
@@ -3825,8 +3511,8 @@ async function applyPhaseImmediately(data) {
 
   if (phase === "q-ranking" || phase === "qRanking") {
     globalTimer.style.display = "block";
-    if (round === 6) renderR6QRanking();
-    else if (round === 8) renderR8QRanking();
+    if (round === 6) renderRoundQRanking(6, data);
+    else if (round === 8) renderRoundQRanking(8, data);
     else if (round === 9) renderR9QRanking(data);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -3838,7 +3524,7 @@ async function applyPhaseImmediately(data) {
     if (data.hideRanking) {
       showOnly(secretScreen);
     } else {
-      renderRanking(false);
+      renderRanking(false, data);
     }
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     return;
@@ -3862,112 +3548,9 @@ async function applyPhaseImmediately(data) {
   if (phase === "finalRanking") {
     globalTimer.style.display = "none";
     setMusic("../music/final.mp3");
-    renderRanking(true);
+    renderRanking(true, data);
     return;
   }
-}
-
-// ===============================
-// ⭐ АДМИН (код → панел: пауза след кръг + ръчни точки)
-// ===============================
-const ADMIN_CODE = "t861182";
-const adminBtn   = document.getElementById("adminOpenBtn");
-const adminPanel = document.getElementById("adminPanel");
-let adminOn = false;
-try { adminOn = sessionStorage.getItem("mega_admin") === "1"; } catch (e) {}
-let adminFlow = {}, adminFlowUnsub = null, adminAdj = {};
-const adminEsc = t => String(t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
-const adminFmt = n => String(Math.round(n * 10000) / 10000).replace(".", ",");
-
-function adminEp() { return episodeId || (lastPhaseSnapshot && lastPhaseSnapshot.episodeId) || null; }
-
-adminBtn.onclick = () => {
-  if (!adminOn) {
-    const code = prompt("Админ код:");
-    if (code === null) return;
-    if (code.trim() !== ADMIN_CODE) return alert("Грешен код.");
-    adminOn = true;
-    try { sessionStorage.setItem("mega_admin", "1"); } catch (e) {}
-  }
-  const opening = adminPanel.style.display !== "block";
-  adminPanel.style.display = opening ? "block" : "none";
-  if (opening) adminOpen(); else if (adminFlowUnsub) { adminFlowUnsub(); adminFlowUnsub = null; }
-};
-
-function updateAdminStatus() {
-  const el = document.getElementById("adState");
-  if (!el) return;
-  const ph = lastPhaseSnapshot && lastPhaseSnapshot.phase;
-  const rd = lastPhaseSnapshot && lastPhaseSnapshot.round;
-  let t;
-  if (ph === "pause") t = "⏸ Играта е в ПАУЗА — натисни „Продължи“.";
-  else if (adminFlow.pauseAfterRound) t = "⏳ Пауза е заявена — играта ще спре след края на текущия кръг.";
-  else t = "▶ Играта тече" + (ph ? ` (фаза: ${adminEsc(ph)}${rd ? ", кръг " + rd : ""})` : "") + ".";
-  el.innerHTML = t;
-}
-
-function adminOpen() {
-  const ep = adminEp();
-  adminPanel.innerHTML = `
-    <div class="ad-head"><b>🔧 Админ</b><span style="opacity:.7">епизод: ${ep ? adminEsc(ep) : "—"}</span>
-      <button id="adClose">✕ Затвори</button></div>
-    <div class="ad-box">
-      <div id="adState" style="margin-bottom:6px"></div>
-      <button id="adPause">⏸ Пауза след края на кръга</button>
-      <button id="adResume">▶ Продължи / отмени паузата</button>
-    </div>
-    <div class="ad-box">
-      <b>Точки</b> · стъпка: <input id="adStep" type="number" step="0.5" min="0" value="1">
-      <button id="adLoad">↻ Зареди играчите</button>
-      <div id="adList" style="margin-top:6px;opacity:.8">Натисни „Зареди играчите“.</div>
-    </div>`;
-  document.getElementById("adClose").onclick = () => { adminPanel.style.display = "none"; if (adminFlowUnsub) { adminFlowUnsub(); adminFlowUnsub = null; } };
-  const flowRef = doc(db, "games", GAME_ID, "control", "flow");
-  document.getElementById("adPause").onclick  = async () => { try { await setDoc(flowRef, { pauseAfterRound: true,  updatedAt: Date.now() }, { merge: true }); } catch (e) { alert("Грешка: " + e.message); } };
-  document.getElementById("adResume").onclick = async () => { try { await setDoc(flowRef, { pauseAfterRound: false, updatedAt: Date.now() }, { merge: true }); } catch (e) { alert("Грешка: " + e.message); } };
-  document.getElementById("adLoad").onclick = adminLoad;
-  if (adminFlowUnsub) adminFlowUnsub();
-  adminFlowUnsub = onSnapshot(flowRef, sn => { adminFlow = sn.exists() ? sn.data() : {}; updateAdminStatus(); });
-  updateAdminStatus();
-}
-
-async function adminLoad() {
-  const ep = adminEp();
-  const list = document.getElementById("adList");
-  if (!ep) { list.textContent = "Няма активен епизод."; return; }
-  episodeId = ep;
-  list.textContent = "Зареждам…";
-  try {
-    if (!questions1.length) await loadAllQuestions();
-    adminAdj = await loadAdjustments(ep);
-    const st = await computeStandings(false);   // вече включва ръчните корекции
-    if (!st.length) { list.textContent = "Още няма играчи."; return; }
-    list.innerHTML = "";
-    st.forEach((p, i) => {
-      const row = document.createElement("div");
-      row.className = "ad-row";
-      row.innerHTML = `<span style="width:26px;opacity:.7">${i + 1}.</span><span class="nm">${adminEsc(p.name)}</span>
-        <span class="pts" style="min-width:60px;text-align:right"><b>${adminFmt(p.points)}</b></span>
-        <span class="adj" style="min-width:56px;opacity:.7;text-align:right">${adminAdj[p.name] ? "(" + (adminAdj[p.name] > 0 ? "+" : "") + adminFmt(adminAdj[p.name]) + ")" : ""}</span>
-        <button class="m">−</button><button class="p">+</button>`;
-      let pts = p.points;
-      const change = async sign => {
-        const step = Number(document.getElementById("adStep").value) || 0;
-        if (!step) return;
-        const next = Math.round(((adminAdj[p.name] || 0) + sign * step) * 10000) / 10000;
-        try {
-          await setDoc(doc(db, "games", GAME_ID, "episodes", ep, "adjustments", p.name), { delta: next, updatedAt: Date.now() }, { merge: true });
-          adminAdj[p.name] = next;
-          pts = Math.round((pts + sign * step) * 10000) / 10000;
-          row.querySelector(".pts").innerHTML = `<b>${adminFmt(pts)}</b>`;
-          row.querySelector(".adj").textContent = next ? "(" + (next > 0 ? "+" : "") + adminFmt(next) + ")" : "";
-        } catch (e) { alert("Не успях да запиша: " + e.message); }
-      };
-      row.querySelector(".m").onclick = () => change(-1);
-      row.querySelector(".p").onclick = () => change(+1);
-      list.appendChild(row);
-    });
-  } catch (e) { list.textContent = "Грешка: " + (e && e.message ? e.message : e); }
 }
 
 onSnapshot(doc(db, "games", GAME_ID, "state", "current"), async snap => {
@@ -3975,7 +3558,6 @@ onSnapshot(doc(db, "games", GAME_ID, "state", "current"), async snap => {
   const data = snap.data();
   lastPhaseSnapshot = data;
   episodeId = data.episodeId;
-  if (typeof updateAdminStatus === "function") updateAdminStatus();
   if (!episodeId) return;
 
   if (!lobbyUnsub || lobbyEpisodeId !== episodeId) {
