@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>История на играта – Куиз Микс 100</title>
+  <title>История на играта – Мегакуиз 10</title>
   <style>
     body {
       background: #0a1a3a; color: white; font-family: Arial, sans-serif;
@@ -158,7 +158,7 @@ async function loadHistory() {
       ]);
       Q = { q1,q2,q3,q4,q5,q6,q7,q8 };
     } catch(e2) {
-      summary.textContent = "Историята ще е достъпна след края на играта (въпросите още не са записани).";
+      summary.textContent = "Няма записани въпроси за този епизод. Играта трябва да е приключила докрай и да е пусната със СТАРТ файла, който записва въпросите (startmega10.html от последната версия).";
       return;
     }
   }
