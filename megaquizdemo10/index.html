@@ -400,7 +400,7 @@
 <h1> Бълг. нац. куиз асоциация <br>🧩 Мегакуиз Демо 10 🧩</h1>
 
 <div id="spectatorBanner">👁 Режим зрител — гледаш играта, не участваш и не се броиш в класирането</div>
-<audio id="bg-music" src="../music/games.mp3" loop preload="auto"></audio>
+<audio id="bg-music" loop preload="none"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
 
@@ -1002,6 +1002,7 @@ function seededShuffle(array, seed) {
 }
 
 function setMusic(src) {
+ return;  
   try {
     if (!bgMusic.src.endsWith(src)) {
       bgMusic.src = src;
