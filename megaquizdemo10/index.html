@@ -400,7 +400,7 @@
 <h1><small> Игри на Знания · епизод  - тест</small><br>🧩 Мегакуиз 🧩</h1>
 
 <div id="spectatorBanner">👁 Режим зрител — гледаш играта, не участваш и не се броиш в класирането</div>
-<audio id="bg-music" src="../music/games.mp3" loop preload="auto"></audio>
+<audio id="bg-music" loop preload="none"></audio>
 
 <div id="globalTimer" style="display:none;">-</div>
 
@@ -1002,6 +1002,7 @@ function seededShuffle(array, seed) {
 }
 
 function setMusic(src) {
+  return
   try {
     if (!bgMusic.src.endsWith(src)) {
       bgMusic.src = src;
