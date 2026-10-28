@@ -1793,7 +1793,7 @@ function renderR3Question(index, startTime, duration) {
       return;
     }
     const syll = (resp.text || "").trim();
-    jokerStatusNote(syll ? `🔤 Втора сричка: "${syll}"` : `🔤 Думата няма втора сричка.`);
+    jokerStatusNote(syll ? `🔤 Дай Три "${syll}"` : `🔤 Д.`);
     try {
       await setDoc(
         doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
