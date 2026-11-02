@@ -87,19 +87,19 @@ const GAME_ID = "quizmix100";
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) — нагласи ги спокойно след теста =====
 const LOBBY_TIME     = 10000;
 
-const LOBBY_TIME1 = 10000, Q1 = 15000, EXPL1 = 5000, RANK1 = 10000;
-const LOBBY_TIME2 = 10000, Q2 = 15000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
-const LOBBY_TIME3 = 10000, Q3 = 15000, EXPL3 = 5000, RANK3 = 10000;
-const LOBBY_TIME4 = 10000, Q4 = 15000, EXPL4 = 5000, RANK4 = 10000;
+const LOBBY_TIME1 = 10000, Q1 = 5000, EXPL1 = 5000, RANK1 = 10000;
+const LOBBY_TIME2 = 10000, Q2 = 5000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
+const LOBBY_TIME3 = 10000, Q3 = 5000, EXPL3 = 5000, RANK3 = 10000;
+const LOBBY_TIME4 = 10000, Q4 = 5000, EXPL4 = 5000, RANK4 = 10000;
 const BREAK_TIME  = 100000; // 5 минути почивка (след кръг 4 и кръг 8)
 
-const LOBBY_TIME5 = 10000, Q5 = 15000, EXPL5 = 15000, RANK5 = 10000;
+const LOBBY_TIME5 = 10000, Q5 = 5000, EXPL5 = 15000, RANK5 = 10000;
 
-const LOBBY_TIME6 = 10000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 20000, EXPL6 = 15000, RESULTS6 = 15000, RANK6 = 10000;
+const LOBBY_TIME6 = 10000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 10000, EXPL6 = 15000, RESULTS6 = 15000, RANK6 = 10000;
 
 const LOBBY_TIME7 = 10000, Q7 = 20000, EXPL7 = 15000, RANK7 = 10000;
 
-const LOBBY_TIME8 = 10000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 20000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 10000;
+const LOBBY_TIME8 = 10000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 10000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 10000;
 
 const LOBBY_TIME9 = 10000, CHOOSE_TIME9 = 20000, CHOOSE_REVEAL9 = 5000, Q9 = 25000, EXPL9 = 10000, QRANK9 = 10000, RANK9 = 10000;
 
@@ -835,7 +835,10 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames, 
 
   // ⭐ Класиране СЛЕД дузпата и ясно обявяване кой има правото да избира тема
   standings = standingsNow(false);
-  const chooserName = pickChooser(standings, excludeNames);
+  let chooserName = pickChooser(standings, excludeNames);
+  // ⭐ При равенство за последно място преди избор на тема (след кръг 5 и 7) тема избира ПЕЧЕЛИВШИЯТ дузпата,
+  //    а не губещият — иначе и двамата ще искат да сбъркат, за да са последни и да избират.
+  if (onlyLastPlace) { const g0 = resultGroups.find(g => !g.noAnswer && g.rows && g.rows.length); if (g0) chooserName = g0.rows[0].name; }
   log(`👉 ${chooserLabel || "Право на избор има"} ${chooserName || "—"}`);
 
   await setState(ep, "tiebreak-result", TIEBREAK_REVEAL, {
