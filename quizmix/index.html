@@ -15,6 +15,8 @@
   <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+  /* ⭐ спира презареждането на страницата при рязко дърпане надолу на телефон (pull-to-refresh) */
+  html, body { overscroll-behavior-y: none; overscroll-behavior: none; }
 
   body {
     display: flex; flex-direction: column;
@@ -408,7 +410,7 @@
 
 <body>
 
-<h1><small> Игри на Знания · епизод  - тест</small><br>🧩 Мегакуиз 🧩</h1>
+<h1>Бълг. Нац. Куиз Асоциация<br>🧩 Мегакуиз 100, еп. 1🧩</h1>
 
 <div id="spectatorBanner">👁 Режим зрител — гледаш играта, не участваш и не се броиш в класирането</div>
 <audio id="bg-music" src="../music/games.mp3" loop preload="auto"></audio>
