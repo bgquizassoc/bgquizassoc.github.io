@@ -1057,6 +1057,15 @@ function isR2Correct(data, q) {
 // ВХОД (с две имена, свободен текст — по образец на Куиз Микс 7810)
 // ===============================
 document.getElementById("spectator-btn").onclick = async () => {
+  // ⭐ при вход с код и зрителят трябва да въведе валиден код от списъка
+  await loadRoster();
+  if (rosterData && rosterData.on) {
+    const code = playerIdInput.value.trim().toLowerCase().replace(/\s+/g, "");
+    if (!code) return alert("За да гледаш като зрител, въведи кода на отбор в полето.");
+    if (!(window.crypto && crypto.subtle)) return alert("Този браузър не поддържа вход с код.");
+    const h = await sha256hex(rosterData.salt + ":" + code);
+    if (!(rosterData.entries || []).some(e => e.h === h)) return alert("Грешен код.");
+  }
   spectator = true;
   document.body.classList.add("spectator");
   playerId = "👁 зрител";
