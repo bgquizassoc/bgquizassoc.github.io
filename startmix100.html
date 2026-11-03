@@ -183,7 +183,7 @@ function updateFolderStatus() {
 
 async function ingestFiles(files, label) {
   for (const f of files) {
-    const m = String(f.name || "").toLowerCase().match(/^(questions\d+|pull)\.json$/);
+    const m = String(f.name || "").toLowerCase().match(/^(questions\d+|pull|teams)\.json$/);
     if (!m) continue;
     try {
       const txt = (await f.text()).replace(/^﻿/, "");
@@ -405,8 +405,26 @@ function stopLive() {
   live = null;
 }
 
+// ⭐ ВХОД С КОД: teams.json в папката с въпросите ([{"name":"Отбор","code":"abc123"}]).
+// В базата отиват само хешове на кодовете (не самите кодове) + имената; клиентът хешира въведения код и намира отбора.
+async function sha256hex(t) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
+const normCode = c => String(c || "").trim().toLowerCase().replace(/\s+/g, "");
+let rosterPublished = false;
+async function publishRoster() {
+  rosterPublished = true;
+  const teams = Array.isArray(loadedFiles.teams) ? loadedFiles.teams.filter(t => t && t.name && t.code) : [];
+  try {
+    if (!teams.length) { await setDoc(doc(db, "games", GAME_ID, "control", "roster"), { on: false, ts: Date.now() }); log("ℹ️ Няма teams.json — вход със свободно име (без код)."); return; }
+    const salt = "m100-" + Math.random().toString(36).slice(2, 10);
+    const entries = [];
+    for (const t of teams) entries.push({ h: await sha256hex(salt + ":" + normCode(t.code)), name: String(t.name).replace(/[<>&"'`\/\\]/g, "").replace(/\s+/g, " ").trim() });
+    await setDoc(doc(db, "games", GAME_ID, "control", "roster"), { on: true, salt, entries, ts: Date.now() });
+    log(`🔑 Вход с код: ${entries.length} отбора.`);
+  } catch (e) { log("⚠️ Не успях да запиша списъка с отбори: " + (e && e.message ? e.message : e)); }
+}
 async function startLive(ep, rebuild) {
   stopLive();
+  if (!rosterPublished) await publishRoster();
   live = { ep, players: {}, adj: {}, unsubs: [], startedAt: Date.now(), handled: new Set() };
   if (rebuild) await rebuildLedger(ep); else ledger = {};
   live.unsubs.push(onSnapshot(col("results"), snap => {
@@ -817,7 +835,10 @@ async function runTiebreakIfNeeded(ep, checkpoint, onlyLastPlace, excludeNames, 
 
   // ⭐ Класиране СЛЕД дузпата и ясно обявяване кой има правото да избира тема
   standings = standingsNow(false);
-  const chooserName = pickChooser(standings, excludeNames);
+  let chooserName = pickChooser(standings, excludeNames);
+  // ⭐ При равенство за последно място преди избор на тема (след кръг 5 и 7) тема избира ПЕЧЕЛИВШИЯТ дузпата,
+  //    а не губещият — иначе и двамата ще искат да сбъркат, за да са последни и да избират.
+  if (onlyLastPlace) { const g0 = resultGroups.find(g => !g.noAnswer && g.rows && g.rows.length); if (g0) chooserName = g0.rows[0].name; }
   log(`👉 ${chooserLabel || "Право на избор има"} ${chooserName || "—"}`);
 
   await setState(ep, "tiebreak-result", TIEBREAK_REVEAL, {
@@ -889,7 +910,7 @@ async function runChooseAndRound(ep, round, questions, {
   const topics = questions.map(t => t.title);
   const eligible = chooserExcluded ? standings.filter(s => !chooserExcluded.includes(s.name)) : standings;
   // ⭐ Избиращият вече е определен (и обявен) след дузпата — ползваме същия човек, за да няма разминаване
-  const chooserName = presetChooser || (eligible.length ? eligible[eligible.length - 1].name : null);
+  const chooserName = presetChooser || (eligible.length ? eligible[eligible.length - 1].name : (standings.length ? standings[standings.length - 1].name : null));   // ⭐ ако няма друг допустим (малко отбори) — избира същият, кръгът не се пропуска
   log(`Кръг ${round} — избиращ (последен в класирането${chooserExcluded ? ", без " + chooserExcluded.join(",") : ""}): ${chooserName || "—"}`);
 
   const slotId = `r${round}-choice`;
@@ -1385,6 +1406,7 @@ document.getElementById("startBtn").onclick = async () => {
   document.getElementById("startBtn").disabled = true;
   document.getElementById("startBtn").textContent = "Играта тече…";
 
+  await publishRoster();   // ⭐ кодовете трябва да са в базата ОЩЕ ПРЕДИ играчите да влязат в лобито
   await resetState();
   try { await setDoc(doc(db, "games", GAME_ID, "control", "flow"), { pauseAfterRound: false }, { merge: true }); } catch(e) {}
   await setState(ep, "lobby", LOBBY_TIME, {});

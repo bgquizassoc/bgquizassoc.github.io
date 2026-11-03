@@ -15,6 +15,8 @@
   <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+  /* ⭐ спира презареждането на страницата при рязко дърпане надолу на телефон (pull-to-refresh) */
+  html, body { overscroll-behavior-y: none; overscroll-behavior: none; }
 
   body {
     display: flex; flex-direction: column;
@@ -292,6 +294,17 @@
   .topic-btn.chosen-now { background: #ffd100; color: #111; }
   .topic-btn.not-my-turn { cursor: default; }
   .topic-btn.burned { opacity: 0.2; cursor: not-allowed; text-decoration: line-through; }
+  /* ⭐ по-ясно кои теми са изиграни: изиграните са червеникави и зачеркнати, свободните остават ясни (и за зрителите) */
+  .topic-btn.burned:disabled { opacity: 0.85; background: #4a1d1d; color: #ff9a9a; text-decoration: line-through; border: 1px dashed #ff6b6b; }
+  .topic-btn.burned:disabled::before { content: "✖ "; }
+  .topic-btn.not-my-turn:disabled { opacity: 0.9; }
+  .topic-btn.chosen-now:disabled { opacity: 1; box-shadow: 0 0 12px rgba(255,209,0,0.7); }
+  @media (max-width: 640px) {
+    .choose-layout > div:nth-child(2) { order: -1; }   /* ⭐ на телефон темите са ПЪРВО (над класирането), за да се виждат изиграните без скрол */
+    .topics-grid { gap: 6px; }
+    .topic-btn { padding: 8px 6px; font-size: 0.85em; }
+    #chooseTitle { font-size: 1.1em; margin-bottom: 8px; }
+  }
   #chooseTitle { font-size: 1.3em; color: #ffd100; font-weight: bold; margin-bottom: 12px; }
 
   /* ⭐ ЧИФТОСВАНЕ (кръг 6) */
@@ -397,7 +410,7 @@
 
 <body>
 
-<h1> Бълг. Нац. Куиз Асоциация <br>🧩 Мегакуиз 100, еп. 1 🧩</h1>
+<h1> Бълг. Нац. Куиз Асоциация <br>🧩 Мегакуиз 100, епизод 1 🧩</h1>
 
 <div id="spectatorBanner">👁 Режим зрител — гледаш играта, не участваш и не се броиш в класирането</div>
 <audio id="bg-music" src="../music/games.mp3" loop preload="auto"></audio>
@@ -405,7 +418,7 @@
 <div id="globalTimer" style="display:none;">-</div>
 
 <div id="start-screen">
-  <p>Въведете Двете си имена:</p>
+  <p id="loginLabel">Въведете Двете си имена:</p>
   <input type="text" id="player-id" placeholder="Име ..." />
   <button id="start-btn">Започни!</button>
   <button id="spectator-btn" style="background:#2b4a6b; color:#fff;">👁 Гледам като зрител</button>
@@ -1046,6 +1059,15 @@ function isR2Correct(data, q) {
 // ВХОД (с две имена, свободен текст — по образец на Куиз Микс 7810)
 // ===============================
 document.getElementById("spectator-btn").onclick = async () => {
+  // ⭐ при вход с код и зрителят трябва да въведе валиден код от списъка
+  await loadRoster();
+  if (rosterData && rosterData.on) {
+    const code = playerIdInput.value.trim().toLowerCase().replace(/\s+/g, "");
+    if (!code) return alert("За да гледаш като зрител, въведи кода на отбор в полето.");
+    if (!(window.crypto && crypto.subtle)) return alert("Този браузър не поддържа вход с код.");
+    const h = await sha256hex(rosterData.salt + ":" + code);
+    if (!(rosterData.entries || []).some(e => e.h === h)) return alert("Грешен код.");
+  }
   spectator = true;
   document.body.classList.add("spectator");
   playerId = "👁 зрител";
@@ -1058,10 +1080,36 @@ document.getElementById("spectator-btn").onclick = async () => {
   if (lastPhaseSnapshot) applyPhaseImmediately(lastPhaseSnapshot);
 };
 
+// ⭐ ВХОД С КОД — ако хостът е качил списък с отбори, името се взема от кода
+let rosterData = null;
+async function loadRoster() {
+  try {
+    const sn = await getDoc(doc(db, "games", GAME_ID, "control", "roster"));
+    rosterData = sn.exists() ? sn.data() : null;
+  } catch (e) { rosterData = null; }
+  if (rosterData && rosterData.on) {
+    document.getElementById("loginLabel").textContent = "Въведете кода на вашия отбор:";
+    playerIdInput.placeholder = "Код ...";
+  }
+}
+loadRoster();
+async function sha256hex(t) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
 startBtn.onclick = async () => {
-  // махаме символи, които чупят Firestore идентификатори или HTML-а на класиранията
-  const name = playerIdInput.value.replace(/[<>&"'`\/\\]/g, "").replace(/\s+/g, " ").trim();
-  if (!name) return alert("Въведете две имена!");
+  await loadRoster();   // пресвежаваме — хостът може да го е качил след отварянето на страницата
+  let name;
+  if (rosterData && rosterData.on) {
+    const code = playerIdInput.value.trim().toLowerCase().replace(/\s+/g, "");
+    if (!code) return alert("Въведете кода на отбора!");
+    if (!(window.crypto && crypto.subtle)) return alert("Този браузър не поддържа вход с код.");
+    const h = await sha256hex(rosterData.salt + ":" + code);
+    const hit = (rosterData.entries || []).find(e => e.h === h);
+    if (!hit) return alert("Грешен код.");
+    name = hit.name;
+  } else {
+    // махаме символи, които чупят Firestore идентификатори или HTML-а на класиранията
+    name = playerIdInput.value.replace(/[<>&"'`\/\\]/g, "").replace(/\s+/g, " ").trim();
+    if (!name) return alert("Въведете две имена!");
+  }
 
   playerId = name;
   player   = name;
@@ -1342,7 +1390,7 @@ function renderR1Question(index, startTime, duration) {
     document.getElementById("joker-correction").disabled = false;
   }
 
-  const seed = episodeId.length * 1000 + index;
+  const seed = hashString9(`${episodeId}-r1-${index}`);   // ⭐ различно разбъркване за всеки епизод
   const shuffled = seededShuffle(q.answers, seed);
   shuffled.forEach(ans => {
     const btn = document.createElement("button");
@@ -1458,7 +1506,7 @@ function renderR2Question(index, startTime, duration) {
     document.getElementById("joker-correction").disabled = false;
   }
 
-  const seed = episodeId.length * 1000 + index;
+  const seed = hashString9(`${episodeId}-r2-${index}`);   // ⭐ различно разбъркване за всеки епизод
   const shuffled = seededShuffle(q.answers, seed);
   shuffled.forEach(ans => {
     const btn = document.createElement("button");
@@ -1629,7 +1677,7 @@ async function renderR2Buffer(index, startTime, duration) {
 
   function renderJokerAnswerButtons() {
     answersDiv.innerHTML = "";
-    const seed = episodeId.length * 1000 + index;
+    const seed = hashString9(`${episodeId}-r2-${index}`);   // ⭐ различно разбъркване за всеки епизод
     const shuffled = seededShuffle(q.answers, seed);
     shuffled.forEach(ans => {
       const btn = document.createElement("button");
@@ -3377,8 +3425,12 @@ function renderThanks() {
 // ===============================
 // ФАЗИ
 // ===============================
+// ⭐ един и същ въпрос не се рисува два пъти (мрежата на телефона може да върне събитието отново и да нулира отговорите)
+let appliedKey = null;
+const phaseKey = d => [d.episodeId, d.phase, d.round, d.index, d.startTime, d.slotId].join("|");
 async function applyPhaseImmediately(data) {
   const { phase, round, index, startTime, duration } = data;
+  appliedKey = phaseKey(data);
   if (timerInterval) clearInterval(timerInterval);
   barTimerActive = false;
   lockPhase = ["question", "jokerBuffer", "tiebreak"].includes(phase); lockDone = false;
@@ -3581,6 +3633,7 @@ onSnapshot(doc(db, "games", GAME_ID, "state", "current"), async snap => {
   }
 
   if (!ready) return;
+  if (phaseKey(data) === appliedKey) return;   // същата фаза — нищо ново
   applyPhaseImmediately(data);
 });
 </script>
