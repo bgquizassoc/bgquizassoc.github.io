@@ -120,6 +120,11 @@
     margin-top:5px;
   }
 
+  .pickbtn { margin-top:8px; padding:9px 16px; font-size:1em; }
+  .pickbtn.alt { background:#9fd3ea; }
+  #folderStatus { line-height:1.7; opacity:1; }
+  .section a { color:#9fd3ea; }
+
   #difficultyFallback {
     display:none;
     margin-top:20px;
@@ -151,6 +156,17 @@
   </div>
 
   <div class="note">Само Човекът на деня и администраторът имат достъп.</div>
+</div>
+
+<div class="section">
+  <h2>📁 Въпроси (от папка на този компютър)</h2>
+  <button id="folderBtn" type="button" class="pickbtn">📁 Избери папка с въпроси</button>
+  <button id="folderReloadBtn" type="button" class="pickbtn alt">🔄 Презареди последната</button>
+  <input id="folderInput" type="file" webkitdirectory multiple style="display:none">
+  <input id="filesInput" type="file" accept=".json,application/json" multiple style="display:none">
+  <div class="note"><a href="#" id="filesLink">или избери отделни файлове</a></div>
+  <div id="folderStatus" class="note"></div>
+  <div class="note">Нужни са abvg.json, open.json и cifromania.json. Остават само в паметта на този таб — не се качват никъде.</div>
 </div>
 
 <div class="section">
@@ -221,7 +237,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc
+  getFirestore, doc, setDoc, getDoc, getDocs, collection
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 /* ------------------------- Firebase ------------------------- */
@@ -245,6 +261,10 @@ const TOTAL_QUESTIONS = 30;
 
 const EXPLANATION_DURATION = 10 * 1000;
 const RANKING_DURATION     = 10 * 1000;
+
+const GAME = "configurator";
+const GRACE_MS       = 1500;  // след края на въпроса хостът изчаква за закъснели записи
+const COLLECT_SLOT   = 2000;  // фиксиран слот между края на въпроса и началото на обяснението (GRACE + четене)
 
 /* ------------------------- Теми (31, като в index) ------------------------- */
 
@@ -374,11 +394,90 @@ function shuffle(arr) {
 
 /* ------------------------- Зареждане на JSON ------------------------- */
 
-async function loadJSON(name) {
-  const res = await fetch(name);
-  if (!res.ok) throw new Error("Не мога да заредя " + name);
-  return res.json();
+// ⭐ Банката се чете от папка на компютъра на хоста (като в мегаквиза) — не се тегли от сайта
+const NEED_FILES = ["abvg", "open", "cifromania"];
+let loadedFiles = {};      // име (без .json) -> разчетен JSON
+let folderLabel = "";
+
+function folderReady() { return NEED_FILES.every(n => Array.isArray(loadedFiles[n]) && loadedFiles[n].length > 0); }
+
+function updateFolderStatus() {
+  const el = document.getElementById("folderStatus");
+  if (!el) return;
+  const parts = NEED_FILES.map(n => {
+    const a = loadedFiles[n];
+    return a ? `<span style="color:#7CFC9A">✔ ${n}.json (${a.length})</span>` : `<span style="color:#ff8a80">✖ ${n}.json</span>`;
+  });
+  el.innerHTML = (folderLabel ? `<div style="opacity:.8; margin-bottom:4px;">Папка: ${folderLabel}</div>` : "") + parts.join(" &nbsp; ");
 }
+
+async function ingestFiles(files, label) {
+  const seen = new Set();   // при еднакви имена печели първият (walkDir дава първо файловете от най-горното ниво)
+  for (const f of files) {
+    const m = String(f.name || "").toLowerCase().match(/^(abvg|open|cifromania)\.json$/);
+    if (!m || seen.has(m[1])) continue;
+    seen.add(m[1]);
+    try {
+      const txt = (await f.text()).replace(/^\uFEFF/, "");
+      const data = JSON.parse(txt);
+      if (!Array.isArray(data)) throw new Error("очаквам масив от въпроси");
+      loadedFiles[m[1]] = data;
+    } catch (e) {
+      errorBox.textContent = `❌ Файл ${f.name}: невалиден JSON — ${e.message}`;
+      errorBox.classList.remove("ok");
+      delete loadedFiles[m[1]];
+    }
+  }
+  if (label) folderLabel = label;
+  allQuestionsCache = null;   // банката е сменена → кешът е невалиден
+  updateFolderStatus();
+}
+
+async function walkDir(dirHandle, depth = 0) {
+  const out = [], dirs = [];
+  for await (const [name, h] of dirHandle.entries()) {
+    if (h.kind === "file") { if (/\.json$/i.test(name)) out.push(await h.getFile()); }
+    else if (depth < 2 && !name.startsWith(".") && name !== "node_modules") dirs.push(h);
+  }
+  for (const d of dirs) out.push(...await walkDir(d, depth + 1));
+  return out;
+}
+
+// запомняме последно избраната папка (само в този браузър), за да е достатъчен един клик следващия път
+function idbOpen() {
+  return new Promise((res, rej) => { const r = indexedDB.open("konfigurator2host", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+}
+async function idbPut(k, v) { try { const d = await idbOpen(); await new Promise((res, rej) => { const t = d.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (e) {} }
+async function idbGet(k) { try { const d = await idbOpen(); return await new Promise((res, rej) => { const t = d.transaction("kv"); const r = t.objectStore("kv").get(k); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); } catch (e) { return null; } }
+
+async function pickFolder() {
+  if (window.showDirectoryPicker) {
+    try {
+      const h = await window.showDirectoryPicker({ id: "konfigurator2q", mode: "read" });
+      await idbPut("dir", h);
+      await ingestFiles(await walkDir(h), h.name);
+      return;
+    } catch (e) { if (e && e.name === "AbortError") return; /* иначе — резервен вариант */ }
+  }
+  document.getElementById("folderInput").click();
+}
+async function reloadLastFolder() {
+  const h = await idbGet("dir");
+  if (!h) return alert("Още няма запомнена папка — натисни „Избери папка с въпроси“.");
+  try {
+    let p = await h.queryPermission({ mode: "read" });
+    if (p !== "granted") p = await h.requestPermission({ mode: "read" });
+    if (p !== "granted") return alert("Няма разрешение за папката.");
+    await ingestFiles(await walkDir(h), h.name);
+  } catch (e) { alert("Не успях да прочета папката: " + (e && e.message ? e.message : e)); }
+}
+
+document.getElementById("folderBtn").onclick = pickFolder;
+document.getElementById("folderReloadBtn").onclick = reloadLastFolder;
+document.getElementById("folderInput").onchange = async e => { const fs = [...e.target.files]; const lbl = fs[0] && fs[0].webkitRelativePath ? fs[0].webkitRelativePath.split("/")[0] : ""; await ingestFiles(fs, lbl); e.target.value = ""; };
+document.getElementById("filesLink").onclick = e => { e.preventDefault(); document.getElementById("filesInput").click(); };
+document.getElementById("filesInput").onchange = async e => { await ingestFiles([...e.target.files], "избрани файлове"); e.target.value = ""; };
+updateFolderStatus();
 
 // Привежда въпросите от различните JSON формати към един общ вид (същото като в index)
 function normalizeQuestion(q) {
@@ -405,10 +504,13 @@ function normalizeQuestion(q) {
 let allQuestionsCache = null;
 async function loadAllQuestions() {
   if (allQuestionsCache) return allQuestionsCache;
-  const abvg  = await loadJSON("abvg.json");   // ⭐ беше "abwg.json" — файлът се казва abvg.json
-  const open  = await loadJSON("open.json");
-  const cifro = await loadJSON("cifromania.json");
-  allQuestionsCache = [...abvg, ...open, ...cifro].map(normalizeQuestion);
+  if (!folderReady()) {
+    const miss = NEED_FILES.filter(n => !Array.isArray(loadedFiles[n]) || !loadedFiles[n].length);
+    const err = new Error("Не са заредени въпросите (" + miss.map(n => n + ".json").join(", ") + "). Натисни „Избери папка с въпроси“.");
+    err.userFacing = true;
+    throw err;
+  }
+  allQuestionsCache = [...loadedFiles.abvg, ...loadedFiles.open, ...loadedFiles.cifromania].map(normalizeQuestion);
   return allQuestionsCache;
 }
 
@@ -520,18 +622,200 @@ async function generateCocktail(config, useDifficulty) {
 
 /* ------------------------- Firestore запис ------------------------- */
 
-async function saveToFirestore(episodeId, cocktail, config) {
-  // JSON round-trip маха undefined стойности, които Firestore не приема
-  const clean = JSON.parse(JSON.stringify({ questions: cocktail, config }));
+const stateRef = () => doc(db, "games", GAME, "state", "current");
+const epRef    = ep => doc(db, "games", GAME, "episodes", ep);
+const epCol    = (ep, ...p) => collection(db, "games", GAME, "episodes", ep, ...p);
 
-  await setDoc(
-    doc(db, "games", "configurator", "episodes", episodeId),
-    clean,
-    { merge: true }
-  );
+// ⭐ Епизодният документ е само config + total. Въпросите НЕ се записват тук по време на играта.
+async function saveToFirestore(episodeId, config) {
+  // JSON round-trip маха undefined стойности, които Firestore не приема
+  const clean = JSON.parse(JSON.stringify({ config, total: TOTAL_QUESTIONS }));
+  await setDoc(epRef(episodeId), clean, { merge: true });
+}
+
+/* ------------------------- Оценяване (само на хоста) -------------------------
+   Пренесено 1:1 от evaluateAnswer / correctDisplay в game.txt                    */
+
+function normalize(s) { return String(s == null ? "" : s).trim(); }
+function normalizeUpper(s) { return normalize(s).toUpperCase(); }
+function letterList(q) { return [normalizeUpper(q.letter), ...(q.alt_letters || []).map(normalizeUpper)]; }
+
+function pointsForBinary(i) {
+  if (session.config.pointsMode === "equal") return 1;
+  if (i < 10) return 1;
+  if (i < 20) return 2;
+  return 3;
+}
+
+function calcNumberPoints(diff, q) {
+  const r = q.ranges;
+  if (diff === 0) return 10;
+  if (r && diff <= r.near) return 5;
+  if (r && diff <= r.mid) return 3;
+  if (r && diff <= r.far) return 1;
+  return 0;
+}
+
+// Връща { answered, isCorrect, points, norm } за един отговор на един играч
+function evaluateOnHost(q, d, index) {
+  const fmt = session.config.format;
+  const ans = normalize(d ? d.answer : "");
+  if (ans === "") return { answered: false, isCorrect: false, points: 0, norm: null };
+
+  if (fmt === "mcq") {
+    const ok = ans === normalize(q.correct);
+    return { answered: true, isCorrect: ok, points: ok ? pointsForBinary(index) : 0, norm: ans };
+  }
+  if (fmt === "open_first_letter") {
+    const ok = letterList(q).includes(ans.toUpperCase());
+    return { answered: true, isCorrect: ok, points: ok ? pointsForBinary(index) : 0, norm: ans.toUpperCase() };
+  }
+  // number
+  const user = Number(ans);
+  const diff = isNaN(user) ? Infinity : Math.abs(user - Number(q.number));
+  return { answered: true, isCorrect: diff === 0, points: calcNumberPoints(diff, q), norm: ans };
+}
+
+function correctDisplay(q) {
+  const fmt = session.config.format;
+  if (fmt === "mcq") return normalize(q.correct);
+  if (fmt === "open_first_letter") return letterList(q).join(" / ");
+  return String(q.number);
+}
+
+/* ------------------------- Публичен въпрос (без тайни) ------------------------- */
+
+function buildPublic(q, format) {
+  const p = { question: q.question, hint_text: q.hint_text || "" };
+  if (format === "mcq") p.answers = shuffle([...(q.answers || [])]);   // хостът разбърква — редът не издава верния
+  if (format === "open_first_letter" && String(q.syllable2 || "").trim()) p.syllable2 = String(q.syllable2).trim();   // подсказката на жокера „Втора сричка“ (клиентът го показва както досега)
+  return p;
+}
+
+/* ------------------------- Състояние на хоста (само в паметта) ------------------------- */
+
+let session = null;
+
+async function writePhase(seq, data) {
+  if (!session || seq <= session.lastSeq) return;   // остарял запис (закъснял таймер) — пропускаме
+  session.lastSeq = seq;
+  session.phase = data.phase;
+  const clean = JSON.parse(JSON.stringify({ episodeId: session.episodeId, startTime: Date.now(), ...data }));
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { await setDoc(stateRef(), clean); return; }   // пълно презаписване: старите полета не остават
+    catch (e) { console.error("Запис на фаза:", e); await sleep(500); }
+  }
+  errorBox.textContent = "⚠️ Не успях да запиша фаза " + data.phase + " (виж конзолата).";
+  errorBox.classList.remove("ok");
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function standings() {
+  return Object.entries(session.scores)
+    .map(([name, s]) => ({ name, points: s.points, time: s.time }))
+    .sort((a, b) => b.points - a.points || a.time - b.time || a.name.localeCompare(b.name, "bg"));
+}
+
+// Събира отговорите на играчите за въпрос i, точкува ги и подготвя данните за фазата „обяснение“
+async function scoreQuestion(i) {
+  const q = session.cocktail[i];
+  const playersSnap = await getDocs(epCol(session.episodeId, "results"));   // както досега: играч = документ в results
+  const names = [...new Set([...playersSnap.docs.map(d => d.id), ...Object.keys(session.scores)])];
+
+  const raw = {};
+  const fetchOne = async n => {
+    const s = await getDoc(doc(db, "games", GAME, "episodes", session.episodeId, "results", n, "answers", String(i)));
+    if (s.exists()) raw[n] = s.data();
+  };
+  const failed = [];
+  await Promise.all(names.map(n => fetchOne(n).catch(() => failed.push(n))));
+  if (failed.length) await Promise.all(failed.map(n => fetchOne(n).catch(e => console.warn("Не успях да чета отговора на", n, e))));
+
+  const evals = {};
+  names.forEach(n => {
+    const d = raw[n];
+    const e = evaluateOnHost(q, d, i);
+    e.time = e.answered ? Math.max(0, Number(d.thinkingTime) || 0) : 0;
+    const s = session.scores[n] || (session.scores[n] = { points: 0, time: 0 });
+    s.points += e.points;
+    if (e.answered) s.time += e.time;
+    evals[n] = e;
+    (session.records[n] || (session.records[n] = [])).push({
+      index: i,
+      answer: e.answered ? d.answer : null,
+      correct: correctDisplay(q),
+      isCorrect: e.isCorrect,
+      points: e.points,
+      thinkingTime: e.time,
+      timestamp: d && d.timestamp !== undefined ? d.timestamp : null
+    });
+  });
+
+  // статистика по отговори
+  const list = Object.values(evals);
+  const stats = { players: list.length, answered: list.filter(e => e.answered).length, correct: list.filter(e => e.isCorrect).length };
+  if (session.config.format === "number") {
+    stats.byPoints = [10, 5, 3, 1, 0].map(p => ({ points: p, count: list.filter(e => e.answered && e.points === p).length }));
+  } else {
+    const counts = new Map();
+    if (session.config.format === "mcq") session.pub[i].answers.forEach(a => counts.set(String(a).trim(), 0));
+    if (session.config.format === "open_first_letter") letterList(q).forEach(l => counts.set(l, 0));   // верните букви се показват, дори никой да не ги е написал
+    list.forEach(e => { if (e.answered) counts.set(e.norm, (counts.get(e.norm) || 0) + 1); });
+    stats.byAnswer = [...counts].map(([answer, count]) => ({ answer, count }));
+    if (session.config.format !== "mcq") stats.byAnswer.sort((a, b) => b.count - a.count);
+  }
+
+  const reveal = { correct: correctDisplay(q), explanation: q.explanation || "" };
+  if (session.config.format === "open_first_letter") reveal.letters = letterList(q);
+  if (session.config.format === "number") reveal.number = Number(q.number);
+
+  const results = {};
+  names.forEach(n => { results[n] = { a: evals[n].answered ? raw[n].answer : null, ok: evals[n].isCorrect, p: evals[n].points }; });
+
+  return { reveal, stats, results };
+}
+
+function ensureScored(i) {
+  if (!session.pending[i]) {
+    session.pending[i] = (async () => {
+      await sleep(GRACE_MS);
+      try { return await scoreQuestion(i); }
+      catch (e) {
+        console.error("Грешка при точкуване на въпрос " + (i + 1), e);
+        errorBox.textContent = "⚠️ Грешка при точкуване на въпрос " + (i + 1) + " (виж конзолата).";
+        errorBox.classList.remove("ok");
+        const q = session.cocktail[i];
+        return { reveal: { correct: correctDisplay(q), explanation: q.explanation || "" }, stats: { players: 0, answered: 0, correct: 0 }, results: {} };
+      }
+    })();
+  }
+  return session.pending[i];
+}
+
+/* ------------------------- Архив след края (за страницата „История“) ------------------------- */
+
+async function writeArchive() {
+  const ep = session.episodeId;
+  try {
+    await setDoc(epRef(ep), JSON.parse(JSON.stringify({ questions: session.cocktail })), { merge: true });
+  } catch (e) { console.error("Архив на въпросите:", e); }
+
+  const final = standings();
+  const names = Object.keys(session.records);
+  for (let k = 0; k < names.length; k += 25) {
+    await Promise.all(names.slice(k, k + 25).map(n => {
+      const s = session.scores[n] || { points: 0, time: 0 };
+      const rank = final.findIndex(r => r.name === n) + 1;
+      const payload = JSON.parse(JSON.stringify({ player: n, points: s.points, time: s.time, rank, answers: session.records[n] }));
+      return setDoc(doc(db, "games", GAME, "episodes", ep, "archive", n), payload).catch(e => console.error("archive/" + n, e));
+    }));
+  }
 }
 
 /* ------------------------- Фазов двигател ------------------------- */
+/* Всички таймери се регистрират предварително (като досега) — така браузърът не ги
+   „задушава“ в скрит таб. Фазите се пишат в games/configurator/state/current. */
 
 async function scheduleEpisode(episodeId, cocktail, config) {
 
@@ -544,85 +828,65 @@ async function scheduleEpisode(episodeId, cocktail, config) {
 
   const now = Date.now();
 
-  // PRESTART
-  await setDoc(
-    doc(db, "games", "configurator", "state", "current"),
-    {
-      episodeId,
-      phase: "prestart",
-      index: 0,
-      startTime: now,
-      duration: base - now
-    }
-  );
+  session = {
+    episodeId, config, cocktail,
+    pub: cocktail.map(q => buildPublic(q, config.format)),
+    scores: {}, records: {},
+    pending: {},
+    phase: "", lastSeq: 0,
+    startedAt: now, unsubs: [], running: true
+  };
+  window.onbeforeunload = () => "Играта тече — затварянето на този таб ще я спре.";
 
-  let offset = base - now;
+  let seq = 0;
+  const at = (absMs, fn) => setTimeout(fn, Math.max(0, absMs - Date.now()));
+
+  // PRESTART
+  await writePhase(++seq, { phase: "prestart", index: 0, startTime: now, duration: base - now });
+
+  let t = base;
 
   for (let i = 0; i < cocktail.length; i++) {
     const qIndex = i;
 
-    // QUESTION
-    setTimeout(async () => {
-      await setDoc(
-        doc(db, "games", "configurator", "state", "current"),
-        {
-          episodeId,
-          phase: "question",
-          index: qIndex,
-          startTime: Date.now(),
-          duration: questionDuration
-        },
-        { merge: true }
-      );
-    }, offset);
-    offset += questionDuration;
+    // QUESTION — само публичната част
+    const sQ = ++seq;
+    at(t, async () => {
+      await writePhase(sQ, { phase: "question", index: qIndex, duration: questionDuration, q: session.pub[qIndex] });
+    });
 
-    // EXPLANATION
-    setTimeout(async () => {
-      await setDoc(
-        doc(db, "games", "configurator", "state", "current"),
-        {
-          episodeId,
-          phase: "explanation",
-          index: qIndex,
-          startTime: Date.now(),
-          duration: EXPLANATION_DURATION
-        },
-        { merge: true }
-      );
-    }, offset);
-    offset += EXPLANATION_DURATION;
+    // край на въпроса: започваме събирането на отговорите
+    at(t + questionDuration, () => { ensureScored(qIndex); });
+    t += questionDuration + COLLECT_SLOT;
+
+    // EXPLANATION — тук (и само тук) се разкрива верният отговор
+    const sE = ++seq;
+    at(t, async () => {
+      const r = await ensureScored(qIndex);
+      await writePhase(sE, { phase: "explanation", index: qIndex, duration: EXPLANATION_DURATION, ...r });
+    });
+    t += EXPLANATION_DURATION;
 
     // RANKING
-    setTimeout(async () => {
-      await setDoc(
-        doc(db, "games", "configurator", "state", "current"),
-        {
-          episodeId,
-          phase: "ranking",
-          index: qIndex,
-          startTime: Date.now(),
-          duration: RANKING_DURATION
-        },
-        { merge: true }
-      );
-    }, offset);
-    offset += RANKING_DURATION;
+    const sR = ++seq;
+    at(t, async () => {
+      await ensureScored(qIndex);
+      await writePhase(sR, { phase: "ranking", index: qIndex, duration: RANKING_DURATION, isFinal: qIndex === cocktail.length - 1, rows: standings() });
+      // последният въпрос е точкуван → архивът (за „История“) може да се запише още сега
+      if (qIndex === cocktail.length - 1) await writeArchive();
+    });
+    t += RANKING_DURATION;
   }
 
-  // Финално класиране
-  setTimeout(async () => {
-    await setDoc(
-      doc(db, "games", "configurator", "state", "current"),
-      {
-        episodeId,
-        phase: "ranking",
-        index: cocktail.length - 1,
-        startTime: Date.now(),
-        duration: RANKING_DURATION
-      }
-    );
-  }, offset);
+  // Финално класиране + архив
+  const sF = ++seq;
+  at(t, async () => {
+    await writePhase(sF, { phase: "ranking", index: cocktail.length - 1, duration: RANKING_DURATION, isFinal: true, rows: standings() });
+    session.running = false;
+    window.onbeforeunload = null;
+    errorBox.textContent = "✔ Играта приключи. Можеш да затвориш таба.";
+    errorBox.classList.add("ok");
+  });
 }
 
 /* ------------------------- Старт ------------------------- */
@@ -634,7 +898,7 @@ async function launchEpisode(config, cocktail) {
 
   errorBox.textContent = "Качвам във Firestore...";
   errorBox.classList.add("ok");
-  await saveToFirestore(episodeId, cocktail, config);
+  await saveToFirestore(episodeId, config);
 
   errorBox.textContent = "Планирам автоматичните фази...";
   await scheduleEpisode(episodeId, cocktail, config);
@@ -653,6 +917,15 @@ startBtn.onclick = async () => {
   const id = document.getElementById("configId").value.trim();
   if (id !== VALID_ID) {
     errorBox.textContent = "Невалиден ID код.";
+    return;
+  }
+
+  if (session && session.running) {
+    errorBox.textContent = "Играта вече тече в този таб.";
+    return;
+  }
+  if (!folderReady()) {
+    errorBox.textContent = "Първо избери папката с въпросите (бутон „Избери папка с въпроси“).";
     return;
   }
 
@@ -720,7 +993,7 @@ startBtn.onclick = async () => {
     startBtn.disabled = false;
   } catch (e) {
     console.error(e);
-    errorBox.textContent = "❌ Грешка при генериране или запис. Виж конзолата.";
+    errorBox.textContent = e && e.userFacing ? "❌ " + e.message : "❌ Грешка при генериране или запис. Виж конзолата.";
     errorBox.classList.remove("ok");
     startBtn.disabled = false;
   }
@@ -748,7 +1021,7 @@ runWithoutDifficultyBtn.onclick = async () => {
     await launchEpisode({ ...pendingConfig, difficultyApplied: false }, loose);
   } catch (e) {
     console.error(e);
-    errorBox.textContent = "❌ Грешка при генериране или запис. Виж конзолата.";
+    errorBox.textContent = e && e.userFacing ? "❌ " + e.message : "❌ Грешка при генериране или запис. Виж конзолата.";
     errorBox.classList.remove("ok");
     startBtn.disabled = false;
   } finally {
