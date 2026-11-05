@@ -28,6 +28,10 @@
     color: #ff5555;
     font-weight: bold;
   }
+  .close {
+    color: #ffd100;
+    font-weight: bold;
+  }
   .label {
     color: #7fffd4;
     font-weight: bold;
@@ -68,6 +72,12 @@ if (!episodeId || !player) {
   throw new Error("Missing params");
 }
 
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => (
+    { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]
+  ));
+}
+
 async function loadHistory() {
   // Проверка дали играчът е участвал
   const playerRef = doc(db, "games", "configurator", "episodes", episodeId, "results", player);
@@ -78,7 +88,7 @@ async function loadHistory() {
     return;
   }
 
-  // Зареждаме въпросите
+  // Зареждаме въпросите (хостът ги записва след края на играта)
   const episodeRef = doc(db, "games", "configurator", "episodes", episodeId);
   const episodeSnap = await getDoc(episodeRef);
 
@@ -89,38 +99,61 @@ async function loadHistory() {
 
   const episodeData = episodeSnap.data();
   const questions = episodeData.questions || [];
+  const format = (episodeData.config && episodeData.config.format) || "mcq";
 
-  // Зареждаме отговорите на играча
-  const answersSnap = await getDocs(
-    collection(db, "games", "configurator", "episodes", episodeId, "results", player, "answers")
-  );
+  if (!questions.length) {
+    content.textContent = "Историята ще е налична след края на играта — опитай отново след малко.";
+    return;
+  }
 
-  const answers = {};
-  answersSnap.forEach(d => answers[d.id] = d.data());
+  // Отговорите на играча: от архива (нови игри), а за стари епизоди — от самите отговори
+  const records = {};
+  const archSnap = await getDoc(doc(db, "games", "configurator", "episodes", episodeId, "archive", player));
+  if (archSnap.exists()) {
+    (archSnap.data().answers || []).forEach(r => { records[String(r.index)] = r; });
+  } else {
+    const answersSnap = await getDocs(
+      collection(db, "games", "configurator", "episodes", episodeId, "results", player, "answers")
+    );
+    answersSnap.forEach(d => { records[d.id] = d.data(); });
+  }
 
-  // Генерираме HTML
+  // Верният отговор според формата (за случай, че липсва в записа)
+  function correctOf(q, rec) {
+    if (rec && rec.correct !== undefined && rec.correct !== "") return String(rec.correct);
+    if (format === "number") return String(q.number);
+    if (format === "open_first_letter") {
+      return [q.letter, ...(q.alt_letters || [])].map(x => String(x == null ? "" : x).trim().toUpperCase()).join(" / ");
+    }
+    return String(q.correct || "").trim();
+  }
+
   let html = "";
 
   questions.forEach((q, i) => {
-    const ans = answers[String(i)];
-    const yourAnswer = ans?.answer || "—";
-    const correct = q.correct || "";
+    const rec = records[String(i)];
+    const hasAnswer = rec && rec.answer !== undefined && rec.answer !== null && String(rec.answer).trim() !== "";
+    const yourAnswer = hasAnswer ? String(rec.answer) : "—";
+    const correct = correctOf(q, rec);
     const explanation = q.explanation || "";
+    const points = rec && typeof rec.points === "number" ? rec.points : null;
 
-    const isCorrect = yourAnswer.trim() === correct.trim();
+    let verdict = "wrong", verdictText = "✘ Грешно";
+    if (rec && rec.isCorrect) { verdict = "correct"; verdictText = "✔ Вярно"; }
+    else if (format === "number" && points > 0) { verdict = "close"; verdictText = "≈ Близо"; }
 
     html += `
       <div class="question-block">
-        <div class="label">${i+1}. ${q.question}</div>
+        <div class="label">${i+1}. ${esc(q.question)}</div>
 
-        <div><span class="label">Твоят отговор:</span> ${yourAnswer}</div>
-        <div><span class="label">Верен отговор:</span> ${correct}</div>
+        <div><span class="label">Твоят отговор:</span> ${esc(yourAnswer)}</div>
+        <div><span class="label">Верен отговор:</span> ${esc(correct)}</div>
 
-        <div class="${isCorrect ? "correct" : "wrong"}">
-          ${isCorrect ? "✔ Вярно" : "✘ Грешно"}
+        <div class="${verdict}">
+          ${verdictText}${points !== null ? ` · ${points} т.` : ""}
         </div>
 
-        <div style="margin-top:10px;">${explanation}</div>
+        <div style="margin-top:10px;">${esc(explanation)}</div>
       </div>
     `;
   });
