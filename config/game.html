@@ -222,7 +222,7 @@
 
 <body>
 
-<h1>Игри на Знания<br>⚡ Куиз Конфигуратор Live ⚡<br>⚡ епизод 81⚡</h1>
+<h1>Игри на Знания<br>⚡ Куиз Конфигуратор Live ⚡<br>⚡ епизод 76⚡</h1>
 
 <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
@@ -317,7 +317,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let player = "";
-let questions = [];
 let ready = false;
 let timerInterval = null;
 let episodeId = null;
@@ -404,57 +403,7 @@ function getPointsMode() {
   return (episodeConfig && (episodeConfig.pointsMode || episodeConfig.scoringMode)) || "by_difficulty";
 }
 
-function letterList(q) {
-  return [normalizeUpper(q.letter), ...(q.alt_letters || []).map(normalizeUpper)];
-}
-
-/* Верният отговор във вид за показване / запис */
-function correctDisplay(q) {
-  const fmt = getFormat();
-  if (fmt === "mcq") return normalize(q.correct);
-  if (fmt === "open_first_letter") return letterList(q).join(" / ");
-  return String(q.number);
-}
-
-/* ------------------------- Точки ------------------------- */
-
-function pointsForBinary(i) {
-  if (getPointsMode() === "equal") return 1;
-  if (i < 10) return 1;
-  if (i < 20) return 2;
-  return 3;
-}
-
-function calcNumberPoints(diff, q) {
-  const r = q.ranges;
-  if (diff === 0) return 10;
-  if (r && diff <= r.near) return 5;
-  if (r && diff <= r.mid) return 3;
-  if (r && diff <= r.far) return 1;
-  return 0;
-}
-
-/* Оценяване на един отговор според формата */
-function evaluateAnswer(q, index, answerRaw) {
-  const fmt = getFormat();
-  const ans = normalize(answerRaw);
-
-  if (fmt === "mcq") {
-    const ok = ans !== "" && ans === normalize(q.correct);
-    return { isCorrect: ok, points: ok ? pointsForBinary(index) : 0 };
-  }
-
-  if (fmt === "open_first_letter") {
-    const ok = ans !== "" && letterList(q).includes(ans.toUpperCase());
-    return { isCorrect: ok, points: ok ? pointsForBinary(index) : 0 };
-  }
-
-  // number
-  const correct = Number(q.number);
-  const user = Number(ans);
-  const diff = (ans === "" || isNaN(user)) ? Infinity : Math.abs(user - correct);
-  return { isCorrect: diff === 0, points: calcNumberPoints(diff, q) };
-}
+/* ⭐ Оценяването и верните отговори вече са само при хоста — клиентът получава готови данни през state/current */
 
 /* ------------------------- Екрани ------------------------- */
 
@@ -522,19 +471,12 @@ function seededShuffle(array, seed) {
   return result;
 }
 
-function updateRankingTitle(index) {
-  if (!questions || questions.length === 0) {
-    rankingTitle.textContent = "Временно класиране";
-    historyBtn.style.display = "none";
-    return;
-  }
-
-  const isLast = index >= questions.length - 1;
+function updateRankingTitle(isLast) {
   rankingTitle.textContent = isLast ? "Крайно класиране" : "Временно класиране";
   historyBtn.style.display = isLast ? "block" : "none";
 }
 
-/* ------------------------- Зареждане на въпросите ------------------------- */
+/* ------------------------- Зареждане на параметрите на епизода (въпроси вече няма тук) ------------------------- */
 
 async function loadQuestionsFromFirestore() {
   if (!episodeId || loadedEpisodeId === episodeId) return;
@@ -549,7 +491,6 @@ async function loadQuestionsFromFirestore() {
   }
 
   const data = qDoc.data();
-  questions = data.questions || [];
   episodeConfig = data.config || {};
   loadedEpisodeId = episodeId;
 
@@ -699,8 +640,6 @@ function lockAnswerUI(answerText) {
 async function submitAnswer(index, q, answerText, startTime) {
   const ans = normalize(answerText);
   const thinkingTime = Date.now() - startTime;
-  const result = evaluateAnswer(q, index, ans);
-
   lockAnswerUI(ans);
 
   try {
@@ -715,10 +654,6 @@ async function submitAnswer(index, q, answerText, startTime) {
       doc(db, "games", "configurator", "episodes", episodeId, "results", player, "answers", String(index)),
       {
         answer: ans,
-        correct: correctDisplay(q),
-        explanation: q.explanation || "",
-        isCorrect: result.isCorrect,
-        points: result.points,
         timestamp: Date.now(),
         thinkingTime
       }
@@ -738,8 +673,7 @@ function renderMCQ(q, index, startTime) {
   const wrap = document.createElement("div");
   wrap.className = "answers";
 
-  const seed = episodeId.length * 1000 + index;
-  const shuffled = seededShuffle(q.answers || [], seed);
+  const shuffled = q.answers || [];   // редът идва готов от хоста
 
   shuffled.forEach(ans => {
     const btn = document.createElement("button");
@@ -862,23 +796,9 @@ async function lockIfAlreadyAnswered(index) {
 
 /* ------------------------- Обяснение ------------------------- */
 
-/* Събира отговорите на всички играчи за даден въпрос */
-async function fetchAllAnswers(index) {
-  const playersSnap = await getDocs(
-    collection(db, "games", "configurator", "episodes", episodeId, "results")
-  );
+/* Всичко идва готово от хоста през state/current (верният отговор се разкрива едва тук) */
 
-  const entries = await Promise.all(playersSnap.docs.map(async playerDoc => {
-    const ansDoc = await getDoc(
-      doc(db, "games", "configurator", "episodes", episodeId, "results", playerDoc.id, "answers", String(index))
-    );
-    return ansDoc.exists() ? { name: playerDoc.id, ...ansDoc.data() } : null;
-  }));
-
-  return entries.filter(Boolean);
-}
-
-async function renderExplanation(index) {
+function renderExplanation(data) {
   showOnly(explanationDiv);
   statsBlock.innerHTML = "";
   explanationText.textContent = "";
@@ -886,41 +806,31 @@ async function renderExplanation(index) {
   answeredList.style.display = "none";
   answeredNames.innerHTML = "";
 
-  const q = questions[index];
-  if (!q) return;
+  const rv = data.reveal || {};
+  const st = data.stats || {};
+  const mine = (data.results || {})[player];
+  const answered = st.answered || 0;
+  const pctOf = c => answered ? Math.round((c / answered) * 100) : 0;
 
-  explanationText.textContent = q.explanation || "";
+  explanationText.textContent = rv.explanation || "";
 
   const fmt = getFormat();
-  const all = await fetchAllAnswers(index);
-  const mine = all.find(a => a.name === player);
-  const total = all.length;
-  const pctOf = c => total ? Math.round((c / total) * 100) : 0;
-
   let html = "";
 
   if (fmt === "mcq") {
-    const correct = normalize(q.correct);
-    const counts = {};
-    (q.answers || []).forEach(a => counts[normalize(a)] = 0);
+    const correct = normalize(rv.correct);
+    const rows = st.byAnswer || [];
+    const counted = rows.reduce((s, r) => s + r.count, 0);
 
-    all.forEach(a => {
-      const chosen = normalize(a.answer);
-      if (counts[chosen] !== undefined) counts[chosen]++;
-    });
-
-    const counted = Object.values(counts).reduce((a, b) => a + b, 0);
-
-    (q.answers || []).forEach(a => {
-      const key = normalize(a);
-      const c = counts[key] || 0;
-      const pct = counted ? Math.round((c / counted) * 100) : 0;
+    rows.forEach(r => {
+      const key = normalize(r.answer);
+      const pct = counted ? Math.round((r.count / counted) * 100) : 0;
       const isCorrect = key === correct;
-      const isMine = mine && normalize(mine.answer) === key;
+      const isMine = mine && mine.a != null && normalize(mine.a) === key;
 
       html += `
         <div class="stat-answer ${isCorrect ? "correct" : ""} ${isMine ? "mine" : ""}">
-          ${esc(a)}
+          ${esc(r.answer)}
           <span class="pct">${pct}%</span>
           ${isCorrect ? " ✔" : ""}
         </div>
@@ -929,42 +839,29 @@ async function renderExplanation(index) {
   }
 
   else if (fmt === "open_first_letter") {
-    const correctLetters = letterList(q);
-    const counts = {};
-    all.forEach(a => {
-      const k = normalizeUpper(a.answer);
-      if (k) counts[k] = (counts[k] || 0) + 1;
+    const correctLetters = rv.letters || [];
+
+    (st.byAnswer || []).forEach(r => {
+      const isCorrect = correctLetters.includes(r.answer);
+      const isMine = mine && mine.a != null && normalizeUpper(mine.a) === r.answer;
+      html += `
+        <div class="stat-answer ${isCorrect ? "correct" : ""} ${isMine ? "mine" : ""}">
+          ${esc(r.answer)}
+          <span class="pct">${pctOf(r.count)}%</span>
+          ${isCorrect ? " ✔" : ""}
+        </div>
+      `;
     });
-
-    // верните букви винаги се показват, дори никой да не ги е написал
-    correctLetters.forEach(l => { if (counts[l] === undefined) counts[l] = 0; });
-
-    Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .forEach(([letter, c]) => {
-        const isCorrect = correctLetters.includes(letter);
-        const isMine = mine && normalizeUpper(mine.answer) === letter;
-        html += `
-          <div class="stat-answer ${isCorrect ? "correct" : ""} ${isMine ? "mine" : ""}">
-            ${esc(letter)}
-            <span class="pct">${pctOf(c)}%</span>
-            ${isCorrect ? " ✔" : ""}
-          </div>
-        `;
-      });
   }
 
   else {
     // number
     const tiers = { 10: 0, 5: 0, 3: 0, 1: 0, 0: 0 };
-    all.forEach(a => {
-      const { points } = evaluateAnswer(q, index, a.answer);
-      tiers[points] = (tiers[points] || 0) + 1;
-    });
+    (st.byPoints || []).forEach(r => { tiers[r.points] = r.count; });
 
     html += `
       <div class="stat-answer correct">
-        Верен отговор: ${esc(q.number)}
+        Верен отговор: ${esc(rv.correct)}
       </div>
     `;
 
@@ -980,11 +877,10 @@ async function renderExplanation(index) {
   }
 
   // собственият резултат на играча
-  if (mine) {
-    const r = evaluateAnswer(q, index, mine.answer);
+  if (mine && mine.a != null) {
     html += `
       <div class="my-result">
-        Твоят отговор: <b>${esc(mine.answer)}</b> — ${r.points} т. ${r.isCorrect ? "✔" : (fmt === "number" ? "" : "✘")}
+        Твоят отговор: <b>${esc(mine.a)}</b> — ${mine.p} т. ${mine.ok ? "✔" : (fmt === "number" ? "" : "✘")}
       </div>
     `;
   } else {
@@ -992,7 +888,7 @@ async function renderExplanation(index) {
   }
 
   if (fmt !== "mcq") {
-    html = `<div style="margin-bottom:8px;">Верен отговор: <b>${esc(correctDisplay(q))}</b></div>` + html;
+    html = `<div style="margin-bottom:8px;">Верен отговор: <b>${esc(rv.correct)}</b></div>` + html;
   }
 
   statsBlock.innerHTML = html;
@@ -1000,62 +896,17 @@ async function renderExplanation(index) {
 
 /* ------------------------- Класиране ------------------------- */
 
-async function renderRanking(index) {
+function renderRanking(data) {
   showOnly(rankingDiv);
-  rankingList.innerHTML = "";
 
-  const playersSnap = await getDocs(
-    collection(db, "games", "configurator", "episodes", episodeId, "results")
-  );
+  const isLast = !!data.isFinal;
 
-  const scores = {};
-
-  for (const playerDoc of playersSnap.docs) {
-    const playerName = playerDoc.id;
-
-    const answersSnap = await getDocs(
-      collection(db, "games", "configurator", "episodes", episodeId, "results", playerName, "answers")
-    );
-
-    let totalPoints = 0;
-    let totalTime = 0;
-
-    answersSnap.forEach(ansDoc => {
-      const qIndex = Number(ansDoc.id);
-      const data = ansDoc.data();
-      const q = questions[qIndex];
-      if (!q) return;
-
-      totalPoints += evaluateAnswer(q, qIndex, data.answer).points;
-
-      if (typeof data.thinkingTime === "number") {
-        totalTime += data.thinkingTime;
-      }
-    });
-
-    scores[playerName] = { points: totalPoints, time: totalTime };
-  }
-
-  const sorted = Object.entries(scores).sort((a, b) => {
-    const ap = a[1].points;
-    const bp = b[1].points;
-    if (bp !== ap) return bp - ap;
-
-    const at = a[1].time;
-    const bt = b[1].time;
-    if (at !== bt) return at - bt;
-
-    return a[0].localeCompare(b[0], "bg");
-  });
-
-  rankingList.innerHTML = sorted
-    .map(([name, obj], i) => {
-      const pts = obj.points;
-      const time = (obj.time / 1000).toFixed(1);
-      const isLast = index >= questions.length - 1;
+  rankingList.innerHTML = (data.rows || [])
+    .map((row, i) => {
+      const time = (row.time / 1000).toFixed(1);
 
       let cls = "";
-      const isMe = name === player;
+      const isMe = row.name === player;
       let medal = "";
 
       if (i === 0) { cls = "gold"; medal = "🥇"; }
@@ -1065,12 +916,12 @@ async function renderRanking(index) {
       const timeText = isLast ? ` (време: ${time} сек)` : "";
 
       return `<div class="rank-item ${cls} ${isMe ? 'myself' : ''}">
-        ${i+1}. ${medal} ${esc(name)} — ${pts} т.${timeText}
+        ${i+1}. ${medal} ${esc(row.name)} — ${row.points} т.${timeText}
       </div>`;
     })
     .join("");
 
-  updateRankingTitle(index);
+  updateRankingTitle(isLast);
 }
 
 /* ------------------------- LIVE "кой е отговорил" ------------------------- */
@@ -1156,7 +1007,7 @@ function applyPhaseImmediately(data) {
     showOnly(quizDiv);
     globalTimer.style.display = "block";
 
-    const q = questions[index];
+    const q = data.q;
     if (!q) return;
 
     qText.textContent = `${index + 1}. ${q.question}`;
@@ -1182,7 +1033,7 @@ function applyPhaseImmediately(data) {
   if (phase === "explanation") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
-    renderExplanation(index);
+    renderExplanation(data);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     updateTimer(startTime, duration);
     return;
@@ -1192,7 +1043,7 @@ function applyPhaseImmediately(data) {
   if (phase === "ranking") {
     globalTimer.style.display = "block";
     answeredList.style.display = "none";
-    renderRanking(index);
+    renderRanking(data);
     timerInterval = setInterval(() => updateTimer(startTime, duration), 200);
     updateTimer(startTime, duration);
     return;
