@@ -410,7 +410,7 @@
 
 <body>
 
-<h1> Бълг. Нац. Куиз Асоциация <br>🧩 Мегакуиз 100, еп. 1 🧩</h1>
+<h1><small> Игри на Знания · епизод  - тест</small><br>🧩 Мегакуиз 🧩</h1>
 
 <div id="spectatorBanner">👁 Режим зрител — гледаш играта, не участваш и не се броиш в класирането</div>
 <audio id="bg-music" src="../music/games.mp3" loop preload="auto"></audio>
@@ -419,7 +419,8 @@
 
 <div id="start-screen">
   <p id="loginLabel">Въведете Двете си имена:</p>
-  <input type="text" id="player-id" placeholder="Име ..." />
+  <input type="text" id="player-id" placeholder="Име ..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+  <div id="loginMsg" style="min-height:1.3em; margin:2px 0 6px; font-size:0.95em; color:#ff8a80;"></div>
   <button id="start-btn">Започни!</button>
   <button id="spectator-btn" style="background:#2b4a6b; color:#fff;">👁 Гледам като зрител</button>
   <button id="archiveBtn">Архив класирания</button>
@@ -427,6 +428,7 @@
 
 <div id="waiting-screen" style="display:none;">
   <h2 id="waitingTitle">Играта още не е започнала.</h2>
+  <p style="margin:0 0 6px;"><a href="#" id="switchTeam" style="color:#9ecbff; font-size:0.75em;">⟲ Не съм този отбор — смени</a></p>
   <p>Моля, изчакайте<span id="dots">...</span></p>
 
  <img id="lobby-image" src="https://i.imgur.com/hwZGsfM.jpeg" alt="Мегакуиз 100 въпроса" />
@@ -437,32 +439,32 @@
     <p>🧩 Преди всеки кръг има подробно обяснение за кръга и неговите жокери.</p>
     <p>🧩 Запознайте се преди да играете, а тук накратко:</p>
      <p>🧩 1-ви кръг - Твърдение или сравнение.</p>
-    <p>🧩Време  - <strong>30 секунди </strong> ; Точки - <strong> по 2 </strong> за верен отговор.</p>
+    <p>🧩Време  - <strong>20 секунди </strong> ; Точки - <strong> по 2 </strong> за верен отговор.</p>
     <p>🧩 2-ри кръг - Ако не го знаеш, уцели го.</p>
-    <p>🧩Време  - <strong>40 секунди </strong> Точки - <strong> по 3 </strong> за верен отговор.</p>
+    <p>🧩Време  - <strong>20 секунди </strong> Точки - <strong> по 3 </strong> за верен отговор.</p>
     <p>🧩 3-ти кръг - Буквомания.</p>
-    <p>🧩Време  - <strong>45 секунди </strong>; Точки - <strong> по 4 </strong> за верен отговор.</p>
+    <p>🧩Време  - <strong>25 секунди </strong>; Точки - <strong> по 4 </strong> за верен отговор.</p>
     <p>🧩 4-ти кръг – Фотомания </p>
-    <p>🧩Време  - <strong>45 секунди </strong>; Точки - <strong> по 4 </strong> за верен отговор.</p>
+    <p>🧩Време  - <strong>25 секунди </strong>; Точки - <strong> по 4 </strong> за верен отговор.</p>
     <p>🧩 <strong> Почивка - 2 минути </strong> </p>
     <p>🧩 5-ти кръг – Цифромания </p>
-    <p>🧩Време  - <strong>45 секунди </strong>; Точки - <strong> по 5 за верен отговор </strong>  или <strong> 3,2,1 точки </strong> в зависимост колко сте близо до верния отговор</p>
+    <p>🧩Време  - <strong>25 секунди </strong>; Точки - <strong> по 5 за верен отговор </strong>  или <strong> 3,2,1 точки </strong> в зависимост колко сте близо до верния отговор</p>
     <p>🧩 6-ти кръг – Чифтосване </p>
     <p>🧩 Последният отбор в класирането избира тема от 10 възможни </p>
-    <p>🧩Време  - <strong>90 секунди </strong> ; Точки - <strong> по 1 </strong> за верен отговор.</p>
+    <p>🧩Време  - <strong>60 секунди </strong> ; Точки - <strong> по 1 </strong> за верен отговор.</p>
     <p>🧩 7-ми кръг – Мултимедия 3 в 1 (Кино, Музика и Спорт) </p>
-    <p>🧩 Време - <strong>60 секунди </strong>; Точки - <strong> по 4 </strong> за верен отговор.</p>
+    <p>🧩 Време - <strong>40 секунди </strong>; Точки - <strong> по 4 </strong> за верен отговор.</p>
     <p>🧩 8-ми кръг – Групиране </p>
     <p>🧩 Последният отбор, който не избирал тема в Кръг Чифтосване, избира тема от 10 възможни </p>
-    <p>🧩 Време - <strong>90 секунди </strong>; Точки - <strong> по 1 </strong> за верен отговор.</p>
+    <p>🧩 Време - <strong>60 секунди </strong>; Точки - <strong> по 1 </strong> за верен отговор.</p>
     <p>🧩 <strong> Почивка - 2 минути </strong> </p>
     <p>🧩 9-ти кръг – Избор </p>
     <p> 🧩 Всеки въпрос има <strong>5 отговора</strong>. Кликате ги по ред на увереност (1-ви клик = "най-вероятно вярно"). Втори - по-малко вероятно, трети и т.н. </p>
     <p> 🧩 Печелите точки според позицията на верния отговор във вашата подредба: <strong>6 / 4 / 3 / 2 / 1</strong>, или 0 при пропуснат въпрос.</p>
     <p> 🧩 Всеки отбор избира тема <strong>два пъти</strong>: първия път избира тема, в която е силен и при верен отговор, точките му се <strong>удвоят</strong> за този въпрос. Вторият път избирате тема, която ще затрудни другите, като отборът не отговарят на този въпрос, а е само зрител.</p>
-    <p> 🧩 Време за размисъл — <strong>45 сек.</strong> на въпрос, <strong>20 сек.</strong> за избор на тема.</p>
+    <p> 🧩 Време за размисъл — <strong>25 сек.</strong> на въпрос, <strong>20 сек.</strong> за избор на тема.</p>
     <p>🧩 10-ти кръг – По 3 дузпи към всички.</p>
-    <p>🧩 Време - <strong> 45 секунди </strong></p>
+    <p>🧩 Време - <strong> 25 секунди </strong></p>
     <p>🧩Ако отговорите правилно на всички въпроси в даден кръг, получавате <strong>  бонус от 3 точки </strong> , затова използвайте активно и разумно жокерите си, за да запазите безпогрешна серия.</p>
     <p>🧩Неизползваните жокери автоматично се осребряват в края на играта и печелите по 1 точка за всеки от тях <strong>  без Патрондаш </strong> (който не се осребрява)</p>
 
@@ -1061,12 +1063,13 @@ function isR2Correct(data, q) {
 document.getElementById("spectator-btn").onclick = async () => {
   // ⭐ при вход с код и зрителят трябва да въведе валиден код от списъка
   await loadRoster();
+  if (rosterUnknown()) return loginErr("Няма връзка с играта. Опитай отново след секунда.");
   if (rosterData && rosterData.on) {
     const code = playerIdInput.value.trim().toLowerCase().replace(/\s+/g, "");
-    if (!code) return alert("За да гледаш като зрител, въведи кода на отбор в полето.");
-    if (!(window.crypto && crypto.subtle)) return alert("Този браузър не поддържа вход с код.");
+    if (!code) return loginErr("За да гледаш като зрител, въведи кода на отбор в полето.");
+    if (!(window.crypto && crypto.subtle)) return loginErr("Този браузър не поддържа вход с код.");
     const h = await sha256hex(rosterData.salt + ":" + code);
-    if (!(rosterData.entries || []).some(e => e.h === h)) return alert("Грешен код.");
+    if (!(rosterData.entries || []).some(e => e.h === h)) return loginErr("Грешен код.");
   }
   spectator = true;
   document.body.classList.add("spectator");
@@ -1081,34 +1084,65 @@ document.getElementById("spectator-btn").onclick = async () => {
 };
 
 // ⭐ ВХОД С КОД — ако хостът е качил списък с отбори, името се взема от кода
-let rosterData = null;
+let rosterData = null, rosterError = false;
+const loginErr = m => { const el = document.getElementById("loginMsg"); if (el) { el.style.color = "#ff8a80"; el.textContent = "⚠ " + m; } };
+const loginInfo = m => { const el = document.getElementById("loginMsg"); if (el) { el.style.color = "#9be7a1"; el.textContent = m; } };
+playerIdInput.addEventListener("input", () => { const el = document.getElementById("loginMsg"); if (el && el.textContent.startsWith("⚠ Грешен")) el.textContent = ""; });
 async function loadRoster() {
+  const key = "mq_roster_" + GAME_ID;
   try {
     const sn = await getDoc(doc(db, "games", GAME_ID, "control", "roster"));
-    rosterData = sn.exists() ? sn.data() : null;
-  } catch (e) { rosterData = null; }
+    rosterData = sn.exists() ? sn.data() : null; rosterError = false;
+    try { localStorage.setItem(key, JSON.stringify(rosterData)); } catch (e) {}
+  } catch (e) {
+    // ⭐ няма връзка — НЕ минаваме на свободен вход; ползваме последния запомнен списък
+    rosterError = true;
+    try { rosterData = JSON.parse(localStorage.getItem(key) || "null"); } catch (e2) { rosterData = null; }
+  }
   if (rosterData && rosterData.on) {
     document.getElementById("loginLabel").textContent = "Въведете кода на вашия отбор:";
     playerIdInput.placeholder = "Код ...";
   }
+  if (rosterError && !(rosterData && rosterData.on)) loginErr("Няма връзка с играта — пробвам пак…");
+  else if (document.getElementById("loginMsg") && document.getElementById("loginMsg").textContent.startsWith("⚠ Няма връзка")) loginInfo("✓ Връзката е наред.");
 }
-loadRoster();
+// докато връзката липсва — пробваме автоматично на всеки 3 секунди
+setInterval(() => { if (rosterError && !ready) loadRoster(); }, 3000);
+// ⭐ ако връзката не позволява да разберем дали играта е с код — не пускаме никого с произволно име
+const rosterUnknown = () => rosterError && !(rosterData && rosterData.on);
+async function autoLogin() {
+  // ⭐ ако страницата се презареди (или телефонът ни изхвърли) — връщаме отбора в играта без нов код
+  try {
+    if (!rosterData || !rosterData.on) return;
+    const sv = JSON.parse(localStorage.getItem("mq_login_" + GAME_ID) || "null");
+    if (!sv || !sv.code || Date.now() - sv.t > 10 * 3600 * 1000) return;
+    const h = await sha256hex(rosterData.salt + ":" + sv.code);
+    if (!(rosterData.entries || []).some(e => e.h === h)) { localStorage.removeItem("mq_login_" + GAME_ID); return; }
+    for (let i = 0; i < 20 && !episodeId; i++) await new Promise(r => setTimeout(r, 150));
+    playerIdInput.value = sv.code;
+    startBtn.click();
+  } catch (e) {}
+}
+loadRoster().then(autoLogin);
+document.getElementById("switchTeam").onclick = e => { e.preventDefault(); try { localStorage.removeItem("mq_login_" + GAME_ID); } catch (er) {} location.reload(); };
 async function sha256hex(t) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
 startBtn.onclick = async () => {
   await loadRoster();   // пресвежаваме — хостът може да го е качил след отварянето на страницата
+  if (rosterUnknown()) return loginErr("Няма връзка с играта. Опитай отново след секунда.");
   let name;
   if (rosterData && rosterData.on) {
     const code = playerIdInput.value.trim().toLowerCase().replace(/\s+/g, "");
-    if (!code) return alert("Въведете кода на отбора!");
-    if (!(window.crypto && crypto.subtle)) return alert("Този браузър не поддържа вход с код.");
+    if (!code) return loginErr("Въведете кода на отбора!");
+    if (!(window.crypto && crypto.subtle)) return loginErr("Този браузър не поддържа вход с код.");
     const h = await sha256hex(rosterData.salt + ":" + code);
     const hit = (rosterData.entries || []).find(e => e.h === h);
-    if (!hit) return alert("Грешен код.");
+    if (!hit) return loginErr("Грешен код.");
     name = hit.name;
+    try { localStorage.setItem("mq_login_" + GAME_ID, JSON.stringify({ code, t: Date.now() })); } catch (e) {}
   } else {
     // махаме символи, които чупят Firestore идентификатори или HTML-а на класиранията
     name = playerIdInput.value.replace(/[<>&"'`\/\\]/g, "").replace(/\s+/g, " ").trim();
-    if (!name) return alert("Въведете две имена!");
+    if (!name) return loginErr("Въведете две имена!");
   }
 
   playerId = name;
@@ -1209,7 +1243,7 @@ const ROUND_META = {
     image: "https://i.imgur.com/pjkY1GH.jpeg",
     html: `
       <p>⭐ Очакват ви 10 твърдения / сравнения — възможните отговори са само <strong>два</strong>.</p>
-      <p>⭐ Време за отговор — <strong>30 секунди</strong> на въпрос. Всеки верен отговор носи <strong>2 точки</strong>.</p>
+      <p>⭐ Време за отговор — <strong>20 секунди</strong> на въпрос. Всеки верен отговор носи <strong>2 точки</strong>.</p>
       <p>⭐ Всички жокери се ползват преди да отговорите на въпроса!</p>
       <p>🥞 Жокер <strong>Палачинка</strong> (гарантира верен отговор, дори ако отговорът Ви е грешен — обръща се като палачинка, но трябва да го натиснете преди да отговорите). Еднократна за кръга.</p>
       <p>🔁 <strong>Поправка</strong> е достъпна през целия кръг — неограничена употреба.</p>
@@ -1224,7 +1258,7 @@ const ROUND_META = {
     html: `
       <p>⚡ Очакват ви 10 въпроса с повишаваща степен на трудност.</p>
       <p>⚡ Отговаря се с натискане на бутон върху някой от четирите отговора.</p>
-      <p>⚡Време за мислене и отговор — <strong>40 секунди</strong> на въпрос. Всеки верен отговор носи <strong>3 точки</strong>.</p>
+      <p>⚡Време за мислене и отговор — <strong>20 секунди</strong> на въпрос. Всеки верен отговор носи <strong>3 точки</strong>.</p>
       <p>⚡По време на играта имате достъп до няколко <strong>жокера</strong> — всеки от тях може да се ползва само веднъж за целия кръг, с изключение на <strong>🔁 Поправка</strong>, която е с неограничена употреба (сменяй отговора си, докато не изтече времето).</p>
       <p>⚡Всеки един жокер или бонус се ползва преди да се натисне някой от отговорите.</p>
       <p>⚡Описание на жокерите: ⚡</p>
@@ -1248,7 +1282,7 @@ const ROUND_META = {
       <p>🅰️ Пример: За Стара планина пишем С, за Иван Вазов пишем В.</p>
       <p>🅰️ Ако се пита нещо различно — във въпроса ще пише (Търси се еди какво си...).</p>
       <p>🅰️ След като напишете буква, натиснете бутона Изпрати. С клавиш Enter се изпраща по-лесно и по-бързо.</p>
-      <p>🅰️ Време за мислене и отговор — <strong>45 секунди</strong> на въпрос. Всеки верен отговор носи <strong>4 точки</strong>.</p>
+      <p>🅰️ Време за мислене и отговор — <strong>25 секунди</strong> на въпрос. Всеки верен отговор носи <strong>4 точки</strong>.</p>
       <p>🅰️ При равенство в точките се гледа общото време за целия куиз.</p>
       <p>🔤 Жокер <strong> Дай Три</strong> — дава следващите три букви от търсеата дума/израз.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
@@ -1263,7 +1297,7 @@ const ROUND_META = {
     html: `
       <p>📷 Очакват ви 10 въпроса, придружени със снимка, от различни области.</p>
       <p>📷 Отговаря се с изписване на първата буква от търсеното.</p>
-      <p>📷 Време за отговор — <strong>45 секунди</strong>. Всеки верен отговор носи <strong>4 точки</strong>.</p>
+      <p>📷 Време за отговор — <strong>25 секунди</strong>. Всеки верен отговор носи <strong>4 точки</strong>.</p>
       <p>🔤 Жокер <strong>Дай Три</strong> — дава следващите три букви от търсениата дума/израз.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате буквата наново.</p>
       <p>⭐ БОНУС: Ако познаете всичките 10 въпроса , получавате бонус от <strong>+3 точки</strong> за кръга.</p>
@@ -1288,7 +1322,7 @@ const ROUND_META = {
     html: `
       <p>🔗 Последният в класирането избира тема от възможните.</p>
       <p>🔗 Очакват ви 10 имена вляво и 10 имена вдясно от избраната тема — трябва да ги съчетаете правилно.</p>
-      <p>🔗 Време за целия кръг — <strong>90 секунди</strong>.</p>
+      <p>🔗 Време за целия кръг — <strong>60 секунди</strong>.</p>
       <p>🔗 Точкуване - По <strong>1 точка</strong> за верен чифт. При 10/10 — бонус от <strong>3 точки</strong>.</p>
       <p>🔁 <strong>Поправка</strong> — маха последния чифт, неограничена.</p>
     `
@@ -1299,7 +1333,7 @@ const ROUND_META = {
     image: "https://i.imgur.com/fYVFGFf.jpeg",
     html: `
       <p>🎬 9 въпроса с клипче (Музика, Кино, Спорт).</p>
-      <p>🎬 Време за клипа и отговора — <strong>60 секунди</strong>. Верен отговор — <strong>4 точки</strong>.</p>
+      <p>🎬 Време за клипа и отговора — <strong>40 секунди</strong>. Верен отговор — <strong>4 точки</strong>.</p>
       <p>🔤 Жокер <strong>Дай Три</strong> — дава следващите три букви от търсениата дума/израз.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена.</p>
       <p>⭐ 10/10 верни носят бонус от <strong>3 точки</strong>.</p>
@@ -1313,7 +1347,7 @@ const ROUND_META = {
       <p>🧱 Последният в класирането избира тема.</p>
       <p>🧱 Ако е избирал преди кръг 6, право на избор има следващия играч нагоре в класирането.</p>
       <p>🧱 Имате 10 обекта, които трябва да разпределите по групи.</p>
-      <p>🧱 Време за целия кръг — <strong>90 секунди</strong>.</p>
+      <p>🧱 Време за целия кръг — <strong>60 секунди</strong>.</p>
       <p>⭐ По <strong>1 точка</strong> за верен обект. При 10/10 — бонус от <strong>3 точки</strong>.</p>
       <p>🔁 <strong>Поправка</strong> — маха последния групиран обект, неограничена.</p>
     `
@@ -1338,7 +1372,7 @@ const ROUND_META = {
     html: `
       <p>⚽ 3 специални въпроса с число за отговор.</p>
       <p>⚽ Точките се печелят спрямо близостта ви до верния отговор В СРАВНЕНИЕ С ОСТАНАЛИТЕ играчи.</p>
-      <p>⚽ Време за отговор — <strong>45 секунди</strong> на въпрос.</p>
+      <p>⚽ Време за отговор — <strong>25 секунди</strong> на въпрос.</p>
       <p>🔁 <strong>Поправка</strong> — неограничена, въвеждате числото наново.</p>
     `
   }
@@ -1849,7 +1883,7 @@ function renderR3Question(index, startTime, duration) {
       return;
     }
     const syll = (resp.text || "").trim();
-    jokerStatusNote(syll ? `🔤 Дай три: "${syll}"` : `🔤 Думата няма втора сричка.`);
+    jokerStatusNote(syll ? `🔤 Втора сричка: "${syll}"` : `🔤 Думата няма втора сричка.`);
     try {
       await setDoc(
         doc(db, "games", GAME_ID, "episodes", episodeId, "results", player),
