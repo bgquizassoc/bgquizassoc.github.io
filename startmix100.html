@@ -87,31 +87,31 @@ const GAME_ID = "quizmix100";
 // ===== РЪЧНО ПРОМЕНЯЕМИ ВРЕМЕНА (в милисекунди) — нагласи ги спокойно след теста =====
 const LOBBY_TIME     = 10000;
 
-const LOBBY_TIME1 = 15000, Q1 = 30000, EXPL1 = 15000, RANK1 = 15000;
-const LOBBY_TIME2 = 25000, Q2 = 40000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 15000;
-const LOBBY_TIME3 = 10000, Q3 = 45000, EXPL3 = 15000, RANK3 = 15000;
-const LOBBY_TIME4 = 10000, Q4 = 45000, EXPL4 = 15000, RANK4 = 15000;
-const BREAK_TIME  = 300000; // 5 минути почивка (след кръг 4 и кръг 8)
+const LOBBY_TIME1 = 10000, Q1 = 5000, EXPL1 = 5000, RANK1 = 10000;
+const LOBBY_TIME2 = 10000, Q2 = 5000, JOKER_BUFFER2 = 15000, EXPL2 = 15000, RANK2 = 10000;
+const LOBBY_TIME3 = 10000, Q3 = 5000, EXPL3 = 5000, RANK3 = 10000;
+const LOBBY_TIME4 = 10000, Q4 = 5000, EXPL4 = 5000, RANK4 = 10000;
+const BREAK_TIME  = 100000; // 5 минути почивка (след кръг 4 и кръг 8)
 
-const LOBBY_TIME5 = 10000, Q5 = 45000, EXPL5 = 10000, RANK5 = 15000;
+const LOBBY_TIME5 = 10000, Q5 = 5000, EXPL5 = 15000, RANK5 = 10000;
 
-const LOBBY_TIME6 = 10000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 90000, EXPL6 = 15000, RESULTS6 = 15000, RANK6 = 15000;
+const LOBBY_TIME6 = 10000, CHOOSE_TIME6 = 20000, CHOOSE_REVEAL6 = 5000, Q6 = 10000, EXPL6 = 15000, RESULTS6 = 15000, RANK6 = 10000;
 
-const LOBBY_TIME7 = 10000, Q7 = 60000, EXPL7 = 10000, RANK7 = 15000;
+const LOBBY_TIME7 = 10000, Q7 = 20000, EXPL7 = 15000, RANK7 = 10000;
 
-const LOBBY_TIME8 = 10000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 90000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 15000;
+const LOBBY_TIME8 = 10000, CHOOSE_TIME8 = 20000, CHOOSE_REVEAL8 = 5000, Q8 = 10000, EXPL8 = 15000, RESULTS8 = 15000, RANK8 = 10000;
 
-const LOBBY_TIME9 = 20000, CHOOSE_TIME9 = 15000, CHOOSE_REVEAL9 = 5000, Q9 = 45000, EXPL9 = 15000, QRANK9 = 10000, RANK9 = 10000;
+const LOBBY_TIME9 = 10000, CHOOSE_TIME9 = 20000, CHOOSE_REVEAL9 = 5000, Q9 = 25000, EXPL9 = 10000, QRANK9 = 10000, RANK9 = 10000;
 
-const LOBBY_TIME10 = 10000, Q10 = 45000, EXPL10 = 10000, RANK10 = 10000;
+const LOBBY_TIME10 = 20000, Q10 = 15000, EXPL10 = 15000, RANK10 = 10000;
 
 const TIEBREAK_TIME = 20000, TIEBREAK_REVEAL = 10000;
 
 const THANKS_TIME = 15000;
 const REVEAL_STEP_TIME = 5000; // колко остава видим всеки откриващ се ред
-const REVEAL_SETTLE_TIME = 10000; // колко стои напълно разкритото класиране, преди да започне повторението
-const REPLAY_STEP_TIME = 10000;   // колко стои всяко от скритите класирания (предпоследен въпрос, последен въпрос, 3 дузпи)
-const FINAL_RANK_TIME = 30000;    // само за таймера на състоянието — крайното класиране остава завинаги
+const REVEAL_SETTLE_TIME = 20000; // колко стои напълно разкритото класиране, преди да започне повторението
+const REPLAY_STEP_TIME = 15000;   // колко стои всяко от скритите класирания (предпоследен въпрос, последен въпрос, 3 дузпи)
+const FINAL_RANK_TIME = 60000;    // само за таймера на състоянието — крайното класиране остава завинаги
 
 const RANK_POINTS9 = [6, 4, 3, 2, 1];
 
@@ -410,21 +410,25 @@ function stopLive() {
 async function sha256hex(t) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
 const normCode = c => String(c || "").trim().toLowerCase().replace(/\s+/g, "");
 let rosterPublished = false;
-async function publishRoster() {
-  rosterPublished = true;
+let allowedNames = null;   // ⭐ когато има teams.json — само тези имена се броят в класирането
+const hasTeams = () => Array.isArray(loadedFiles.teams) && loadedFiles.teams.some(t => t && t.name && t.code);
+async function publishRoster(explicitOff) {
   const teams = Array.isArray(loadedFiles.teams) ? loadedFiles.teams.filter(t => t && t.name && t.code) : [];
+  if (!teams.length && !explicitOff) { log("⚠️ Няма зареден teams.json — списъкът с кодове в базата НЕ е променян."); return; }
+  rosterPublished = true;
   try {
-    if (!teams.length) { await setDoc(doc(db, "games", GAME_ID, "control", "roster"), { on: false, ts: Date.now() }); log("ℹ️ Няма teams.json — вход със свободно име (без код)."); return; }
+    if (!teams.length) { allowedNames = null; await setDoc(doc(db, "games", GAME_ID, "control", "roster"), { on: false, ts: Date.now() }); log("ℹ️ Няма teams.json — вход със свободно име (без код)."); return; }
     const salt = "m100-" + Math.random().toString(36).slice(2, 10);
     const entries = [];
     for (const t of teams) entries.push({ h: await sha256hex(salt + ":" + normCode(t.code)), name: String(t.name).replace(/[<>&"'`\/\\]/g, "").replace(/\s+/g, " ").trim() });
     await setDoc(doc(db, "games", GAME_ID, "control", "roster"), { on: true, salt, entries, ts: Date.now() });
-    log(`🔑 Вход с код: ${entries.length} отбора.`);
+    allowedNames = new Set(entries.map(e => e.name));
+    log(`🔑 Вход с код: ${entries.length} отбора. Само те се броят в класирането.`);
   } catch (e) { log("⚠️ Не успях да запиша списъка с отбори: " + (e && e.message ? e.message : e)); }
 }
 async function startLive(ep, rebuild) {
   stopLive();
-  if (!rosterPublished) await publishRoster();
+  if (!rosterPublished && hasTeams()) await publishRoster();
   live = { ep, players: {}, adj: {}, unsubs: [], startedAt: Date.now(), handled: new Set() };
   if (rebuild) await rebuildLedger(ep); else ledger = {};
   live.unsubs.push(onSnapshot(col("results"), snap => {
@@ -451,7 +455,7 @@ async function startLive(ep, rebuild) {
 
 // ⭐ Класиране от книгата с точките — без нито едно четене от базата
 function standingsNow(isFinal) {
-  const names = new Set([...Object.keys(live ? live.players : {}), ...Object.keys(ledger)]);
+  const names = new Set([...Object.keys(live ? live.players : {}), ...Object.keys(ledger)].filter(n => !allowedNames || allowedNames.has(n)));
   const r10 = [[], [], []];
   names.forEach(n => {
     const L = ledger[n]; if (!L) return;
@@ -1381,6 +1385,8 @@ document.getElementById("startBtn").onclick = async () => {
   // ⭐ Продължаване от кръг X — без лоби и престарт, започваме веднага
   if (startRound > 1) {
     if (!confirm(`Да продължа епизод "${ep}" от кръг ${startRound}? (резултатите се запазват)`)) return;
+    if (!hasTeams() && !confirm("⚠️ НЯМА зареден teams.json — вход с кодове ще бъде ИЗКЛЮЧЕН и всеки ще може да влезе с произволно име. Продължавам ли така?\n\n(Натисни Отказ, избери папката с teams.json и опитай пак.)")) return;
+    if (hasTeams()) await publishRoster(); else await publishRoster(true);
     document.getElementById("startBtn").disabled = true;
     document.getElementById("startBtn").textContent = "Играта тече…";
     try { await setDoc(doc(db, "games", GAME_ID, "control", "flow"), { pauseAfterRound: false }, { merge: true }); } catch(e) {}
@@ -1403,10 +1409,11 @@ document.getElementById("startBtn").onclick = async () => {
   const prestartDuration = startAt - Date.now() - LOBBY_TIME;
   if (prestartDuration < 0) return alert("Избраният час е твърде близо! Избери по-късен час.");
 
+  if (!hasTeams() && !confirm("⚠️ НЯМА зареден teams.json — играта ще е със СВОБОДЕН вход (без кодове) и всеки ще може да влезе с произволно име. Продължавам ли така?\n\n(Натисни Отказ, избери папката с teams.json и опитай пак.)")) return;
   document.getElementById("startBtn").disabled = true;
   document.getElementById("startBtn").textContent = "Играта тече…";
 
-  await publishRoster();   // ⭐ кодовете трябва да са в базата ОЩЕ ПРЕДИ играчите да влязат в лобито
+  await publishRoster(!hasTeams());   // ⭐ кодовете трябва да са в базата ОЩЕ ПРЕДИ играчите да влязат в лобито
   await resetState();
   try { await setDoc(doc(db, "games", GAME_ID, "control", "flow"), { pauseAfterRound: false }, { merge: true }); } catch(e) {}
   await setState(ep, "lobby", LOBBY_TIME, {});
